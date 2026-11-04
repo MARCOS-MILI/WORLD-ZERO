@@ -488,7 +488,7 @@ a.rk:hover { transform: translateY(-2px) scale(1.06); box-shadow: 0 6px 16px -6p
     { t: "Comece aqui", s: ["inicio"] },
     { t: "Criar personagem", s: ["atributos", "racas", "classes", "subclasses", "pericias", "talentos", "personalizacao"] },
     { t: "Equipamento", s: ["equipamentos", "armas", "mundanas"] },
-    { t: "Regras de jogo", s: ["combate", "condicoes", "magias", "treinamentos"] },
+    { t: "Regras de jogo", s: ["combate", "condicoes", "mana", "magias", "treinamentos"] },
     { t: "O mundo", s: ["territorio", "divindades", "casas", "gottes"] },
     { t: "Andamento", s: ["andamento"] }
   ];
@@ -565,7 +565,7 @@ a.rk:hover { transform: translateY(-2px) scale(1.06); box-shadow: 0 6px 16px -6p
   };
   var SECG = { inicio: "heart", atributos: "d20", racas: "human", classes: "swords", subclasses: "gem", pericias: "target", personalizacao: "sliders",
     equipamentos: "shield", combate: "swords", condicoes: "pulse", talentos: "star", territorio: "tomb", divindades: "sun", gottes: "bolt",
-    treinamentos: "dumbbell", mundanas: "bag", casas: "banner", magias: "magic", armas: "sword", andamento: "hourglass" };
+    treinamentos: "dumbbell", mundanas: "bag", casas: "banner", magias: "magic", mana: "drop", armas: "sword", andamento: "hourglass" };
   var GRULES = [
     [/mecanic|metalica|berserk de metal/, "gear"], [/assassino/, "dagger"], [/anoes|viking/, "axe"],
     [/demon weapon|jedi|samurai|espadachim|dark slayer/, "sword"], [/meio-orc|cacador estiloso/, "swords"],
@@ -1122,6 +1122,7 @@ a.rk:hover { transform: translateY(-2px) scale(1.06); box-shadow: 0 6px 16px -6p
   /* ------------------------------------------------------------ roteador */
   function route() {
     var h = decodeURIComponent((location.hash || "").slice(1));
+    if (h === "atributos-2") h = "mana-1"; /* endereço antigo do LCM */
     stopMotes(); stopSigils();
     barEl.style.setProperty("--p", "0%");
     setMenu(false);

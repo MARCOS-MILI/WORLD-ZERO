@@ -368,7 +368,27 @@ def _rename_sub(e, old, new, occurrence):
     return False
 
 
+def move_lcm(sections):
+    """O Limite de mana (LCM) sai do capítulo de Atributos e vira o capítulo "Como usar mana", em Regras de jogo."""
+    src = next((s for s in sections if s["id"] == "atributos"), None)
+    if not src:
+        return
+    e = next((x for x in src["entries"] if x["title"] == "Limite de mana e backlash (LCM)"), None)
+    if not e:
+        return
+    src["entries"].remove(e)
+    src["title"] = "Atributos"
+    e["id"] = "mana-1"
+    msg = ("Esta página ficava no capítulo de Atributos. Foi movida para o capítulo “Como usar mana”, "
+           "em Regras de jogo, para ficar junto das regras de como jogar. O texto não mudou.")
+    _note(e, msg)
+    sections.insert(sections.index(src) + 1, dict(id="mana", title="Como usar mana", entries=[e]))
+    CHANGES.append(dict(title="Limite de mana (LCM) movido para Regras de jogo", text=msg + " O capítulo “Atributos e mana” passou a se chamar só “Atributos”.",
+                        pages=[("mana", "Limite de mana e backlash (LCM)")]))
+
+
 def apply_patches(sections):
+    move_lcm(sections)
     # 1. Bakudo #26 aparecia 6 vezes (1 preenchido + 5 modelos vazios)
     e = _entry(sections, "classes", "Shinigami")
     n = 0
