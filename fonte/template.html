@@ -408,6 +408,24 @@ a.rk:hover { transform: translateY(-2px) scale(1.06); box-shadow: 0 6px 16px -6p
   .card { transition: none; }
   .card:hover, .card:focus-visible { transform: none; }
 }
+
+/* música de fundo (Spotify, abre só quando a pessoa quer) */
+.music-btn { position: fixed; z-index: 45; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(72px + env(safe-area-inset-bottom, 0px)); width: 46px; height: 46px; display: grid; place-items: center; border: 1px solid var(--rule); background: var(--surface); color: var(--accent); border-radius: 6px; cursor: pointer; box-shadow: 0 6px 20px rgba(10, 10, 30, .18); }
+.music-btn:hover, .music-btn[aria-expanded="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.music-btn.hint::after { content: ""; position: absolute; inset: -5px; border-radius: 10px; border: 2px solid var(--accent); opacity: 0; animation: mpulse 2.2s ease-out infinite; pointer-events: none; }
+@keyframes mpulse { 0% { transform: scale(.85); opacity: .7; } 100% { transform: scale(1.25); opacity: 0; } }
+.music-panel { position: fixed; z-index: 46; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(126px + env(safe-area-inset-bottom, 0px)); width: min(380px, calc(100vw - 32px)); padding: 12px 12px 10px; border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--rule)); border-radius: 10px; background: var(--surface); box-shadow: 0 14px 40px rgba(10, 10, 30, .3); }
+.music-panel[hidden] { display: none; }
+.music-panel .mp-head { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; }
+.music-panel .mp-head > div { flex: 1; min-width: 0; }
+.music-panel .mp-head b { display: block; font: 700 .9rem/1.2 var(--display); color: var(--fg); }
+.music-panel .mp-head small { display: block; font: 500 .72rem/1.3 var(--display); letter-spacing: .04em; color: var(--muted); }
+.music-panel .mp-x { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--rule); border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; }
+.music-panel .mp-x:hover { color: var(--fg); border-color: var(--accent); }
+.music-panel iframe { display: block; width: 100%; height: 152px; border: 0; border-radius: 12px; background: color-mix(in srgb, var(--fg) 6%, var(--surface)); }
+.music-panel .mp-note { margin: 8px 2px 0; font: 400 .74rem/1.45 var(--display); color: var(--muted); }
+.music-panel .mp-note a { color: var(--accent); }
+@media (prefers-reduced-motion: reduce) { .music-btn.hint::after { animation: none; opacity: 0; } }
 </style>
 <!--body-->
 <header class="bar">
@@ -437,6 +455,19 @@ a.rk:hover { transform: translateY(-2px) scale(1.06); box-shadow: 0 6px 16px -6p
 <button class="totop" id="toTop" type="button" aria-label="Voltar ao topo" hidden>
   <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
 </button>
+<button class="music-btn hint" id="musicBtn" type="button" aria-label="Música de fundo" aria-expanded="false" aria-controls="musicPanel" title="Música de fundo">
+  <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg>
+</button>
+<section class="music-panel" id="musicPanel" aria-label="Música de fundo" hidden>
+  <div class="mp-head">
+    <div><b>Música de fundo</b><small>Glacius · Schiavoto, Ordem Paranormal</small></div>
+    <button class="mp-x" id="musicClose" type="button" aria-label="Fechar player">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+  <div id="musicSlot"></div>
+  <p class="mp-note">Aperte o play. A música continua tocando enquanto você navega pelo livro, é só fechar esta janelinha. Sem login no Spotify, toca só um pedaço. <a href="https://open.spotify.com/track/2736FdfOsvBnQDGOlUX0wF" target="_blank" rel="noopener noreferrer">Abrir no Spotify</a></p>
+</section>
 <script id="data" type="application/json">__DATA__</script>
 <script>
 (function () {
@@ -1213,5 +1244,28 @@ a.rk:hover { transform: translateY(-2px) scale(1.06); box-shadow: 0 6px 16px -6p
   applySize(store("wz-size") || "17");
   route();
   setTimeout(buildIndex, 50);
+})();
+</script>
+<script>
+(function () {
+  "use strict";
+  var btn = document.getElementById("musicBtn"), panel = document.getElementById("musicPanel"), slot = document.getElementById("musicSlot"), closeBtn = document.getElementById("musicClose");
+  if (!btn || !panel) return;
+  function open() {
+    if (!slot.firstChild) {
+      var f = document.createElement("iframe");
+      f.src = "https://open.spotify.com/embed/track/2736FdfOsvBnQDGOlUX0wF?utm_source=generator";
+      f.title = "Glacius, Schiavoto e Ordem Paranormal (Spotify)";
+      f.setAttribute("allow", "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture");
+      f.setAttribute("loading", "lazy");
+      f.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+      slot.appendChild(f);
+    }
+    panel.hidden = false; btn.setAttribute("aria-expanded", "true"); btn.classList.remove("hint");
+  }
+  function close() { panel.hidden = true; btn.setAttribute("aria-expanded", "false"); }
+  btn.addEventListener("click", function () { if (panel.hidden) open(); else close(); });
+  closeBtn.addEventListener("click", function () { close(); btn.focus(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !panel.hidden) { close(); btn.focus(); } });
 })();
 </script>
