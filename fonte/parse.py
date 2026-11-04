@@ -303,6 +303,7 @@ TITLE_FIX = {
     "tipos de danos": "Tipos de dano",
     "evolucao das emanacao": "Evolução das emanações",
     "magias de dano": "Lista de magias",
+    "deus do destino": "Deus do Destino e outras divindades",
     "modificacoes e criacoes": "Modificações e criações",
 }
 TITLE_FIX_N = {
@@ -450,6 +451,23 @@ def apply_patches(sections):
         _note(new, msg)
         CHANGES.append(dict(title="Itens separados da lista de magias", text=msg,
                             pages=[("armas", "Armas e itens especiais"), ("magias", "Lista de magias")]))
+
+    # 8. A página dos deuses guarda todas as divindades: ganha um índice com o nome de cada uma
+    e = _entry(sections, "divindades", "Deus do Destino e outras divindades")
+    if e:
+        keep = [(i, t) for i, t in e["nav"] if t.strip() in ("Relíquias", "Relação com os Outros Deuses")]
+        gods = [(0, "Deus do Destino")]
+        for i, b in enumerate(e["blocks"]):
+            m = re.match(r"<p><strong>(.*?)</strong>", b["html"])
+            if m and re.match(r"(Deus|Deusa|Víbora|Rei do inferno)", m.group(1)) and len(m.group(1)) <= 60:
+                gods.append((i, m.group(1).strip()))
+        e["nav"] = sorted(gods + keep)
+        msg = ("Esta página junta o Deus do Destino e todas as outras divindades (Deus Dragão, Deus da Lua, Víbora celeste, "
+               "Rei do inferno e outras), então o título foi trocado e ganhou uma lista “Nesta página” com o nome de cada uma. "
+               "O texto não foi mexido.")
+        _note(e, msg)
+        CHANGES.append(dict(title="Deuses dentro da página do Deus do Destino", text=msg,
+                            pages=[("divindades", "Deus do Destino e outras divindades")]))
 
     # 7. O que ainda falta terminar (banner na página + lista na aba Andamento)
     _pend(sections, "racas", "Anões",
