@@ -25,3 +25,9 @@ python3 build.py livro.txt
 ```
 
 O resultado fica em `fonte/dist/index.html`. Copie esse arquivo para a raiz do repositório, no lugar do `index.html`.
+
+## Ficha automática
+
+A pasta `ficha/` tem a ficha de personagem automática (também um arquivo só, `ficha/index.html`). Ela calcula PV, PM, C.A., C.R., D.T., LCM e perícias a partir da raça, classe, nível e atributos, e tem abas de consulta de classes, raças, perícias, tabelas e qualidades. As fichas ficam salvas no próprio navegador.
+
+Endereço: `/ficha/` no mesmo site do livro.
