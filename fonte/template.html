@@ -422,9 +422,6 @@ a.rk:hover { transform: translateY(-2px) scale(1.06); box-shadow: 0 6px 16px -6p
 .music-panel .mp-head small { display: block; font: 500 .72rem/1.3 var(--display); letter-spacing: .04em; color: var(--muted); }
 .music-panel .mp-x { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--rule); border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; }
 .music-panel .mp-x:hover { color: var(--fg); border-color: var(--accent); }
-.music-panel .mp-tabs { display: flex; gap: 6px; margin: 0 0 10px; }
-.music-panel .mp-tabs button { flex: 1; padding: 6px 8px; border: 1px solid var(--rule); border-radius: 6px; background: transparent; color: var(--muted); font: 600 .74rem var(--display); letter-spacing: .04em; cursor: pointer; }
-.music-panel .mp-tabs button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
 .music-panel iframe.yt { height: auto; aspect-ratio: 16 / 9; min-height: 200px; }
 .music-panel iframe { display: block; width: 100%; height: 152px; border: 0; border-radius: 12px; background: color-mix(in srgb, var(--fg) 6%, var(--surface)); }
 .music-panel .mp-note { margin: 8px 2px 0; font: 400 .74rem/1.45 var(--display); color: var(--muted); }
@@ -468,10 +465,6 @@ a.rk:hover { transform: translateY(-2px) scale(1.06); box-shadow: 0 6px 16px -6p
     <button class="mp-x" id="musicClose" type="button" aria-label="Fechar player">
       <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
     </button>
-  </div>
-  <div class="mp-tabs" role="group" aria-label="Onde tocar">
-    <button type="button" id="tabYt" aria-pressed="true">Música inteira</button>
-    <button type="button" id="tabSp" aria-pressed="false">Spotify</button>
   </div>
   <div id="musicSlot"></div>
   <p class="mp-note" id="musicNote"></p>
@@ -1257,46 +1250,28 @@ a.rk:hover { transform: translateY(-2px) scale(1.06); box-shadow: 0 6px 16px -6p
 <script>
 (function () {
   "use strict";
-  var btn = document.getElementById("musicBtn"), panel = document.getElementById("musicPanel"), slot = document.getElementById("musicSlot"), closeBtn = document.getElementById("musicClose");
-  var tabYt = document.getElementById("tabYt"), tabSp = document.getElementById("tabSp"), note = document.getElementById("musicNote");
+  var btn = document.getElementById("musicBtn"), panel = document.getElementById("musicPanel"), slot = document.getElementById("musicSlot"), closeBtn = document.getElementById("musicClose"), note = document.getElementById("musicNote");
   if (!btn || !panel) return;
-  var YT = "sgvz9Co4Y8c", SP = "2736FdfOsvBnQDGOlUX0wF", mode = "", started = false;
-  var NOTES = {
-    yt: 'Toca a música inteira, em loop, sem precisar de login. Pode fechar esta janelinha que ela continua tocando enquanto você lê. Se o som não começar, aperte o play no vídeo. <a href="https://www.youtube.com/watch?v=' + YT + '" target="_blank" rel="noopener noreferrer">Abrir no YouTube</a>',
-    sp: 'Aperte o play. Sem login no Spotify, toca só um pedaço. <a href="https://open.spotify.com/track/' + SP + '" target="_blank" rel="noopener noreferrer">Abrir no Spotify</a>'
-  };
-  function show(m, autoplay) {
-    if (m === mode && slot.firstChild) return;
-    mode = m;
-    while (slot.firstChild) slot.removeChild(slot.firstChild);
+  var YT = "CDWtH8eHeEU", started = false;
+  note.innerHTML = 'Toca a música inteira, em loop. Pode fechar esta janelinha que ela continua tocando enquanto você lê. Se o som não começar, aperte o play no vídeo. <a href="https://www.youtube.com/watch?v=' + YT + '" target="_blank" rel="noopener noreferrer">Abrir no YouTube</a>';
+  function start() {
     var f = document.createElement("iframe");
-    if (m === "yt") {
-      f.src = "https://www.youtube-nocookie.com/embed/" + YT + "?autoplay=" + (autoplay ? 1 : 0) + "&loop=1&playlist=" + YT + "&rel=0&playsinline=1&modestbranding=1";
-      f.title = "Glacius, Schiavoto e Ordem Paranormal (YouTube)";
-      f.className = "yt";
-      f.setAttribute("allow", "autoplay; encrypted-media; picture-in-picture; fullscreen");
-      f.setAttribute("allowfullscreen", "");
-    } else {
-      f.src = "https://open.spotify.com/embed/track/" + SP + "?utm_source=generator";
-      f.title = "Glacius, Schiavoto e Ordem Paranormal (Spotify)";
-      f.setAttribute("allow", "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture");
-    }
+    f.src = "https://www.youtube-nocookie.com/embed/" + YT + "?autoplay=1&loop=1&playlist=" + YT + "&rel=0&playsinline=1&modestbranding=1";
+    f.title = "Glacius, Schiavoto e Ordem Paranormal (YouTube)";
+    f.className = "yt";
+    f.setAttribute("allow", "autoplay; encrypted-media; picture-in-picture; fullscreen");
+    f.setAttribute("allowfullscreen", "");
     f.setAttribute("loading", "lazy");
     f.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
     slot.appendChild(f);
-    tabYt.setAttribute("aria-pressed", m === "yt" ? "true" : "false");
-    tabSp.setAttribute("aria-pressed", m === "sp" ? "true" : "false");
-    note.innerHTML = NOTES[m];
   }
   function open() {
-    if (!started) { started = true; show("yt", true); }
+    if (!started) { started = true; start(); }
     panel.hidden = false; btn.setAttribute("aria-expanded", "true"); btn.classList.remove("hint");
   }
   function close() { panel.hidden = true; btn.setAttribute("aria-expanded", "false"); }
   btn.addEventListener("click", function () { if (panel.hidden) open(); else close(); });
   closeBtn.addEventListener("click", function () { close(); btn.focus(); });
-  tabYt.addEventListener("click", function () { show("yt", true); });
-  tabSp.addEventListener("click", function () { show("sp", false); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !panel.hidden) { close(); btn.focus(); } });
 })();
 </script>
