@@ -302,7 +302,6 @@ TITLE_FIX = {
     "niveis de danos": "Níveis de dano",
     "tipos de danos": "Tipos de dano",
     "evolucao das emanacao": "Evolução das emanações",
-    "magias de dano": "Lista de magias",
     "deus do destino": "Deus do Destino e outras divindades",
     "modificacoes e criacoes": "Modificações e criações",
 }
@@ -434,23 +433,45 @@ def apply_patches(sections):
                                 pages=[("equipamentos", "Efeitos de crítico"), ("equipamentos", "Dano médio e munições")]))
 
     # 6. Os itens no fim da lista de magias ganham página própria, no começo de "Armas"
-    e = _entry(sections, "magias", "Lista de magias")
+    e = _entry(sections, "magias", "Magias de dano")
     cut = next((i for i, b in enumerate(e["blocks"]) if b["text"].strip() == "Shinoyomi shinmei"), None) if e else None
     if cut:
         moved = e["blocks"][cut:]
         nav_moved = [(i - cut, t) for i, t in e["nav"] if i >= cut]
         e["blocks"] = e["blocks"][:cut]
         e["nav"] = [(i, t) for i, t in e["nav"] if i < cut]
-        new = dict(id="armas-0", title="Armas e itens especiais", ln=e["ln"], parent=None,
+        new = dict(id="armas-0", title="Armas raras", ln=e["ln"], parent=None,
                    blocks=moved, nav=nav_moved, raw_title="", manut=False)
         _reid(new)
         next(s for s in sections if s["id"] == "armas")["entries"].insert(0, new)
         msg = ("Os itens que estavam no final da lista de magias (Shinoyomi shinmei, Silence e Sculptor, Máscara sangrenta, "
                "Botas do dragão veloz, Carapaça do titio, Coroa de Satan, Espírito desanimado, Arcanista arcaico e Âncora abissal) "
-               "foram para esta página nova, no começo de Armas. O texto não foi mexido.")
+               "formam a aba “Armas raras” do livro. Foram para esta página, no começo de Armas. O texto não foi mexido.")
         _note(new, msg)
-        CHANGES.append(dict(title="Itens separados da lista de magias", text=msg,
-                            pages=[("armas", "Armas e itens especiais"), ("magias", "Lista de magias")]))
+        CHANGES.append(dict(title="Armas raras separadas da lista de magias", text=msg,
+                            pages=[("armas", "Armas raras"), ("magias", "Rank C")]))
+
+    # 6b. A lista de magias vira uma página por Rank, como nas abas do livro (Rank F e Rank C)
+    rf = _entry(sections, "magias", "Rank F")
+    lista = _entry(sections, "magias", "Magias de dano")
+    cut = next((i for i, b in enumerate(lista["blocks"]) if b["text"].strip() == "Bola de Fogo Múltipla"), None) if lista else None
+    if rf and lista and cut:
+        base = len(rf["blocks"])
+        rf["blocks"].append(dict(html="<h3 class='in'>Magias de dano</h3>", text="Magias de dano"))
+        rf["nav"].append((base, "Magias de dano"))
+        off = base + 1
+        rf["blocks"].extend(lista["blocks"][:cut])
+        rf["nav"].extend((i + off, t) for i, t in lista["nav"] if i < cut)
+        lista["nav"] = [(i - cut, t) for i, t in lista["nav"] if i >= cut]
+        lista["blocks"] = lista["blocks"][cut:]
+        lista["title"] = "Rank C"
+        _reid(rf)
+        _reid(lista)
+        msg = ("A lista de magias tinha duas abas do livro juntas. Ficou uma página por Rank: “Rank F” (com a introdução e as "
+               "magias de dano) e “Rank C”. Nada foi apagado.")
+        _note(rf, msg)
+        _note(lista, msg)
+        CHANGES.append(dict(title="Magias separadas por Rank", text=msg, pages=[("magias", "Rank F"), ("magias", "Rank C")]))
 
     # 8. A página dos deuses guarda todas as divindades: ganha um índice com o nome de cada uma
     e = _entry(sections, "divindades", "Deus do Destino e outras divindades")
@@ -499,7 +520,12 @@ def apply_patches(sections):
               "O capítulo está marcado como “em manutenção” no livro e a maioria das casas ainda não tem texto.",
               ["Só o Rei Dragão tem descrição. Sem texto: " + ", ".join(titles) + "."] if titles else [])
     _pend(sections, "armas", "Armas míticas", "Só tem uma arma, e dela só existe o dano (6d12).")
-    _pend(sections, "armas", "Armas e itens especiais", "O item “Âncora abissal” está só com o título, sem texto.")
+    _pend(sections, "armas", "Armas raras", "O item “Âncora abissal” está só com o título, sem texto.")
+    _pend(sections, "magias", "Rank C", "Os Ranks A, S e SSS ainda não têm magias. As abas existem no livro, mas estão vazias.")
+    _pend(sections, "territorio", "Território amaldiçoado",
+          "No Docs, a aba deste capítulo se chama “Capítulo 11: Domínios (MANUTENÇÃO)”, ou seja, está em manutenção.")
+    _pend(sections, "treinamentos", "Treinamentos",
+          "No Docs, a aba deste capítulo se chama “Capítulo 15: treinamentos (MANUTENÇÃO)”, ou seja, está em manutenção.")
 
 
 def build():
