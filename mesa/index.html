@@ -239,21 +239,21 @@ input[type="checkbox"]:disabled + span, .qrow:has(input:disabled) { cursor: defa
     <h1 class="title">Mesa</h1>
     <p class="lede" id="mesa-lede">Conectando à mesa...</p>
     <div class="card" id="login" hidden>
-      <div class="seg" id="seg-login"><button type="button" data-r="p" aria-pressed="true">Sou jogador</button><button type="button" data-r="m" aria-pressed="false">Sou o mestre</button></div>
-      <form id="f-jog" class="grid" style="margin-top:10px">
-        <label class="f">Seu nome<input id="l-nome" autocomplete="nickname" maxlength="30" placeholder="Como a mesa te chama"></label>
-        <label class="f">Código da mesa<input id="l-cod" autocomplete="off" placeholder="O mestre te passa"></label>
-        <button class="btn pri" type="submit">Entrar na mesa</button>
-        <p class="hint" style="margin:0">Use sempre o mesmo aparelho e navegador: suas fichas ficam ligadas a ele. Para trocar de aparelho, copie a ficha em Backup (aba Ficha) e importe no novo.</p>
-      </form>
-      <div id="f-mes" class="grid" style="margin-top:10px" hidden>
+      <div class="grid">
+        <label class="f">Seu nome (opcional)<input id="l-nome" autocomplete="nickname" maxlength="30" placeholder="Se deixar vazio, usamos o nome da conta Google"></label>
         <button class="btn pri" id="b-google" type="button">Entrar com o Google</button>
-        <p class="hint" style="margin:0">Use a conta Google do mestre. Se abrir por um navegador interno (Discord, Instagram), abra no Chrome ou no Safari.</p>
       </div>
+      <p class="hint" style="margin:8px 0 0">Mestres e jogadores entram por aqui. As fichas do jogador ficam ligadas à conta Google e aparecem em qualquer aparelho. Se abrir por um navegador interno (Discord, Instagram), abra no Chrome ou no Safari.</p>
+      <details style="margin-top:14px">
+        <summary class="small" style="cursor:pointer">Não tenho conta Google</summary>
+        <p class="hint">Dá para entrar só com o nome (preencha o campo acima). As fichas ficam salvas só neste aparelho e navegador: se trocar de aparelho, copie a ficha em Backup (aba Ficha) e importe no novo.</p>
+        <button class="btn" id="b-anon" type="button">Entrar sem conta Google</button>
+      </details>
       <div class="msg" id="msg-login"></div>
     </div>
     <div class="btns" id="mesa-new"></div>
-    <div class="btns" id="mesa-acc" hidden style="margin-top:8px"><button class="btn" id="b-sair" type="button">Sair (mestre)</button></div>
+    <div class="btns" id="mesa-acc" hidden style="margin-top:8px"><button class="btn" id="b-sair" type="button">Sair da mesa</button></div>
+    <p class="hint" id="sair-hint" hidden>Você entrou sem conta Google: ao sair, este aparelho perde o acesso às fichas que criou (o mestre continua vendo). Se quiser guardar, copie a ficha em Backup (aba Ficha) antes. Toque de novo em "Confirmar saída" para sair.</p>
     <div class="search" id="mesa-busca"><input type="search" id="mesa-filtro" placeholder="Buscar por nome, raça, classe ou jogador" autocomplete="off" aria-label="Buscar ficha"></div>
     <div id="mesa-body"></div>
     <div class="sec" id="mesa-notas" hidden>
@@ -1929,7 +1929,8 @@ function adjust(key, what, d) {
 function renderMesa() {
   var lg = $('#login'), login = SES.mode === 'login';
   if (lg) lg.hidden = !login;
-  $('#mesa-acc').hidden = !(SES.fire && SES.gm && SES.mode === 'compartilhada');
+  $('#mesa-acc').hidden = !(SES.fire && SES.mode === 'compartilhada');
+  var sb = $('#b-sair'); if (!sb.classList.contains('armed')) sb.textContent = SES.gm ? 'Sair (mestre)' : 'Sair da mesa';
   $('#mesa-busca').hidden = login;
   if (login) {
     setT('mesa-lede', 'Entre para ver as fichas da mesa.');
@@ -2242,24 +2243,44 @@ function fireNeedLogin(msg) {
   setupUI();
   if (msg) setMsg('msg-login', 'bad', msg);
 }
+/* Descobre o papel da conta: mestre (consegue ler gm/notas) ou jogador (qualquer outra conta que entrou). */
+function fireAccess(u) {
+  return SES.fs.doc('gm/notas').get().then(function () { return { gm: true, ok: true }; }, function () { return { gm: false, ok: true }; });
+}
+function fireEnter(u, r) {
+  if (SES.verifiedUid === u.uid && SES.mode === 'compartilhada') return;
+  SES.verifiedUid = u.uid; SES.anon = !!u.isAnonymous; SES.gm = r.gm; SES.uid = u.uid; SES.canWrite = true; SES.known = true; SES.mode = 'compartilhada'; SES.loaded = false;
+  setMsg('msg-login', '', '');
+  setupUI(); subscribe();
+}
+/* Quem volta (sessão guardada no aparelho) entra direto. */
 function fireVerify(u) {
-  var fs = SES.fs, uid = u.uid;
-  if (SES.verifyingUid === uid) return;
-  SES.verifyingUid = uid;
-  fs.doc('gm/notas').get().then(function () { return true; }, function () { return false; }).then(function (gm) {
-    if (gm) return { gm: true, ok: true };
-    return fs.doc('membros/' + uid).get().then(function (s) { return { gm: false, ok: !!s.exists }; }, function () { return { gm: false, ok: false }; });
-  }).then(function (r) {
+  if (SES.verifyingUid === u.uid) return;
+  SES.verifyingUid = u.uid;
+  fireAccess(u).then(function (r) {
     SES.verifyingUid = null;
-    if (!r.ok) {
-      if (!u.isAnonymous) { SES.auth.signOut().then(noop, noop); fireNeedLogin('Essa conta não é a do mestre.'); }
-      else fireNeedLogin('');
-      return;
-    }
-    if (SES.verifiedUid === uid && SES.mode === 'compartilhada') return;
-    SES.verifiedUid = uid; SES.gm = r.gm; SES.uid = uid; SES.canWrite = true; SES.known = true; SES.mode = 'compartilhada'; SES.loaded = false;
-    setMsg('msg-login', '', '');
-    setupUI(); subscribe();
+    fireEnter(u, r);
+  });
+}
+/* Depois de entrar com o Google (ou sem conta): mestre e jogadores entram; o jogador ganha o próprio documento com o nome. */
+function fireJoin(u) {
+  SES.verifyingUid = u.uid;
+  var end = function () { SES.verifyingUid = null; };
+  var typed = $('#l-nome').value.trim().slice(0, 30);
+  return fireAccess(u).then(function (r) {
+    if (r.gm) { end(); fireEnter(u, r); return; }
+    var nome = typed || String(u.displayName || '').trim().slice(0, 30);
+    if (!nome) { end(); fireNeedLogin('Preencha o seu nome.'); return; }
+    var ref = SES.fs.doc('fichas/' + u.uid);
+    return ref.get().then(function (snap) {
+      var d = snap.exists ? (snap.data() || {}) : {};
+      if (snap.exists && d.nome && !typed) return;
+      return ref.set({ nome: nome }, { merge: true });
+    }).then(function () { end(); fireEnter(u, r); }, function (err) {
+      end();
+      var c = err && err.code;
+      fireNeedLogin(c === 'permission-denied' ? 'Sem permissão no banco. Confira se as regras do Firestore foram publicadas.' : 'Não consegui entrar (' + (c || 'erro desconhecido') + ').');
+    });
   });
 }
 function startFirebase() {
@@ -2274,54 +2295,47 @@ function startFirebase() {
     if (!u) fireNeedLogin(''); else fireVerify(u);
   });
 }
-$('#seg-login').addEventListener('click', function (e) {
-  var b = e.target.closest('button'); if (!b) return;
-  $$('#seg-login button').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
-  $('#f-jog').hidden = b.dataset.r !== 'p'; $('#f-mes').hidden = b.dataset.r !== 'm';
-  setMsg('msg-login', '', '');
-});
-$('#f-jog').addEventListener('submit', function (e) {
-  e.preventDefault();
-  var nome = $('#l-nome').value.trim(), cod = $('#l-cod').value.trim();
-  if (!SES.fire) return;
-  if (!nome || !cod) { setMsg('msg-login', 'bad', 'Preencha o seu nome e o código da mesa.'); return; }
-  SES.joining = true; setMsg('msg-login', 'info', 'Entrando...');
-  var u0 = SES.auth.currentUser;
-  (u0 ? Promise.resolve(u0) : SES.auth.signInAnonymously().then(function (c) { return c.user; })).then(function (u) {
-    return SES.fs.doc('membros/' + u.uid).set({ codigo: cod, nome: nome }).then(function () {
-      return SES.fs.doc('fichas/' + u.uid).set({ nome: nome }, { merge: true });
-    }).then(function () { SES.joining = false; fireVerify(u); }, function (err) {
-      SES.joining = false;
-      var c2 = err && err.code;
-      setMsg('msg-login', 'bad', c2 === 'permission-denied' ? 'Código da mesa incorreto (ou as regras do Firestore ainda não foram publicadas).' : 'Não consegui entrar (' + (c2 || 'erro desconhecido') + ').');
-    });
-  }, function (err) {
-    SES.joining = false;
-    var c = err && err.code;
-    setMsg('msg-login', 'bad',
-      c === 'auth/operation-not-allowed' || c === 'auth/admin-restricted-operation' ? 'O login de jogador (Anônimo) não está ligado no Firebase. Ligue em Authentication > Método de login > Anônimo.' :
-      c === 'auth/network-request-failed' ? 'Sem internet. Confira a conexão e tente de novo.' :
-      c === 'auth/invalid-api-key' || c === 'auth/api-key-not-valid.-please-pass-a-valid-api-key.' ? 'A chave do Firebase (apiKey) em firebase-config.js está errada.' :
-      'Não consegui entrar (' + (c || 'erro desconhecido') + ').');
-  });
-});
+function googleErr(err) {
+  SES.joining = false;
+  var c = err && err.code;
+  if (c === 'auth/popup-closed-by-user' || c === 'auth/cancelled-popup-request') { setMsg('msg-login', '', ''); return; }
+  setMsg('msg-login', 'bad',
+    c === 'auth/popup-blocked' ? 'O navegador bloqueou a janela do Google. Libere pop-ups para este site e tente de novo.' :
+    c === 'auth/unauthorized-domain' ? 'Este endereço ainda não está liberado no Firebase (Authentication > Configurações > Domínios autorizados).' :
+    c === 'auth/operation-not-allowed' || c === 'auth/admin-restricted-operation' ? 'Este tipo de login não está ligado no Firebase (Authentication > Método de login).' :
+    c === 'auth/network-request-failed' ? 'Sem internet. Confira a conexão e tente de novo.' :
+    c === 'auth/invalid-api-key' || c === 'auth/api-key-not-valid.-please-pass-a-valid-api-key.' ? 'A chave do Firebase (apiKey) em firebase-config.js está errada.' :
+    'Não consegui entrar (' + (c || 'erro desconhecido') + ').');
+}
 $('#b-google').addEventListener('click', function () {
   if (!SES.fire) return;
+  var p;
   SES.joining = true; setMsg('msg-login', 'info', 'Abrindo o login do Google...');
   var provider = new firebase.auth.GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
-  SES.auth.signInWithPopup(provider).then(function (c) { SES.joining = false; fireVerify(c.user); }, function (err) {
-    SES.joining = false;
-    var c = err && err.code;
-    setMsg('msg-login', c === 'auth/popup-closed-by-user' || c === 'auth/cancelled-popup-request' ? '' : 'bad',
-      c === 'auth/popup-closed-by-user' || c === 'auth/cancelled-popup-request' ? '' :
-      c === 'auth/popup-blocked' ? 'O navegador bloqueou a janela do Google. Libere pop-ups para este site e tente de novo.' :
-      c === 'auth/unauthorized-domain' ? 'Este endereço ainda não está liberado no Firebase (Authentication > Configurações > Domínios autorizados).' :
-      c === 'auth/operation-not-allowed' ? 'O login com Google não está ligado no Firebase.' :
-      c === 'auth/network-request-failed' ? 'Sem internet.' : 'Não consegui entrar com o Google (' + (c || 'erro desconhecido') + ').');
-  });
+  p = SES.auth.signInWithPopup(provider).then(function (c) { return c.user; });
+  p.then(function (u) { SES.joining = false; setMsg('msg-login', 'info', 'Entrando...'); return fireJoin(u); }, googleErr);
 });
-$('#b-sair').addEventListener('click', function () {
+$('#b-anon').addEventListener('click', function () {
+  if (!SES.fire) return;
+  var nome = $('#l-nome').value.trim();
+  if (!nome) { setMsg('msg-login', 'bad', 'Preencha o seu nome.'); return; }
+  SES.joining = true; setMsg('msg-login', 'info', 'Entrando...');
+  var u0 = SES.auth.currentUser;
+  (u0 ? Promise.resolve(u0) : SES.auth.signInAnonymously().then(function (c) { return c.user; })).then(function (u) {
+    SES.joining = false; return fireJoin(u);
+  }, googleErr);
+});
+var sairTimer = null;
+$('#b-sair').addEventListener('click', function (e) {
+  var b = e.currentTarget, hint = $('#sair-hint');
+  if (SES.anon && !b.classList.contains('armed')) {
+    b.classList.add('bad', 'armed'); b.textContent = 'Confirmar saída'; hint.hidden = false;
+    clearTimeout(sairTimer);
+    sairTimer = setTimeout(function () { b.classList.remove('bad', 'armed'); b.textContent = 'Sair da mesa'; hint.hidden = true; }, 7000);
+    return;
+  }
+  clearTimeout(sairTimer);
   var done = function () { location.reload(); };
   if (SES.auth) SES.auth.signOut().then(done, done); else done();
 });
