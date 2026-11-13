@@ -246,11 +246,10 @@ input[type="checkbox"]:disabled + span, .qrow:has(input:disabled) { cursor: defa
         <button class="btn pri" type="submit">Entrar na mesa</button>
         <p class="hint" style="margin:0">Use sempre o mesmo aparelho e navegador: suas fichas ficam ligadas a ele. Para trocar de aparelho, copie a ficha em Backup (aba Ficha) e importe no novo.</p>
       </form>
-      <form id="f-mes" class="grid" style="margin-top:10px" hidden>
-        <label class="f">E-mail do mestre<input id="l-mail" type="email" autocomplete="username"></label>
-        <label class="f">Senha<input id="l-senha" type="password" autocomplete="current-password"></label>
-        <button class="btn pri" type="submit">Entrar como mestre</button>
-      </form>
+      <div id="f-mes" class="grid" style="margin-top:10px" hidden>
+        <button class="btn pri" id="b-google" type="button">Entrar com o Google</button>
+        <p class="hint" style="margin:0">Use a conta Google do mestre. Se abrir por um navegador interno (Discord, Instagram), abra no Chrome ou no Safari.</p>
+      </div>
       <div class="msg" id="msg-login"></div>
     </div>
     <div class="btns" id="mesa-new"></div>
@@ -2300,16 +2299,20 @@ $('#f-jog').addEventListener('submit', function (e) {
     setMsg('msg-login', 'bad', err && err.code === 'auth/operation-not-allowed' ? 'O login de jogador (anônimo) não está ligado no Firebase.' : 'Não consegui entrar. Confira a internet.');
   });
 });
-$('#f-mes').addEventListener('submit', function (e) {
-  e.preventDefault();
-  var mail = $('#l-mail').value.trim(), pw = $('#l-senha').value;
+$('#b-google').addEventListener('click', function () {
   if (!SES.fire) return;
-  if (!mail || !pw) { setMsg('msg-login', 'bad', 'Preencha o e-mail e a senha do mestre.'); return; }
-  SES.joining = true; setMsg('msg-login', 'info', 'Entrando...');
-  SES.auth.signInWithEmailAndPassword(mail, pw).then(function (c) { SES.joining = false; fireVerify(c.user); }, function (err) {
+  SES.joining = true; setMsg('msg-login', 'info', 'Abrindo o login do Google...');
+  var provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  SES.auth.signInWithPopup(provider).then(function (c) { SES.joining = false; fireVerify(c.user); }, function (err) {
     SES.joining = false;
     var c = err && err.code;
-    setMsg('msg-login', 'bad', c === 'auth/operation-not-allowed' ? 'O login por e-mail e senha não está ligado no Firebase.' : c === 'auth/too-many-requests' ? 'Muitas tentativas. Espere um pouco e tente de novo.' : c === 'auth/network-request-failed' ? 'Sem internet.' : 'E-mail ou senha incorretos.');
+    setMsg('msg-login', c === 'auth/popup-closed-by-user' || c === 'auth/cancelled-popup-request' ? '' : 'bad',
+      c === 'auth/popup-closed-by-user' || c === 'auth/cancelled-popup-request' ? '' :
+      c === 'auth/popup-blocked' ? 'O navegador bloqueou a janela do Google. Libere pop-ups para este site e tente de novo.' :
+      c === 'auth/unauthorized-domain' ? 'Este endereço ainda não está liberado no Firebase (Authentication > Configurações > Domínios autorizados).' :
+      c === 'auth/operation-not-allowed' ? 'O login com Google não está ligado no Firebase.' :
+      c === 'auth/network-request-failed' ? 'Sem internet.' : 'Não consegui entrar com o Google.');
   });
 });
 $('#b-sair').addEventListener('click', function () {

@@ -4,11 +4,12 @@ service cloud.firestore {
 
     function logado() { return request.auth != null; }
 
-    // Troque SEU_EMAIL_DO_MESTRE pelo e-mail da conta do mestre (tudo em minúsculas).
+    // Troque SEU_EMAIL_DO_MESTRE pelo e-mail da conta Google do mestre (tudo em minúsculas).
     function mestre() {
       return logado()
         && request.auth.token.get('email', '') == 'SEU_EMAIL_DO_MESTRE'
-        && request.auth.token.firebase.sign_in_provider == 'password';
+        && request.auth.token.get('email_verified', false) == true
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
     }
 
     function membro() {
