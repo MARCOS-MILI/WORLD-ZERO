@@ -31,3 +31,9 @@ O resultado fica em `fonte/dist/index.html`. Copie esse arquivo para a raiz do r
 A pasta `ficha/` tem a ficha de personagem automática (também um arquivo só, `ficha/index.html`). Ela calcula PV, PM, C.A., C.R., D.T., LCM e perícias a partir da raça, classe, nível e atributos, e tem abas de consulta de classes, raças, perícias, tabelas e qualidades. As fichas ficam salvas no próprio navegador.
 
 Endereço: https://marcos-mili.github.io/WORLD-ZERO/ficha/
+
+## Mesa compartilhada
+
+A pasta `mesa/` tem a Mesa World Zero: o mestre vê e edita todas as fichas e NPCs e os jogadores veem as fichas e editam as próprias, com tudo aparecendo na hora para todo mundo. Usa um banco gratuito do Firebase. Antes de funcionar compartilhada, precisa ligar o Firebase: o passo a passo está em `mesa/LEIA-ME.md`.
+
+Endereço: https://marcos-mili.github.io/WORLD-ZERO/mesa/

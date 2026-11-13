@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function logado() { return request.auth != null; }
+
+    // Troque SEU_EMAIL_DO_MESTRE pelo e-mail da conta do mestre (tudo em minúsculas).
+    function mestre() {
+      return logado()
+        && request.auth.token.get('email', '') == 'SEU_EMAIL_DO_MESTRE'
+        && request.auth.token.firebase.sign_in_provider == 'password';
+    }
+
+    function membro() {
+      return logado() && exists(/databases/$(database)/documents/membros/$(request.auth.uid));
+    }
+
+    // Quem sabe o código da mesa vira membro. Troque CODIGO_DA_MESA pelo código que você vai passar aos jogadores.
+    match /membros/{uid} {
+      allow read: if mestre() || (logado() && request.auth.uid == uid);
+      allow create, update: if logado() && request.auth.uid == uid
+        && request.resource.data.codigo == 'CODIGO_DA_MESA'
+        && request.resource.data.nome is string
+        && request.resource.data.nome.size() <= 40;
+      allow delete: if mestre();
+    }
+
+    // Cada jogador escreve só no próprio documento. O documento "mesa" (fichas do mestre e NPCs revelados) só o mestre escreve.
+    match /fichas/{dono} {
+      allow read: if mestre() || membro();
+      allow create, update: if mestre() || (membro() && request.auth.uid == dono);
+      allow delete: if mestre();
+    }
+
+    // NPCs ocultos e anotações: só o mestre lê e escreve.
+    match /npcs/{id} { allow read, write: if mestre(); }
+    match /gm/{id} { allow read, write: if mestre(); }
+  }
+}
