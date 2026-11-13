@@ -1,0 +1,2368 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mesa World Zero</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Mesa compartilhada do World Zero: o mestre e os jogadores veem e editam fichas e NPCs, com consulta de classes, raças e tabelas.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234638C9' stroke-width='2.6' stroke-linecap='square'%3E%3Ccircle cx='12' cy='12' r='8.2'/%3E%3Cpath d='M7.4 17.2 16.8 6.8'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Literata:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+/* Layout: ferramenta de mesa para celular. Cabeçalho fixo com abas por seção; a ficha é uma coluna de cartões
+   (resumo primeiro, detalhe depois) que vira grade em tela larga. Mesmo visual do site do livro. */
+:root {
+  --bg: #F3F4F9;
+  --surface: #FFFFFF;
+  --bar: #FFFFFF;
+  --fg: #161827;
+  --muted: #565A74;
+  --rule: #DADCE8;
+  --accent: #4638C9;
+  --accent-fg: #FFFFFF;
+  --tint: #E8E6FA;
+  --tint-2: #ECEEF6;
+  --bad: #A4261D; --bad-bg: #FBE6E4;
+  --warn: #7F4B00; --warn-bg: #FAEDCF;
+  --ok: #1B6B36; --ok-bg: #DDF1E3;
+  --display: "Chakra Petch", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --body: "Literata", Georgia, "Times New Roman", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E0F18; --surface: #161826; --bar: #12131F; --fg: #E7E8F3; --muted: #A0A3BC; --rule: #292C42;
+    --accent: #ABA0FF; --accent-fg: #0E0F18; --tint: #25224A; --tint-2: #1C1E31;
+    --bad: #FF9E96; --bad-bg: #3B1C1B; --warn: #F2BF6C; --warn-bg: #352A10; --ok: #8EE0A8; --ok-bg: #16301F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E0F18; --surface: #161826; --bar: #12131F; --fg: #E7E8F3; --muted: #A0A3BC; --rule: #292C42;
+  --accent: #ABA0FF; --accent-fg: #0E0F18; --tint: #25224A; --tint-2: #1C1E31;
+  --bad: #FF9E96; --bad-bg: #3B1C1B; --warn: #F2BF6C; --warn-bg: #352A10; --ok: #8EE0A8; --ok-bg: #16301F;
+  color-scheme: dark;
+}
+
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.6; -webkit-text-size-adjust: 100%; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); background: var(--bar); z-index: 80; }
+a { color: var(--accent); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+/* ---------- cabeçalho ---------- */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; background: var(--bar); border-bottom: 1px solid var(--rule); }
+.bar { height: 52px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.brand { display: flex; align-items: center; gap: 9px; font: 700 1.02rem/1 var(--display); letter-spacing: .14em; text-transform: uppercase; white-space: nowrap; }
+.brand svg { width: 24px; height: 24px; color: var(--accent); flex: none; }
+.brand b { font-weight: 400; color: var(--muted); letter-spacing: .1em; }
+.tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs a { flex: none; padding: 9px 12px 8px; font: 600 .88rem var(--display); color: var(--muted); text-decoration: none; border-bottom: 2px solid transparent; }
+.tabs a:hover { color: var(--fg); }
+.tabs a[aria-current="page"] { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ---------- estrutura ---------- */
+.page { max-width: 980px; margin: 0 auto; padding-block: 20px 56px; }
+h1.title { font: 700 clamp(1.7rem, 5.5vw, 2.5rem)/1.08 var(--display); margin: .1em 0 .25em; text-wrap: balance; }
+.lede { color: var(--muted); margin: 0 0 1.2em; max-width: 62ch; }
+.sec { margin-top: 26px; }
+.sec > h2 { font: 600 1.15rem/1.2 var(--display); display: flex; align-items: center; gap: .6em; margin: 0 0 10px; text-wrap: balance; }
+.sec > h2::before { content: ""; width: 8px; height: 8px; background: var(--accent); transform: rotate(45deg); flex: none; }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; }
+.grid { display: grid; gap: 12px; }
+.g2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
+.g3 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); }
+.hint { color: var(--muted); font-size: .9rem; margin: 10px 0 0; }
+.hint:empty { display: none; }
+.small { font-size: .88rem; color: var(--muted); }
+
+label.f { display: grid; gap: 4px; font: 600 .7rem var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); min-width: 0; }
+input, select, textarea { font: 500 16px/1.2 var(--display); color: var(--fg); background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; padding: 0 10px; height: 42px; width: 100%; min-width: 0; -webkit-appearance: none; appearance: none; letter-spacing: 0; text-transform: none; }
+select { padding-right: 28px; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50%; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; }
+textarea { height: auto; min-height: 104px; padding: 10px; font-family: var(--body); line-height: 1.5; resize: vertical; }
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
+input[type="checkbox"] { width: 20px; height: 20px; padding: 0; flex: none; accent-color: var(--accent); -webkit-appearance: auto; appearance: auto; }
+.btn { height: 40px; padding: 0 14px; border: 1px solid var(--rule); background: var(--surface); border-radius: 6px; font: 600 .88rem var(--display); cursor: pointer; white-space: nowrap; }
+.btn:hover { border-color: var(--accent); }
+.btn.pri { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.btn.bad { color: var(--bad); }
+.btn.bad.armed { background: var(--bad); color: var(--bg); border-color: var(--bad); }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.pick { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 640px) { .pick { grid-template-columns: minmax(0, 1fr) auto; align-items: end; } }
+
+.msg { padding: 8px 11px; border-radius: 6px; font: 500 .86rem/1.4 var(--display); margin: 10px 0 0; }
+.msg:empty { display: none; }
+.msg.ok { background: var(--ok-bg); color: var(--ok); }
+.msg.bad { background: var(--bad-bg); color: var(--bad); }
+.msg.warn { background: var(--warn-bg); color: var(--warn); }
+.msg.info { background: var(--tint); color: var(--fg); }
+
+/* ---------- resumo ---------- */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; }
+.stat { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; display: grid; gap: 3px; min-width: 0; align-content: start; }
+.stat .k { font: 600 .66rem var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.stat .v { font: 700 1.75rem/1.05 var(--display); font-variant-numeric: tabular-nums; }
+.stat .v.txt { font-size: 1.05rem; line-height: 1.25; overflow-wrap: anywhere; }
+.stat .s { font: 500 .74rem/1.35 var(--display); color: var(--muted); overflow-wrap: anywhere; }
+.stat input { height: 32px; font-size: 15px; margin-top: 3px; padding: 0 8px; }
+
+/* ---------- atributos ---------- */
+.attrs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 10px; }
+.attr { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 12px; display: grid; gap: 8px; min-width: 0; }
+.attr .head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.attr .nm { font: 600 .95rem var(--display); }
+.attr .tot { font: 700 2rem/1 var(--display); font-variant-numeric: tabular-nums; }
+.attr .roll { font: 600 .84rem var(--display); color: var(--accent); }
+.attr .ins { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.attr .ins label { font-size: .6rem; letter-spacing: .06em; }
+.attr .ins input { height: 36px; padding: 0 4px; text-align: center; font-size: 15px; }
+
+/* ---------- perícias ---------- */
+.skills { border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); overflow: hidden; }
+.sk { display: grid; grid-template-columns: minmax(0, 1fr) 112px 44px; gap: 8px; align-items: center; padding: 8px 12px; border-top: 1px solid var(--rule); }
+.sk:first-child { border-top: 0; }
+.sk .nm { font: 600 .95rem/1.25 var(--display); overflow-wrap: anywhere; }
+.sk .at { display: block; font: 500 .72rem var(--display); color: var(--muted); margin-top: 1px; }
+.sk select { height: 36px; font-size: 14px; padding: 0 22px 0 8px; background-position: calc(100% - 12px) 50%, calc(100% - 7px) 50%; }
+.sk .t { font: 700 1.15rem var(--display); text-align: right; font-variant-numeric: tabular-nums; }
+.sk .t.off { color: var(--muted); font-weight: 500; }
+.chip { display: inline-block; font: 600 .6rem var(--display); letter-spacing: .1em; text-transform: uppercase; padding: 1px 6px; border-radius: 999px; background: var(--tint); color: var(--accent); margin-left: 6px; vertical-align: .1em; white-space: nowrap; }
+.chip.mut { background: var(--tint-2); color: var(--muted); }
+
+/* ---------- listas ---------- */
+.lv { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 10px; padding: 7px 0; border-top: 1px solid var(--rule); }
+.lv:first-child { border-top: 0; }
+.lv b { font: 700 .8rem var(--display); color: var(--accent); padding-top: 3px; }
+.lv span { overflow-wrap: anywhere; }
+.lv.fut { opacity: .5; }
+.tal { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+.tal label { grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: 8px; font-size: .8rem; }
+.qbox { border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); margin-top: 8px; }
+.qbox > summary { cursor: pointer; padding: 11px 14px; font: 600 .95rem var(--display); }
+.qbox .list { padding: 0 14px 10px; max-height: 360px; overflow: auto; }
+.qrow { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-top: 1px solid var(--rule); align-items: start; cursor: pointer; }
+.qrow input { margin-top: 3px; }
+.qrow b { font: 600 .92rem var(--display); }
+.qrow .c { font: 700 .78rem var(--display); color: var(--accent); margin-left: 6px; white-space: nowrap; }
+.qrow small { display: block; color: var(--muted); font-size: .84rem; line-height: 1.4; }
+details.card > summary { cursor: pointer; font: 600 .95rem var(--display); }
+details.adv > .in { margin-top: 12px; display: grid; gap: 14px; }
+
+/* ---------- tabelas e consulta ---------- */
+.tw { overflow-x: auto; margin: 10px 0; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); }
+.tw table { border-collapse: collapse; width: 100%; font-size: .9rem; line-height: 1.45; font-variant-numeric: tabular-nums; }
+.tw th { text-align: left; font: 600 .74rem var(--display); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--tint-2); padding: .6em .9em; white-space: nowrap; }
+.tw td { padding: .55em .9em; border-top: 1px solid var(--rule); vertical-align: top; }
+.tw tbody tr:first-child td { border-top: 0; }
+.rules { margin: 8px 0 0; padding-left: 1.2em; max-width: 68ch; }
+.rules li { margin: .35em 0; }
+.rules li::marker { color: var(--accent); }
+details.item { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; margin-top: 8px; }
+details.item > summary { cursor: pointer; padding: 11px 14px; font: 600 1rem var(--display); display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+details.item > summary .meta { font: 500 .78rem var(--display); color: var(--muted); }
+details.item .in { padding: 2px 14px 14px; }
+details.item p { margin: .5em 0; max-width: 68ch; }
+.search { margin: 6px 0 4px; }
+.seg { display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; margin: 6px 0; }
+.seg button { border: 0; background: var(--surface); padding: 8px 14px; font: 500 .86rem var(--display); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); font-weight: 600; }
+.foot { border-top: 1px solid var(--rule); padding-block: 18px 40px; color: var(--muted); font: 400 .82rem/1.55 var(--display); }
+.foot p { margin: 0 auto; max-width: 980px; }
+/* ---------- mesa ---------- */
+.bar-r { display: flex; align-items: center; gap: 8px; }
+.chip.role { margin: 0; font-size: .64rem; padding: 3px 8px; }
+.bnw { max-width: 980px; margin: 0 auto; }
+.mgrid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); }
+.mcard { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 12px 14px; display: grid; gap: 6px; min-width: 0; align-content: start; cursor: pointer; }
+.mcard.mine { border-color: var(--accent); }
+.mc-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mc-open { border: 0; background: none; padding: 4px 0; font: 700 1.1rem/1.2 var(--display); color: var(--fg); text-align: left; cursor: pointer; overflow-wrap: anywhere; min-width: 0; }
+.mc-open:hover { color: var(--accent); }
+.mc-sub { font: 500 .8rem/1.4 var(--display); color: var(--muted); overflow-wrap: anywhere; }
+.mbar { position: relative; height: 24px; border-radius: 4px; background: var(--tint-2); overflow: hidden; }
+.mbar span { position: absolute; inset: 0 auto 0 0; background: var(--ok); opacity: .32; }
+.mbar.warn span { background: var(--warn); opacity: .45; }
+.mbar.bad span { background: var(--bad); opacity: .45; }
+.mbar.pm span { background: var(--accent); opacity: .32; }
+.mbar em { position: relative; font: 600 .78rem/24px var(--display); font-style: normal; padding: 0 8px; font-variant-numeric: tabular-nums; }
+.mc-stats { display: flex; flex-wrap: wrap; gap: 4px 12px; font: 600 .8rem var(--display); font-variant-numeric: tabular-nums; }
+.mc-adj { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; }
+.mc-adj + .mc-adj { margin-top: -2px; }
+.mc-adj .lab { font: 700 .66rem var(--display); letter-spacing: .12em; color: var(--muted); margin-left: 4px; }
+.mc-adj .btn { min-width: 42px; padding: 0 8px; }
+.tb { display: grid; gap: 8px; margin-bottom: 4px; }
+.tb-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.tb-who { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 0; }
+.tb-who b { font: 700 1.25rem/1.2 var(--display); overflow-wrap: anywhere; margin-right: 6px; }
+.tb .msg { margin: 0; }
+.tb label.f { min-width: 120px; }
+.toast { position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); z-index: 90; margin: 0 auto; max-width: 520px; background: var(--fg); color: var(--bg); padding: 11px 14px; border-radius: 6px; font: 600 .88rem/1.35 var(--display); }
+.btn:disabled, input:disabled, select:disabled, textarea:disabled { opacity: .72; cursor: default; }
+input[type="checkbox"]:disabled + span, .qrow:has(input:disabled) { cursor: default; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap bar">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M7.4 17.2 16.8 6.8"/></svg>
+      <span>World <b>Zero</b></span>
+    </div>
+    <div class="bar-r"><span class="chip role" id="chip-role" hidden></span><button class="btn" id="btn-tema" type="button" aria-label="Trocar tema">Tema: auto</button></div>
+  </div>
+  <nav class="wrap tabs" aria-label="Seções">
+    <a href="#mesa" data-p="mesa">Mesa</a>
+    <a href="#ficha" data-p="ficha">Ficha</a>
+    <a href="#classes" data-p="classes">Classes</a>
+    <a href="#racas" data-p="racas">Raças</a>
+    <a href="#pericias" data-p="pericias">Perícias</a>
+    <a href="#tabelas" data-p="tabelas">Tabelas</a>
+    <a href="#qualidades" data-p="qualidades">Qualidades</a>
+  </nav>
+</header>
+
+<main class="wrap" id="main">
+  <div class="bnw"><div class="msg" id="banner" role="status"></div></div>
+
+  <!-- ================= MESA ================= -->
+  <section id="p-mesa" class="page">
+    <h1 class="title">Mesa</h1>
+    <p class="lede" id="mesa-lede">Conectando à mesa...</p>
+    <div class="card" id="login" hidden>
+      <div class="seg" id="seg-login"><button type="button" data-r="p" aria-pressed="true">Sou jogador</button><button type="button" data-r="m" aria-pressed="false">Sou o mestre</button></div>
+      <form id="f-jog" class="grid" style="margin-top:10px">
+        <label class="f">Seu nome<input id="l-nome" autocomplete="nickname" maxlength="30" placeholder="Como a mesa te chama"></label>
+        <label class="f">Código da mesa<input id="l-cod" autocomplete="off" placeholder="O mestre te passa"></label>
+        <button class="btn pri" type="submit">Entrar na mesa</button>
+        <p class="hint" style="margin:0">Use sempre o mesmo aparelho e navegador: suas fichas ficam ligadas a ele. Para trocar de aparelho, copie a ficha em Backup (aba Ficha) e importe no novo.</p>
+      </form>
+      <form id="f-mes" class="grid" style="margin-top:10px" hidden>
+        <label class="f">E-mail do mestre<input id="l-mail" type="email" autocomplete="username"></label>
+        <label class="f">Senha<input id="l-senha" type="password" autocomplete="current-password"></label>
+        <button class="btn pri" type="submit">Entrar como mestre</button>
+      </form>
+      <div class="msg" id="msg-login"></div>
+    </div>
+    <div class="btns" id="mesa-new"></div>
+    <div class="btns" id="mesa-acc" hidden style="margin-top:8px"><button class="btn" id="b-sair" type="button">Sair (mestre)</button></div>
+    <div class="search" id="mesa-busca"><input type="search" id="mesa-filtro" placeholder="Buscar por nome, raça, classe ou jogador" autocomplete="off" aria-label="Buscar ficha"></div>
+    <div id="mesa-body"></div>
+    <div class="sec" id="mesa-notas" hidden>
+      <h2>Anotações do mestre</h2>
+      <div class="card"><label class="f">Só você vê isto<textarea id="gm-notas" placeholder="Plano da sessão, segredos, ganchos, lembretes"></textarea></label></div>
+    </div>
+  </section>
+
+  <!-- ================= FICHA ================= -->
+  <section id="p-ficha" class="page">
+    <h1 class="title">Ficha</h1>
+    <div class="card" id="ficha-empty"><p style="margin:0 0 10px">Nenhuma ficha aberta. Escolha uma na aba Mesa.</p><button class="btn pri" id="b-empty" type="button">Ir para a Mesa</button></div>
+
+    <div class="card tb" id="tb" hidden>
+      <div class="tb-row"><button class="btn" id="b-back" type="button">← Mesa</button><span class="small" id="sync" role="status" aria-live="polite"></span></div>
+      <div class="tb-who"><b id="tb-title"></b><span class="chip" id="tb-tipo"></span><span class="chip mut" id="tb-mode"></span></div>
+      <div class="small">Dono: <span id="tb-owner"></span></div>
+      <div class="btns">
+        <label class="f" id="tb-tipo-wrap" hidden>Tipo<select id="sel-tipo"></select></label>
+      </div>
+      <div class="btns">
+        <button class="btn" id="b-reveal" type="button" hidden></button>
+        <button class="btn" id="b-dup" type="button">Duplicar</button>
+        <button class="btn bad" id="b-del" type="button">Excluir</button>
+      </div>
+      <div class="msg" id="msg-ro"></div>
+    </div>
+
+    <div id="ficha-body" hidden>
+
+    <div class="sec">
+      <h2>Personagem</h2>
+      <div class="card">
+        <div class="grid g2">
+          <label class="f">Nome<input data-bind="nome" placeholder="Nome do personagem" autocomplete="off"></label>
+          <label class="f">Jogador<input data-bind="jogador" placeholder="Quem joga" autocomplete="off"></label>
+          <label class="f">Raça<select data-bind="race" id="sel-race"></select></label>
+          <label class="f">Classe<select data-bind="cls" id="sel-cls"></select></label>
+          <label class="f">Nível<select data-bind="nivel" id="sel-lv"></select></label>
+          <label class="f">XP atual<input type="number" inputmode="numeric" min="0" data-bind="xp" placeholder="0"></label>
+        </div>
+        <p class="hint" id="o-xp"></p>
+        <div class="msg info" id="o-clsnote"></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h2>Resumo</h2>
+      <div class="stats">
+        <div class="stat"><span class="k">PV máx.</span><span class="v" id="o-pv">0</span><span class="s" id="s-pv"></span><input type="number" inputmode="numeric" data-bind="pvAtual" id="i-pva" aria-label="PV atuais" placeholder="atual"></div>
+        <div class="stat"><span class="k">PM máx.</span><span class="v" id="o-pm">0</span><span class="s" id="s-pm"></span><input type="number" inputmode="numeric" data-bind="pmAtual" id="i-pma" aria-label="PM atuais" placeholder="atual"></div>
+        <div class="stat"><span class="k">Sanidade</span><span class="v">100%</span><span class="s">começa em 100%</span><input type="number" inputmode="numeric" data-bind="sanAtual" aria-label="Sanidade atual" placeholder="atual"></div>
+        <div class="stat"><span class="k">C.A.</span><span class="v" id="o-ca">10</span><span class="s" id="s-ca"></span></div>
+        <div class="stat"><span class="k">C.R.</span><span class="v" id="o-cr">0</span><span class="s" id="s-cr"></span></div>
+        <div class="stat"><span class="k">D.T.</span><span class="v" id="o-dt">0</span><span class="s" id="s-dt"></span></div>
+        <div class="stat"><span class="k">LCM por turno</span><span class="v" id="o-lcm">0</span><span class="s" id="s-lcm"></span></div>
+        <div class="stat"><span class="k">Proficiência</span><span class="v" id="o-prof">+1</span><span class="s" id="s-prof"></span></div>
+        <div class="stat"><span class="k">Deslocamento</span><span class="v txt" id="o-desl">-</span><span class="s">da raça</span></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h2>Atributos</h2>
+      <div class="attrs" id="attrs"></div>
+      <div class="msg" id="msg-base"></div>
+      <div class="msg" id="msg-up"></div>
+      <p class="hint">Base: use 0, 1, 2, 3, 4 e 5 sem repetir, depois uma transferência de 1 ponto (máximo 6). Raça: bônus ou penalidades da raça e de outras fontes. Nível: aumentos de +1 nos níveis 4, 8, 11, 14, 18 e 20.</p>
+    </div>
+
+    <div class="sec">
+      <h2>Perícias</h2>
+      <div class="skills" id="skills"></div>
+      <div class="msg" id="msg-sk"></div>
+      <p class="hint" id="o-evo"></p>
+    </div>
+
+    <div class="sec">
+      <h2>Classe</h2>
+      <div class="card">
+        <p class="small" id="o-clsinfo" style="margin:0 0 8px">Escolha uma classe para ver as habilidades.</p>
+        <div id="o-hab"></div>
+        <p style="margin:10px 0 0"><button class="btn" id="b-allhab" type="button">Mostrar todos os níveis</button></p>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h2>Raça</h2>
+      <div class="card" id="o-race"><p class="small" style="margin:0">Escolha uma raça para ver o resumo.</p></div>
+    </div>
+
+    <div class="sec">
+      <h2>Talentos</h2>
+      <div class="card">
+        <p class="small" style="margin:0 0 10px" id="o-talinfo"></p>
+        <div class="tal" id="tal"></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h2>Personalização</h2>
+      <div class="card">
+        <div class="grid g3">
+          <label class="f">Pontos iniciais<input type="number" inputmode="numeric" data-bind="pontosIni" placeholder="0"></label>
+          <div class="stat" style="border:0;padding:0"><span class="k">Saldo</span><span class="v" id="o-saldo">0</span></div>
+        </div>
+        <p class="hint" id="o-qinfo"></p>
+        <details class="qbox"><summary>Qualidades <span class="small" id="n-q"></span></summary><div class="list" id="l-q"></div></details>
+        <details class="qbox"><summary>Defeitos <span class="small" id="n-d"></span></summary><div class="list" id="l-d"></div></details>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h2>Equipamento e anotações</h2>
+      <div class="card grid">
+        <div class="grid g2">
+          <label class="f">Gil<input type="number" inputmode="numeric" data-bind="gil" placeholder="0"></label>
+          <label class="f">Bônus de equipamento na C.A.<input type="number" inputmode="numeric" data-bind="extra.ca" placeholder="0"></label>
+        </div>
+        <label class="f">Equipamento e inventário<textarea data-bind="inv" placeholder="Armas, armaduras, itens"></textarea></label>
+        <label class="f">História e anotações<textarea data-bind="notas" placeholder="Passado, objetivos, notas de sessão"></textarea></label>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h2>Ajustes</h2>
+      <details class="card adv">
+        <summary>Mudar as contas e corrigir números da classe</summary>
+        <div class="in">
+          <div>
+            <p class="small" style="margin:0 0 8px">Campos vazios usam o número do livro. Preencha só se a classe estiver sem dados ou se a sua mesa usar outro valor.</p>
+            <div class="grid g3">
+              <label class="f">PV inicial<input type="number" inputmode="numeric" data-bind="over.pv" id="ph-pv"></label>
+              <label class="f">Dado de PV por nível<input data-bind="over.pvd" id="ph-pvd" placeholder="ex: 2d8"></label>
+              <label class="f">PM inicial<input type="number" inputmode="numeric" data-bind="over.pm" id="ph-pm"></label>
+              <label class="f">PM por nível<input type="number" inputmode="numeric" data-bind="over.pmn" id="ph-pmn"></label>
+              <label class="f">Perícias treinadas (base)<input type="number" inputmode="numeric" data-bind="over.tr" id="ph-tr"></label>
+            </div>
+          </div>
+          <div class="grid g3">
+            <label class="f">PV por nível<select data-bind="pvMode"><option value="media">Vida média do livro</option><option value="manual">Eu rolei</option></select></label>
+            <label class="f">Soma dos dados rolados<input type="number" inputmode="numeric" data-bind="pvRolls" placeholder="só se rolou"></label>
+            <label class="f">PV extra<input type="number" inputmode="numeric" data-bind="extra.pv" placeholder="0"></label>
+            <label class="f">PM extra<input type="number" inputmode="numeric" data-bind="extra.pm" placeholder="0"></label>
+            <label class="f">C.R. extra<input type="number" inputmode="numeric" data-bind="extra.cr" placeholder="0"></label>
+          </div>
+          <div class="grid g3">
+            <label class="f">Atributo da D.T.<select data-bind="dtAttr" id="sel-dt"></select></label>
+            <label class="f">Dado dos testes<select data-bind="dado"><option value="d20">d20 (padrão)</option><option value="d10">d10 (opção 1 do livro)</option><option value="d12">d12 (opção 2 do livro)</option></select></label>
+            <label class="f">Conta da perícia<select data-bind="form"><option value="pg">Mod. + proficiência + grau</option><option value="p">Mod. + proficiência</option><option value="g">Mod. + grau</option></select></label>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div class="sec" id="backup-sec">
+      <h2>Backup e compartilhar</h2>
+      <details class="card adv">
+        <summary>Copiar ou importar uma ficha</summary>
+        <div class="in">
+          <div>
+            <p class="small" style="margin:0 0 8px">Copie o texto abaixo para guardar ou mandar a ficha para alguém.</p>
+            <textarea id="out-json" readonly aria-label="Texto da ficha"></textarea>
+            <p style="margin:8px 0 0"><button class="btn pri" id="b-copy" type="button">Copiar ficha</button></p>
+            <div class="msg" id="msg-copy"></div>
+          </div>
+          <div>
+            <p class="small" style="margin:0 0 8px">Cole aqui o texto de uma ficha para criar uma cópia dela.</p>
+            <textarea id="in-json" aria-label="Colar ficha" placeholder="Cole o texto da ficha"></textarea>
+            <p style="margin:8px 0 0"><button class="btn" id="b-imp" type="button">Importar</button></p>
+            <div class="msg" id="msg-imp"></div>
+          </div>
+        </div>
+      </details>
+    </div>
+    </div>
+  </section>
+
+  <section id="p-classes" class="page" hidden></section>
+  <section id="p-racas" class="page" hidden></section>
+  <section id="p-pericias" class="page" hidden></section>
+  <section id="p-tabelas" class="page" hidden></section>
+  <section id="p-qualidades" class="page" hidden></section>
+</main>
+
+<footer class="foot wrap">
+  <p>Mesa criada por Marcos. Sistema World Zero criado por J.Carvalho_20. Regras do livro World Zero 4.7.7. Onde o livro tem lacunas ou erros, a ficha segue o texto mais provável e avisa.</p>
+</footer>
+
+<script src="firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script type="text/plain" id="d-classes">
+@Aceleração molecular
+pv=20
+dado=2d6
+pm=15
+pmn=6
+tr=1
+per=acrobacia, conhecimento arcano, crime, intuição, meditação, pontaria
+prof=armaduras leves e todo tipo de arma
+nota=O livro traz dois dados de vida por nível: 2d6 (média 6) e 1d10. A ficha usa 2d6. Confira com o criador.
+1|Acúmulo de energia, imbuído de energia cinética
+2|Liberação de energia
+3|Vibração constante
+4|Energia avançada
+5|Atributos aprimorados
+6|Regeneração acelerada, Vibração constante
+7|Rompimento da mente
+8|Imbuição avançada
+9|Vibração constante
+10|Interferência no ataque, Regeneração acelerada
+11|Energia total!!
+12|Vibração constante
+13|Interferência no ataque
+14|Regeneração acelerada
+15|Vibração constante
+16|Interferência no ataque
+17|Liberação total de energia
+18|Vibração constante
+19|Interferência no ataque, Regeneração acelerada
+20|Explosão molecular
+@A imperatriz
+pv=24
+dado=2d8
+pm=10
+pmn=3
+tr=3
+per=atletismo, diplomacia, fortitude, luta, pontaria, vontade
+nota=O livro traz 2d8 (cura média 8) e também 1d10 de vida por nível. A ficha usa 2d8.
+1|Arsenal de guerra
+2|Implacável
+3|Aptidão para o combate
+4|Corpo esculpido em Ferro, mente forjada em Aço
+5|Repúdio, Item de guerra
+6|Arsenal de guerra aprimorado
+7|Golpe ardiloso
+8|Blood Sweat & Tears
+9|Item de guerra aprimorado
+10|Item de guerra, Dupla-Guarda de amaranto, aprimoramento de habilidades
+11|Sedenta por sangue
+12|Treinamento Noxiano
+13|Em ritmo de combate
+14|Item de guerra aprimorado
+15|Item de guerra, aprimoramento de habilidades
+16|Dupla-Guarda de amaranto aprimorado
+17|Aprimoramento de habilidades, Lacerar
+18|Aprimoramento de habilidades
+19|Item de guerra aprimorado
+20|Execução Pública
+@Apostador
+pv=23
+dado=2d6
+pm=15
+pmn=4
+tr=1
+per=atuação, crime, diplomacia, enganação, intuição, percepção, tática
+prof=armaduras leves e todo tipo de arma
+1|Cara ou coroa (1 uso), Intuição de guerra
+2|Reflexos rápidos
+3|Sorte de principiante
+4|Início tardio
+5|Cara ou coroa (2 usos), Tudo ou nada
+6|Olhos de águia
+7|Mãos limpas
+8|Início tardio
+9|Cara ou coroa (3 usos)
+10|Sorte, Tudo ou nada
+11|Ninguém viu
+12|Provocação crítica
+13|Cara ou coroa (4 usos)
+14|Início tardio
+15|Reflexos aprimorados
+17|Tudo ou nada, Cara ou coroa (5 usos)
+18|Tenta a sorte, Início tardio
+20|Cara ou coroa (6 usos), O Grande apostador, Bug no sistema
+@Atirador
+pv=21
+dado=2d6
+pm=10
+pmn=4
+tr=1
+per=acrobacia, atletismo, diplomacia, enganação, intimidação, intuição, pontaria, ofício, percepção
+prof=armas de fogo, armas de pontaria e armaduras leves
+1|Atirador do futuro, Produzir e atirar, Recuo
+2|Acabou a munição, Mira e atira, Supremacia à distância
+3|Atirador profissional, Conhecimento de pólvora
+4|Treinamento militar
+5|Evasão, Supremacia à distância, Recuo
+6|Produzir e atirar (nível cheio), Melhoria de armamento leve
+7|Munição melhorada
+8|Mira assassina
+9|Armamento médio, Supremacia à distância
+10|Treinamento militar aprimorado, Adaptar melhorias, Roupa militar, Recuo
+11|Especialista em tiros
+12|Disparo impossível
+13|Supremacia à distância
+14|Acrobacia, Contra-ataque
+15|Mira assassina (aumento médio), Recuo
+16|Melhoria avançada
+17|Supremacia à distância
+18|Evasão aprimorada
+19|Mira assassina (efeito duplo)
+20|Tiro infalível, Supremacia à distância, Recuo
+@Assassino
+pv=20
+dado=2d6
+tr=3
+per=acrobacia, atletismo, crime, furtividade, intuição, percepção, luta
+prof=armas exóticas e armaduras leves
+1|Ataque furtivo (1d10), Lâmina oculta, Duelista
+2|Evasão, Salto de fé, Invisibilidade natural
+3|Ataque furtivo (2d8), Nas sombras
+4|Técnica precisa, Esquiva sobrenatural
+5|Ataque furtivo (3d8), Fabricar venenos
+6|Visão de águia, Lâmina venenosa
+7|Ataque furtivo (4d8)
+8|Técnica precisa, Esquiva aprimorada
+9|Ataque furtivo (5d8), Nas sombras, Concentração do assassino
+10|Memória eidética, Resistência a veneno
+11|Ataque furtivo (6d8), Visão de águia aprimorada
+12|Técnica precisa
+13|Ataque furtivo (7d8)
+14|Esquiva sobrenatural
+15|Ataque furtivo (8d8)
+16|Técnica precisa, Golpe venenoso
+17|Ataque furtivo (9d8), Imunidade a veneno
+18|Mimetismo, Visão divina
+19|Ataque furtivo (10d8)
+20|Técnica precisa, Morte invisível
+@Andarilho espiritual
+pv=26
+dado=2d6
+tr=1
+per=acrobacia, atletismo, conhecimento arcano, diplomacia, lidar com animais, luta, sobrevivência
+prof=armas simples e marciais, armaduras leves e médias
+1|Código de conduta, Punho da besta (1d6), Pele grossa +1, Comunhão com a besta
+2|Agilidade do macaco, Caminho difícil, Evasão
+3|Postura animal
+4|Caminho da floresta, Punho da besta (1d8)
+5|Totens espirituais, Punhos do avatar espiritual, Conhecimento marcial 1, Pele grossa +2
+6|Forma animalesca, Andarilho dos sonhos
+7|Familiar astral, Evasão aprimorada, Postura animal (nível 7)
+8|Agilidade do macaco superior, Postura animal (2ª), Punho da besta (1d10)
+9|Pacto com a natureza
+10|Projeção astral, Golpes naturais aprimorados, Conhecimento marcial 2, Forma animalesca (2), Forma híbrida, Pele grossa +3
+12|Golpes elementais, Postura animal (3ª), Punho do avatar espiritual (adamante), Punho da besta (2d6)
+13|Resistência do elefante
+14|Forma animalesca (3), Forma híbrida superior
+15|Força de Ártio, Pele grossa +4
+16|Postura animal (4ª), Forma animalesca (4), Punho da besta (2d8)
+17|Maestria em posturas, Força de Ártio +2, Corpo imortal
+19|Amigo das bestas
+20|Recipiente perfeito, Pele grossa +5, Punho da besta (2d10)
+@Assassino Mecânico
+pv=26
+dado=2d8
+pm=14
+pmn=4
+tr=3
+per=criação de item, intuição, luta, medicina, pontaria
+prof=armas simples e marciais, armaduras leves e médias
+1|Espada do dragão, Mente distópica
+2|Investida pesada, Neuron chip
+3|Supressor de insanidade, Avanço assassino
+4|Assassino mecânico, Neuron chip
+5|Espada do dragão
+6|Rocket-Arm-57, Assassino mecânico, Supressor de insanidade
+7|Avanço assassino, Neuron chip
+8|Defletir
+9|Assassino mecânico, Supressor de insanidade
+10|Espada do dragão, Neuron chip evoluído
+11|Avanço assassino
+12|Sinta a lâmina do dragão!, Supressor de insanidade
+13|Neuron chip evoluído
+15|Espada do dragão, Supressor de insanidade
+16|Neuron chip Sandevistan
+17|Suprimir loucura
+18|Ataque surpresa, Supressor de insanidade
+19|I Really Want to Stay at Tour House
+20|Espada do dragão, Lâmina dos dragões duplos!
+@Bardo
+pv=16
+dado=2d6
+pm=16
+pmn=6
+tr=2
+per=conhecimento arcano, atuação, diplomacia, enganação, intuição, história, percepção
+1|Instrumental, Inspiração
+2|Harmonia protetora
+3|Inspiração, Voz que ecoa
+4|Taiko-yaku
+5|Inspiração, Sinfonia da convergência
+6|Harmonia protetora
+7|Inspiração, Taiko-yaku, Ac… (texto cortado no livro)
+8|Acorde disruptivo
+9|Inspiração, Taiko-yaku
+10|Harmonia protetora, Acorde disruptivo
+11|Inspiração, Taiko-yaku
+12|Ressonância elemental
+13|Inspiração, Taiko-yaku, Acorde disruptivo
+14|Harmonia protetora, Melodia revigorante
+15|Inspiração, Taiko-yaku, Acorde disruptivo
+16|Maestro de mil vozes
+17|Inspiração, Taiko-yaku
+18|Harmonia protetora
+19|Réquiem dos caídos
+20|Inspiração, Taiko-yaku, Acorde disruptivo, Maestria do vazio
+@Berserk de metal
+pv=25
+dado=2d6
+pm=10
+pmn=4
+tr=2
+per=atletismo, iniciativa, intimidação, percepção, luta, sobrevivência
+prof=armas simples e marciais
+nota=Página incompleta no livro: Brutalidade (cura e PM) está em branco em alguns níveis.
+1|Lâmina corporal, Fator de cura
+2|Técnica de luta, Brutalidade, Adaptabilidade
+3|Mata-gigantes, Sentidos aguçados
+4|Lâminas corporais, Fator de cura
+5|Fúria selvagem, Brutalidade
+6|Adaptabilidade, Empatia selvagem, Técnica de luta
+7|Técnica de luta
+8|Lâminas corporais, Fator de cura
+9|Brutalidade, Sentidos aguçados
+10|Fúria selvagem, Adaptabilidade
+11|Couraça metálica, Brutalidade
+12|Lâminas corporais, Fator de cura
+13|Técnica de luta, Fúria selvagem
+15|Couraça metálica, Adaptabilidade
+16|Lâminas corporais, Fator de cura
+17|Sentidos bestiais, Brutalidade
+18|Técnica de luta, Controle completo do metal do corpo, Adaptabilidade definitiva
+19|Couraça definitiva, Fúria selvagem final
+20|Besta de ferro
+@Caçador estiloso
+pv=24
+dado=2d6
+pm=11
+pmn=3
+tr=2
+per=atletismo, fortitude, furtividade, iniciativa, luta, percepção, reflexo
+prof=armas marciais e exóticas, armaduras leves
+nota=O livro não traz a tabela de habilidades por nível desta classe.
+@Dark Knight
+nota=O livro não traz PV, PM, perícias nem tabela por nível para esta classe. Preencha em Ajustes.
+@Dark Slayer
+nota=O livro não traz PV, PM, perícias nem tabela por nível para esta classe. Preencha em Ajustes.
+@Devil Bringer
+nota=O livro não traz PV, PM, perícias nem tabela por nível para esta classe. Preencha em Ajustes.
+@Mysterious man
+nota=O livro não traz PV, PM, perícias nem tabela por nível para esta classe. Preencha em Ajustes.
+@Demon Weapon
+nota=O livro não traz PV, PM, perícias nem tabela por nível para esta classe. Preencha em Ajustes.
+@Cavaleiro sagrado
+pv=23
+dado=2d8
+pm=11
+pmn=5
+tr=3
+per=conhecimento arcano, fortitude, luta, meditação, vontade
+1|Voto do cavaleiro, Dano desarmado (1d8), Devoto, Treinamento de um cavaleiro, Constelação protetora
+2|Sentir cosmo, Elevar cosmo, Poder de cavaleiro sagrado
+3|Marcador de cosmo, Constelação protetora, Movimento rápido +3m, Golpes da constelação
+4|Ajuda da constelação, Poder de cavaleiro sagrado, Dano desarmado (1d10)
+5|Uno com a armadura +2
+6|Ajuda da constelação, Poder de cavaleiro sagrado
+7|Técnica especial, Constelação protetora
+8|Ajuda da constelação, Poder de cavaleiro sagrado, Dano desarmado (2d10)
+9|Movimento rápido
+10|Ajuda da constelação, Poder de cavaleiro sagrado, Uno com a armadura +1
+11|Constelação protetora
+12|Ajuda da constelação, Poder de cavaleiro sagrado, Dano desarmado (3d10)
+13|Ajuda divina
+14|Ajuda da constelação, Poder de cavaleiro sagrado
+15|Constelação protetora, Uno com a armadura +1
+16|Ajuda da constelação, Poder de cavaleiro sagrado, Dano desarmado (4d10)
+17|Velocidade da luz!
+18|Ajuda da constelação, Poder de cavaleiro sagrado
+19|Constelação protetora, Sétimo sentido
+20|Ajuda da constelação, Poder de cavaleiro sagrado, Uno com a armadura +1, Cavaleiro divino abençoado, Dano desarmado (4d12+12)
+@Cavaleiro sombrio
+pv=20
+dado=2d6
+pm=12
+pmn=3
+tr=2
+per=conhecimento arcano, intuição, luta, meditação, vontade
+1|Dor e sacrifício, Shadowstride, Souleater
+2|Grit, Flood of Darkness
+3|Blood Weapon, Carve and Split
+4|Souleater
+5|Blackest Night
+6|Stalwart Soul, Carve and Split
+7|Quietus
+8|Souleater, Blood Weapon
+9|Carve and Split
+10|Blackest Night, Stalwart Soul, Living Dead
+11|Bloodspiller, Quietus
+12|Syphon Strike, Souleater, Blood Weapon
+13|Abyssal Drain, Carve and Split
+14|Salted Earth, Stalwart Soul, Bloodspiller
+15|Unmend, Blackest Night, Quietus
+16|Souleater, Blood Weapon
+17|Bloodspiller, Salted Earth
+18|Shadowbringer, Stalwart Soul
+19|Delirium, Quietus
+20|Impalement, Blackest Night, Salted Earth
+@Guerreiro arcano
+pv=18
+dado=2d6
+pm=14
+pmn=3
+tr=1
+per=conhecimento arcano, iniciativa, luta, meditação, reflexo
+prof=armas simples e marciais, armaduras leves
+1|Armas arcanas
+2|Escolha de estilos
+3|Ataque arcano carregado
+4|Escolha de estilos, Poderes arcanos
+5|Conjurador combatente
+6|Ataque arcano carregado, Escolha de estilos
+7|Poderes arcanos
+8|Mente blindada
+9|Ataque arcano carregado (veloz)
+10|Ataque arcano superior, Escolha de estilo
+11|Poderes arcanos
+12|Maestria em combate místico
+13|Conjurador de elite
+14|Escolha de estilo
+15|Canalização veloz
+16|Poderes arcanos
+17|Mestre da lâmina mística
+18|Poderes arcanos
+19|Fluxo de mana constante
+20|Armazenamento mágico superior, Escolha de estilo
+@Guerreiro comandante
+pv=21
+dado=2d6
+tr=1
+per=diplomacia, enganação, história, iniciativa, intimidação, luta, percepção, tática
+prof=armas simples e marciais, armaduras leves e médias
+1|Aura de heroísmo +1 (pessoal)
+2|Aura de heroísmo (toque), Palavra de Deus (2d8), Talento de combate ou magia
+3|Cura pelas mãos 4d8+4
+4|Aura de heroísmo +1, Talento de combate ou magia
+5|Experiência em comando
+6|Aura de heroísmo +1, Palavra de Deus (3d8), Talento de combate ou magia
+7|Cura pelas mãos 10d8+10
+8|Aura de heroísmo +1, Talento de combate ou magia
+9|Gritos de guerra
+10|Experiência em comando, Aura de heroísmo (alcance 3m), Palavra de Deus (4d8), Talento de combate ou magia
+11|Cura pelas mãos 14d8+12
+14|Palavra de Deus (5d8), Talento de combate ou magia
+15|Experiência em comando, Cura pelas mãos 18d8+14
+17|Converte inimigo, Talento de combate ou magia
+18|Aura de heroísmo +1 (alcance 6m), Palavra de Deus (6d8)
+19|Cura pelas mãos 22d8+16
+20|Experiência em comando, Aura de heroísmo +1 (alcance 9m), Talento de combate ou magia
+@Guerreiro espadachim
+pv=25
+dado=2d8
+pm=11
+pmn=5
+tr=2
+per=atletismo, fortitude, iniciativa, luta, reflexo
+prof=armas listadas na classe e armaduras leves
+1|Golpes especiais, A vida da lâmina, Devoção da lâmina
+2|Manuseio, Arte da espada
+3|Talento de combate
+4|Golpes especiais
+5|Arte da espada
+6|Talento de combate
+7|Golpes especiais
+8|Arte da espada
+9|Talento de combate, Manuseio aprimorado
+10|Golpes especiais, Arte da espada, Lâmina sem fim
+11|Talento de combate
+12|Minha lâmina, minha vida
+13|Golpe especial, Talento de combate
+14|Minha lâmina, minha vida
+15|Talento de combate
+16|Manuseio divino, Minha lâmina, minha vida
+17|Golpe especial, Talento de combate
+18|Minha lâmina, minha vida
+19|Talento de combate
+20|Golpe especial, Minha lâmina, minha vida, Arma divina
+@Jedi
+pv=26
+dado=2d8
+pm=11
+pmn=4
+pmrot=Pontos de força
+tr=2
+per=acrobacia, conhecimento arcano, enganação, iniciativa, intuição, luta, meditação, vontade
+prof=armaduras leves
+1|Defesa sem armadura, Poderes da Força, Sabre de luz
+2|Dano ampliado (1d12)
+3|Estilo de luta, Poderes da Força, Caminho da Força
+4|Dano ampliado (2d8)
+5|Poderes da Força
+6|Dano ampliado (2d10), Caminho da Força
+7|Poderes da Força
+8|Dano ampliado (3d8)
+9|Poderes da Força
+10|Dano ampliado (3d12)
+11|Poderes da Força, Caminho da Força
+12|Dano ampliado (4d10)
+13|Poderes da Força
+14|Dano ampliado (5d10)
+15|Poderes da Força
+16|Dano ampliado (5d12+8)
+17|Poderes da Força, Caminho da Força
+18|Dano ampliado (6d10+10)
+19|Poderes da Força
+20|Dano ampliado (7d12+12), Uno com a Força
+@Los lobos
+pv=18
+dado=2d8
+tr=2
+per=atletismo, conhecimento arcano, fortitude, luta, pontaria, reflexo, vontade
+prof=armas simples
+1|Arma assinatura, Solitude dividida
+2|Cero
+3|Segundo disparo
+4|Hierro
+5|Pistoleiro
+6|Cero
+7|Bala
+8|Percibir acciones
+9|Sonido, Pistoleiro
+10|Cero
+11|Cero: pistola
+12|Resurrección: Los Lobos
+13|Pistoleiro
+14|Cero
+15|Variação de liberação: Gran sonido, Hierro aprimorado
+17|Resurrección segunda etapa: Los Lobos
+18|Cero, Hierro retroativo
+19|Gran Rey cero
+20|Cero, Disparo del solitude
+@Invocador de plantas
+pv=16
+dado=2d6
+tr=2
+per=conhecimento arcano, enganação, iniciativa, medicina, ofício, percepção
+prof=armaduras leves e armas simples
+1|Cura, Disparo de ervilha, Girassol
+2|Laser solar
+3|Metralhaervilha
+4|Cura, Noz
+5|Laser solar, Gelhidão
+6|Metralhaervilha, Cerejinha
+7|Cura, Fogaréu
+8|Laser solar, Casca grossa, Carnívora
+9|Metralhaervilha
+10|Cura, Enfeitiçado, Mini solzinho
+11|Laser solar, Batamina
+12|Metralhaervilha, Ervilha ninja
+13|Medogumelo
+14|Cura, Laser solar
+15|Metralhaervilha
+16|Gasogumelo
+17|Cura, Laser solar
+18|Metralhaervilha
+19|Bonk Choy
+20|Hipnogumelo
+@Lutador mágico
+pv=22
+dado=2d8
+tr=2
+per=atletismo, acrobacia, fortitude, iniciativa, luta, reflexo
+prof=armaduras leves e armas simples
+1|Briga (1d6), Técnica de luta, Chute da ventania
+2|Técnica de luta, Evasão, Estamina, Turbilhão
+3|Durão +1, Golpes especiais, Parede de chutes
+4|Briga (1d8), Ao
+5|Golpe poderoso, Avanço hostil
+6|Técnica de luta, Hadouken, Avanço celeste
+7|Durão +2, Canalizar energia, Chute em gancho
+8|Briga (1d10+1), Chute da tempestade
+9|Golpe quebra-piso
+10|Técnica de luta, Evasão aprimorada, Conexão de chutes
+11|Durão +3, Contra-ataque
+12|Briga (2d6+2)
+13|Golpe poderoso aprimorado, Impulso brutal
+14|Técnica de luta
+15|Chute comburente 2d10
+16|Durão +4, Briga (2d8+3)
+17|Chute comburente 3d8
+18|Técnica de luta
+19|Durão +5, Chute comburente (2d10+4)
+20|Briga (2d12+5), Shun Goku Satsu, Chute comburente (4d10)
+@Metálica
+pv=18
+dado=2d6
+tr=2
+per=atletismo, atuação, intimidação, acrobacia, reflexo, fortitude
+prof=armaduras leves e médias, armas simples e armas marciais do grupo Machado
+nota=A tabela de habilidades do livro está incompleta: vários níveis estão em branco.
+1|Guitarra Machado, Fluxo musical
+2|Smells Like a Teen Spirit, Come as You Are
+3|Lithium, Heart-Shaped Box
+4|Rape Me
+5|Paint It, Black
+6|Smells Like a Teen Spirit
+10|Smells Like a Teen Spirit
+14|Smells Like a Teen Spirit
+18|Smells Like a Teen Spirit
+20|Smells Like a Teen Spirit
+@Mestre das máscaras
+pv=22
+dado=2d6
+tr=2
+per=conhecimento arcano, diplomacia, furtividade, história, intuição, luta, vontade
+prof=armas básicas e armaduras leves
+1|Máscara de sangue, Caminho de sangue
+2|Compartilhar sangue, Poder de caminho das máscaras
+3|Ataque visceral (2d6), Poder de caminho das máscaras
+4|Poder de caminho das máscaras
+5|Poder de caminho das máscaras, Vida prolongada
+6|Poder de caminho das máscaras
+7|Ataque visceral (2d10), Poder de caminho das máscaras
+8|Poder de caminho das máscaras
+9|Poder de caminho das máscaras
+10|Poder de caminho das máscaras, Controle de sangue
+11|Ataque visceral (3d10), Poder de caminho das máscaras
+12|Poder de caminho das máscaras
+13|Poder de caminho das máscaras
+14|Poder de caminho das máscaras
+15|Ataque visceral (4d10), Poder de caminho das máscaras
+16|Poder de caminho das máscaras
+17|Poder de caminho das máscaras
+18|Poder de caminho das máscaras
+19|Ataque visceral (5d10), Poder de caminho das máscaras
+20|Poder de caminho das máscaras, Controle de sangue
+@Monarca das sombras
+pv=20
+dado=3d4
+tr=2
+per=conhecimento arcano, diplomacia, enganação, intimidação, luta, vontade
+prof=armas básicas, marciais e exóticas
+1|Extração de sombras, Gadanho negro (2d12)
+2|Carisma mortal
+3|Gadanho negro (3d10)
+4|Preservação sombria, Inventário do jogador
+5|Autoridade do monarca, Gadanho negro (4d10)
+6|Troca de sombras
+7|Gadanho negro (4d12+5)
+8|Velocidade sobrenatural
+9|Força colossal, Gadanho negro (5d10+8)
+10|Domínio do monarca
+11|Gadanho negro (5d12+10), Invulnerabilidade
+12|Presença mortal
+13|Gadanho negro (6d10+14)
+14|Sombra protetora
+15|Comando das sombras, Gadanho negro (6d12+18)
+16|Resistência a magia
+17|Gadanho negro (7d10+22)
+18|Forma do monarca das sombras
+19|Armadura sombria, Gadanho negro (10d12+30)
+20|Golpe vital
+@Olho maldito
+pv=21
+dado=2d8
+pm=15
+pmn=5
+tr=4
+per=conhecimento arcano, enganação, intuição, percepção
+1|Bola de rancor, Coração rancoroso
+2|Chute trivela
+3|Drible do Ronaldinho
+4|Bola de rancor
+5|Bola rápida, Corpo de atleta
+6|Construção de rancor
+7|Bola de rancor, Paredes de ricochete
+8|Bola curva
+9|Casa amaldiçoada
+10|Bola de rancor
+11|Parede rancorosa
+12|Mestre das goleadas
+13|Bola de rancor
+14|Olhar suicida
+15|Olho maligno
+16|Bola de rancor
+17|Combo com a bola
+18|Chute ao GOOOOLLLLLL
+19|Combo com a bola
+20|Bola de rancor, FDS A BOLA OLHA A BICUDA
+@Samurai das almas
+pv=24
+dado=2d6
+tr=2
+per=atletismo, conhecimento arcano, iniciativa, luta, meditação, reflexo
+prof=armas simples e marciais, armaduras leves
+1|Relíquias das almas, Talento de combate
+2|Almas rubras, Almas vingativas
+3|Marca do flagelo corrompido
+4|Lâmina das almas (1º estilo)
+5|Relíquias das almas maior
+6|Talento de combate
+7|Prisão das almas, Talento de combate
+8|Lâmina das almas (2º estilo)
+9|Talento de combate
+10|Relíquias das almas superiores, Alma regenerada
+11|Talento de combate
+12|Lâmina das almas (3º estilo)
+13|Talento de combate
+14|Círculo das almas I
+15|Talento de combate
+16|Relíquias das almas imperiais, Olhos da morte
+17|Talento de combate
+18|Círculo das almas II, Talento de combate
+19|Talento de combate
+20|Lord das almas
+@Rainha da podridão
+pv=22
+dado=2d8
+tr=2
+per=conhecimento arcano, fortitude, iniciativa, intuição, luta
+prof=armaduras leves e armas simples, marciais e exóticas
+1|Mão de Malenia (1d10), Podridão escarlate
+2|A protetora, Golpe às cegas
+3|Deusa da podridão
+4|Mão de Malenia (2d8), Podridão escarlate
+5|Recuo rápido, Explosão sequencial
+6|Braço protético
+7|Grande runa, Chute desestabilizador
+8|Mão de Malenia (2d12+5), Podridão escarlate, Perfuração dupla
+9|Luta às cegas
+10|Corte superior
+11|Erupção das borboletas
+12|Mão de Malenia (3d8+8), Podridão escarlate
+13|Sequência da podridão
+14|Sequência cortante
+15|Dança das borboletas
+16|Mão de Malenia (5d8+10), Podridão escarlate
+17|Waterfowl Dance
+18|Forma de borboleta
+19|Impulso empalador
+20|Mão de Malenia (8d8+12), Podridão escarlate, Aeônia escarlate
+@Senhor das moscas
+pv=18
+dado=2d8
+tr=2
+per=conhecimento arcano, enganação, intimidação, vontade
+prof=armaduras leves e armas simples
+1|Vibração, Asas do diabo
+2|Portões emergentes
+3|Portões do inferno
+4|Asas do diabo
+5|Vibração óssea
+6|Vibração dos tendões, Portões do inferno
+7|Transmitir vibrações
+8|Asas do diabo
+9|Portões do inferno
+10|Cortejo das moscas
+11|Escudo vibrante
+12|Abismo de Satã, Asas do diabo, Portões do inferno
+13|Orações das traves
+14|Pecado da gula
+15|Liberação da besta, Portões do inferno
+16|Asas do diabo, Área de tremores
+18|Vibração hemorrágica, Portões do inferno
+19|Gula do anjo caído
+20|Asas do diabo, Chifres de Sara
+@Shinigami
+tr=3
+per=atletismo, conhecimento arcano, reflexo, luta, intuição
+prof=armas marciais e exóticas
+nota=Página incompleta: o livro não traz PV, PM nem dado de vida desta classe. Preencha em Ajustes.
+1|Zanpakutou, Liberação Asauchi, Shunpo, Hakuda, Kido ou Zanjutsu
+2|Dano ampliado (1d10)
+3|Hakuda, Kido ou Zanjutsu
+4|Dano ampliado (1d12), Pressão espiritual
+5|Hakuda, Kido ou Zanjutsu, Liberação de Shikai
+6|Dano ampliado (2d8)
+7|Hakuda, Kido ou Zanjutsu
+8|Dano ampliado (2d10), Pressão espiritual +2
+9|Hakuda, Kido ou Zanjutsu
+10|Dano ampliado (2d12), Liberação de Bankai
+11|Hakuda, Kido ou Zanjutsu
+12|Dano ampliado (3d8), Pressão espiritual +3
+13|Hakuda, Kido ou Zanjutsu
+14|Dano ampliado (3d10)
+15|Hakuda, Kido ou Zanjutsu, Mestre espadachim / Kido / Hakuda
+16|Dano ampliado (3d12), Pressão espiritual +4
+17|Hakuda, Kido ou Zanjutsu
+18|Dano ampliado (4d10)
+19|Hakuda, Kido ou Zanjutsu
+20|Dano ampliado (4d12), Mestre espadachim / Kido / Hakuda, Pressão espiritual +5
+@Vikings
+pv=28
+dado=2d10
+tr=2
+per=lidar com animais, atletismo, iniciativa, intimidação, percepção, sobrevivência
+prof=armaduras leves, médias e pesadas, armas simples e marciais
+1|Arma rúnica
+2|Técnica de luta
+3|Mata-gigantes
+4|Arma rúnica, Caçador de tundra
+5|Armadura rúnica, Resistência viking
+6|Runa gélida, Runa flamejante, Técnica de luta
+8|Vontade inabalável, Arma rúnica
+10|Armadura rúnica, Força ancestral, Técnica de luta
+12|Arma rúnica
+14|Técnica de luta
+15|Armadura rúnica
+16|Arma rúnica
+18|Técnica de luta
+20|Arma rúnica, Armadura rúnica, Bênção das valquírias
+@O Visionário
+nota=Classe em branco no livro (só existe o Pincel no nível 1). Preencha em Ajustes se precisar.
+1|Pincel
+</script>
+
+<script type="text/plain" id="d-quals">
+q|Acrobata|1|+2 em Acrobacia.
+q|Aura Carismática|2|A menos de 4 m de um aliado, ambos recebem +2 em testes de Carisma.
+q|Aura Inspiradora|3|3 vezes por dia, aliados a até 4 m ganham 1d8 em qualquer teste por um turno.
+q|Audição Aguçada|3|+2 em Percepção baseada em audição.
+q|Afinidade com a Morte|4|Ao abater, teste de História (CD 17) para uma prece: +2 PV permanentes.
+q|Comando Rápido|1|Antes da iniciativa, Tática (DT 15): você e aliados ganham +2 em Iniciativa.
+q|Concentração Anormal|1|+2 para resistir à quebra de concentração (meditar, vontade).
+q|Coragem Descomunal|1|+2 em testes de resistência a intimidação.
+q|Corpo Poderoso|3|A cada dois turnos recupera 1d8 + mod. Constituição de PV.
+q|Defensor Implacável|3|Ação bônus: um aliado a até 9 m ganha +2 de C.A. por 1d6 turnos.
+q|Determinação Inumana|2|Ignora os efeitos de Sangrando e Fatigado por 2 turnos.
+q|Dom de Líder|2|Aliados a até 6 m ganham +1 em ataque enquanto ouvirem sua voz.
+q|Empatia Sobrenatural|2|Vantagem em Intuição e detecta mentiras após observar por 1 turno.
+q|Escudo de Carne|4|Reação: toma o ataque no lugar de um aliado; 2 PM dão 1d10 de redução de dano (máx. 10).
+q|Especialista em Venenos|4|Sobrevivência (CD 18) para descobrir venenos e suas curas.
+q|Espírito Indomável|3|Uma vez por descanso longo, refaz um teste de Vontade que falhou.
+q|Esquiva|3|+2 em Reflexo.
+q|Faro Aguçado|2|+2 em Percepção baseada em cheiro.
+q|Foco na Fama|3|+1 em testes quando estiver sendo visto por outras criaturas (requer Carisma 13).
+q|Foco Inabalável|3|Uma vez por cena, ignora distração, medo ou dor por 1 turno.
+q|Fonte de Poder|3|+3 PM por nível (a ficha soma sozinha).
+q|Força Descomunal|2|Capacidade de carga +20 kg.
+q|Frenesi Berserker|3|Uma vez por dia: 1d10 de redução de dano e +1d8 de dano corpo a corpo por 1d6 turnos.
+q|Fúria Incontrolável|4|Uma vez por dia: +2 em ataque e +1d8 de dano, mas -2 nas defesas até o fim do combate.
+q|Lábia Persuasiva|2|+2 em Persuasão.
+q|Memória Eidética|1|Vantagem para lembrar informações, símbolos, rostos e trajetos.
+q|Vontade Inabalável|3|Uma vez por dia, reação para se livrar de um efeito mental ou físico.
+q|Instintos Naturais|3|Ao chegar a um lugar novo, Intuição para ser avisado de perigos.
+q|Instinto de Sobrevivência|2|Abaixo de 25% dos PV: +2 em Reflexo e Fortitude até o fim do combate.
+q|Melhor Amigo|2|Com seu melhor amigo à vista, ambos ganham +1 em qualquer teste.
+q|Mente Focada|2|+2 em Vontade contra efeitos mentais.
+q|Mestre Marcial|3|O dano desarmado sobe uma categoria.
+q|Mãos Leves|3|Vantagem em Furtividade para pegar itens sem ser notado.
+q|Não Tema a Morte|4|A 0 PV, uma vez por dia: Vontade (DT 20) para levantar com Constituição + 2d10 de vida.
+q|Poder Sobrenatural|2|+2 para resistir a efeitos de magias.
+q|Poder da Amizade|3|Uma vez por dia, criaturas iguais ao seu bônus de proficiência ganham resistência a qualquer dano por 1 turno.
+q|Presença Intimidadora|2|Intimidação contra a Vontade dos alvos: inimigos sofrem -2 no primeiro turno.
+q|Sangue Antigo|4|Resistência 5 a um tipo de dano (fogo, gelo, veneno ou necrótico).
+q|Sorte de Ferro|3|Uma vez por dia, transforma uma falha em sucesso simples (não vale para falha crítica).
+q|Ocultação|4|+2 em Furtividade e ataques furtivos causam +1d de dano.
+q|Olhos de Falcão|2|+2 em Percepção baseada em visão.
+q|Resistência Física|4|2 de redução de dano e vantagem em Fortitude contra Sangramento, Atordoamento e Envenenamento.
+q|Social|1|+2 em Persuasão e Diplomacia.
+q|Sorte Anormal|4|Uma vez por dia, refaz um teste que falhou.
+q|Sobrevida|3|+3 PV por nível (a ficha soma sozinha).
+q|Superando Limites|3|Abaixo da metade dos PV: +2 em todos os testes e vantagem em ataques por 1d4 turnos.
+q|Voz Hipnotizante|2|Três vezes por dia, Persuasão deixa o alvo Fascinado por 1 turno.
+d|Amnésia|1|Perda de memória: não lembra do próprio passado.
+d|Amoroso|2|Vontade (CD 18) ao ver alguém belo: fica Apaixonado e protege essa pessoa.
+d|Azarado|3|Três vezes por dia o mestre transforma um sucesso seu ou de um aliado a 9 m em falha crítica.
+d|Cabeça a Prêmio|2|Uma vez por sessão, 1d100 acima de 50 faz um inimigo aparecer para te matar.
+d|Cego|3|Condição Cego permanente, com +2 em testes de audição.
+d|Culpado|3|Vontade ao ver o mal ser feito: -5 em testes até o fim da cena se falhar.
+d|Código de Honra|1 a 3|Quebrar o código dá desvantagem em todas as jogadas até o fim do dia.
+d|Coração de Gelo|3|-4 em Diplomacia e Religião.
+d|Desatento|1|Desvantagem em Percepção passiva e 25% mais chance de ser surpreendido.
+d|Debochado|1|No primeiro turno do combate os inimigos focam em você.
+d|Dependente|3|Três horas sem o vício: -4 em todos os testes até saciar.
+d|Desconfiado|1|Desvantagem em Diplomacia com quem você conhece há menos de 1 mês.
+d|Desleixado|2|Ao fim da sessão, 1d100 abaixo de 40 faz você perder um item aleatório.
+d|Desprezo|2|Despreza humanos: Vontade (DT 25) ao interagir, com efeitos negativos se falhar.
+d|Explosivo|2|Falha sozinho em Vontade contra intimidação ou provocação e fica Enfurecido.
+d|Ferimento Permanente|2|Ao ser atingido no local da ferida, recebe +1d de dano.
+d|Fobia|1 a 3|Medo de algo combinado com o mestre, com penalidades próprias.
+d|Ganancioso|2|Vontade (DT 20) para não tentar roubar ouro ou itens raros.
+d|Hemofilia|2|Falha sozinho em testes de Sangramento e recebe 1d a mais de dano de sangramento.
+d|Impopular|1|Recebe metade dos pontos de popularidade.
+d|Impulsividade|2|Vontade (DT 20) para não agir por impulso em situações delicadas.
+d|Ingênuo|1|-3 em Intuição.
+d|Ingenuidade Extrema|2|Falha sozinho em Intuição contra Enganação.
+d|Insônia|2|Ao descansar, Fortitude (DT 23) ou recebe só metade dos benefícios.
+d|Má Reputação|2|Metade dos pontos de popularidade e -2 em interação social.
+d|Medo de Escuro|1|Em local pouco iluminado, Vontade (DT 18) ou -2 em todos os testes até sair.
+d|Mudo|3|Incapaz de se comunicar falando.
+d|Perda de Memória recente|?|Vontade (DT do mestre) toda vez que quiser lembrar algo recente. O livro não informa os pontos.
+d|Pessimista|3|Ao tirar 20 natural, role 1d10: de 1 a 5 vira falha crítica.
+d|Sede de Poder|2|Desvantagem em Vontade contra tentações de poder e prestígio.
+d|Sem Braço ou Mão|3|Desvantagem em Atletismo, -2 em acerto e não segura nada com o membro que falta.
+d|Sem Perna ou Pé|3|Desvantagem em Acrobacia e Reflexo para se mover e deslocamento cortado pela metade.
+d|Senso de direção ruim|2|Uma vez por cena, 1d100 abaixo de 51 faz você andar para uma direção aleatória.
+d|Sincero ao Extremo|2|Não guarda segredos nem aceita mentiras na sua frente.
+d|Síndrome de Riley-Day|3|Não sente dor: não sabe quanta vida perdeu nem se está envenenado.
+d|Sonolento|2|No início de cada cena, Fortitude (DT 15) para não ficar Sonolento.
+d|Supersticioso|1|Ao ver um mau agouro, -2 em testes até o fim da cena.
+d|Surdo|3|Condição Surdo permanente.
+d|Teimosia|1|Insiste em uma ação até ter sucesso, sem pensar nas consequências.
+d|Timidez Excessiva|2|-2 em qualquer teste enquanto estiver sendo visto.
+d|Trauma|1 a 3|Trauma de passado combinado com o mestre, com penalidade própria.
+d|Visão Ruim|2|Desvantagem em Percepção ligada à visão.
+</script>
+
+<script>
+(function () {
+'use strict';
+
+/* ================= utilidades ================= */
+var $ = function (s, r) { return (r || document).querySelector(s); };
+var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+var cl = function (n, a, b) { return Math.max(a, Math.min(b, n)); };
+var num = function (v) { var n = parseFloat(String(v === undefined || v === null ? '' : v).replace(',', '.')); return isFinite(n) ? n : 0; };
+var has = function (v) { return v !== undefined && v !== null && String(v).trim() !== ''; };
+var fmt = function (n) { return n >= 0 ? '+' + n : '-' + Math.abs(n); };
+var norm = function (s) { return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim(); };
+var uid = function () { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); };
+function setT(id, t) { var e = document.getElementById(id); t = String(t); if (e && e.textContent !== t) e.textContent = t; }
+function setMsg(id, kind, t) { var e = document.getElementById(id); if (!e) return; e.className = 'msg' + (t ? ' ' + kind : ''); e.textContent = t || ''; }
+function getPath(o, p) { return p.split('.').reduce(function (a, k) { return a == null ? a : a[k]; }, o); }
+function setPath(o, p, v) { var k = p.split('.'), t = o; for (var i = 0; i < k.length - 1; i++) { if (t[k[i]] == null || typeof t[k[i]] !== 'object') t[k[i]] = {}; t = t[k[i]]; } t[k[k.length - 1]] = v; }
+
+/* ================= regras do livro ================= */
+var ATTRS = [['car', 'Carisma'], ['con', 'Constituição'], ['des', 'Destreza'], ['for', 'Força'], ['int', 'Intelecto'], ['pre', 'Presença']];
+var ASI = [4, 8, 11, 14, 18, 20];
+var XP = [0, 1000, 4000, 9000, 15000, 21000, 28000, 38000, 48000, 59000, 80000, 105000, 130000, 160000, 190000, 230000, 290000, 360000, 500000, 700000];
+var LCM = [8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 46, 50];
+var BONUS = [-1, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 4];
+function aBonus(v) { return BONUS[cl(Math.round(v), 0, 12)]; }
+function aDice(v) { v = cl(Math.round(v), 0, 12); return v === 0 ? 2 : v <= 5 ? 1 : v <= 9 ? 2 : 3; }
+function prof(l) { return l <= 5 ? 1 : l <= 10 ? 2 : l <= 15 ? 3 : l <= 18 ? 4 : 5; }
+function xpLevel(x) { var l = 1; for (var i = 0; i < 20; i++) if (x >= XP[i]) l = i + 1; return l; }
+var GRAU = ['Sem grau', 'Treinado', 'Veterano', 'Gênio'];
+var GB = [0, 2, 3, 4];
+
+var SKILLS = [
+  ['Acrobacia', 'des', 0, 1, 0, 'Equilíbrio, saltos, rolamentos e reduzir dano de queda.'],
+  ['Atletismo', 'for', 0, 1, 0, 'Escalar, nadar, correr, empurrar, levantar e resistir à exaustão.'],
+  ['Atuação', 'car', 0, 0, 0, 'Cantar, dançar, atuar e impressionar plateias.'],
+  ['Conhecimento arcano', 'int', 1, 0, 0, 'Identificar magias, itens e rituais e entender a mana.'],
+  ['Criação de item', 'int', 1, 0, 1, 'Fabricar, encantar, reparar e modificar itens.'],
+  ['Crime', 'des', 1, 1, 1, 'Arrombar, roubar bolsos, falsificar e sabotar armadilhas simples.'],
+  ['Diplomacia', 'car', 0, 0, 0, 'Convencer sem mentir, negociar e acalmar conflitos.'],
+  ['Enganação', 'car', 0, 0, 0, 'Mentir, blefar e disfarçar intenções.'],
+  ['Fortitude', 'con', 0, 0, 0, 'Resistir a venenos, doenças, fadiga e dor.'],
+  ['Furtividade', 'des', 0, 1, 0, 'Esconder-se, mover-se em silêncio e emboscar.'],
+  ['História', 'int', 0, 0, 0, 'Eventos, reinos, símbolos e ruínas antigas.'],
+  ['Iniciativa', 'des', 0, 0, 0, 'Agir primeiro e reagir a ameaças.'],
+  ['Intimidação', 'pre', 0, 0, 0, 'Amedrontar, forçar confissões e impor respeito.'],
+  ['Investigação', 'int', 0, 0, 0, 'Achar pistas, reconstruir cenas e detectar inconsistências.'],
+  ['Intuição', 'pre', 0, 0, 0, 'Sentir mentiras, intenções e perigos sociais.'],
+  ['Lidar com animais', 'pre', 1, 0, 0, 'Acalmar, assustar e treinar animais.'],
+  ['Luta', 'for', 0, 0, 0, 'Combate corpo a corpo técnico e artes marciais.'],
+  ['Medicina', 'int', 1, 0, 1, 'Estabilizar feridos, tratar doenças e fazer cirurgias simples.'],
+  ['Meditação', 'int', 0, 0, 0, 'Recuperar mana ou sanidade e resistir a efeitos mentais.'],
+  ['Ofício', 'int', 0, 0, 0, 'Profissão manual comum, como ferreiro ou cozinheiro.'],
+  ['Percepção', 'pre', 0, 0, 0, 'Notar inimigos, sons e detalhes.'],
+  ['Pilotagem', 'des', 1, 0, 0, 'Conduzir veículos e montarias mecânicas.'],
+  ['Pontaria', 'des', 1, 0, 0, 'Ataques à distância e disparos precisos.'],
+  ['Reflexo', 'des', 0, 0, 0, 'Desviar de ataques, explosões e armadilhas.'],
+  ['Religião', 'car', 1, 0, 0, 'Deuses, cultos, rituais e dogmas.'],
+  ['Sobrevivência', 'int', 0, 0, 0, 'Caçar, rastrear, acampar e resistir ao clima.'],
+  ['Tática', 'int', 1, 0, 0, 'Planejar batalhas e coordenar aliados.'],
+  ['Tecnologia', 'int', 1, 0, 1, 'Operar, reparar e hackear máquinas e sistemas.'],
+  ['Vontade', 'car', 0, 0, 0, 'Resistir a controle mental, medo e magia mental.']
+].map(function (r) { return { k: norm(r[0]), n: r[0], a: r[1], so: !!r[2], carga: !!r[3], kit: !!r[4], d: r[5] }; });
+var ATTRNAME = {}; ATTRS.forEach(function (a) { ATTRNAME[a[0]] = a[1]; });
+
+/* ================= dados: classes, raças, qualidades ================= */
+function parseClasses(txt) {
+  var out = [], cur = null;
+  txt.split('\n').forEach(function (line) {
+    line = line.trim(); if (!line) return;
+    if (line[0] === '@') { cur = { n: line.slice(1).trim(), pv: null, pvd: '', pm: null, pmn: null, tr: null, per: [], prof: '', nota: '', pmRot: 'PM', lv: {} }; out.push(cur); return; }
+    var m = /^(\d+)\|(.*)$/.exec(line);
+    if (m) { cur.lv[+m[1]] = m[2]; return; }
+    var i = line.indexOf('='); if (i < 0) return;
+    var k = line.slice(0, i), v = line.slice(i + 1).trim();
+    if (k === 'pv') cur.pv = +v; else if (k === 'dado') cur.pvd = v; else if (k === 'pm') cur.pm = +v; else if (k === 'pmn') cur.pmn = +v;
+    else if (k === 'tr') cur.tr = +v; else if (k === 'per') cur.per = v.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+    else if (k === 'prof') cur.prof = v; else if (k === 'nota') cur.nota = v; else if (k === 'pmrot') cur.pmRot = v;
+  });
+  return out;
+}
+var CLASSES = parseClasses($('#d-classes').textContent);
+var CBYN = {}; CLASSES.forEach(function (c) { CBYN[c.n] = c; c.perSet = {}; c.per.forEach(function (p) { c.perSet[norm(p)] = 1; }); c.hasLv = Object.keys(c.lv).length > 0; });
+
+var RACES = [
+  { n: 'Anões', tam: '-', desl: '-', inc: 1, t: 'O livro ainda não tem texto para esta raça.' },
+  { n: 'Demon Weapon', tam: '-', desl: '-', t: 'Uma arma fundida com uma criatura. Foco em alma: quando é empunhada, dá 4 pontos de ação ao portador e +1 em um atributo à sua escolha (o portador recebe o mesmo bônus). Ganha mais pontos de ação nos níveis 5, 10, 15 e 20, e no 10 ganha Ações evoluídas. Preço da assinatura: dreno de energia ou mana, risco de possessão e mutação.' },
+  { n: 'Espírito vagante', tam: '1,30 a 3,00 m', desl: '8 m no corpo físico, 12 m no espectral', t: 'Duas formas. Casca vazia: +1 Destreza, interage com o mundo físico e não conjura. Espectral: atravessa criaturas e obstáculos finos, conjura magias e tem resistência a dano físico, mas não interage com objetos e sofre o dobro de dano mágico na alma. É ligado a um Objeto Âncora: se ele for danificado, roubado ou destruído, você sofre.' },
+  { n: 'Facebreaker', tam: '1,90 a 3,00 m', desl: '5 m', t: 'Quatro braços: até dois ataques desarmados extras por turno, cada um com -3 no ataque. Soco 1d6 (1d8 com manopla), +1 Força e +2 Fortitude. Não usa armadura média nem pesada, rola Furtividade com desvantagem e não soma proficiência em testes de Carisma. Pontos de Fúria (PF) máximos: 5 + mod. Constituição. Ataque poderoso custa 3 PF e Explosão de mana custa 12 PF.' },
+  { n: 'Frankenstein', tam: 'variável', desl: 'variável', t: '+1 Constituição e uma perícia adicional (Versatilidade costurada). Resistência a dano elétrico e recupera 1 PM ao sofrer dano elétrico (máx. 3 por rodada). Reserva de Energia (RE) igual ao PM máximo, usada em Inflar (+1 dado de dano em ataque desarmado a cada 3 RE, máx. +2). Evolui nos níveis 5, 10, 15 e 20. Fraqueza grave a fogo.' },
+  { n: 'Humano', tam: '1,60 a 2,00 m', desl: '9 m', t: 'Escolha um traço. Humanos dos céus: +1 Inteligência e 2d20×500 de Gil inicial. Humanos plebeus: +1 em um atributo, +2 em uma perícia, 580 de Gil e peixeira. Humanos do deserto: ainda sem texto. Vantagem: Grito de Karton (o próximo ataque no mesmo alvo causa +1 dado da arma, 1 + mod. Força usos por descanso longo). Evolução: nível 5 uma perícia vira Veterano; 10 +1 atributo; 15 habilidade racial extra; 20 qualquer talento sem pré-requisito.' },
+  { n: 'Homem-sapo', tam: '1,20 a 1,50 m', desl: '6 m (pulo de 12 m)', t: 'Visão no escuro (9 m). Pulo anuro fixo em 12 m. Traços: Sapos-verdes (+1 Força ou Constituição, +2 de C.A. contra criaturas Grandes ou maiores), Sapos-azuis (+1 Constituição, Borrifada tóxica) e Sapos-vermelhos (+1 Inteligência, uma magia extra de Rank F).' },
+  { n: 'Goblin', tam: '1,50 a 2,00 m', desl: '9 m', t: 'Visão no escuro (9 m). Traços: Goblin-comum (+1 Destreza, +2 Furtividade, +2 na C.A. base, armas de arremesso +1d6), Goblin-grande (+1 Força ou Constituição, +3 Fortitude contra doenças e venenos, Armadura Óssea) e Goblin-inteligente (+1 Inteligência, +2 Criação de item, +2 contra efeitos mentais).' },
+  { n: 'Iglesia', tam: '1,30 a 3,00 m', desl: '9 m', t: 'Hollow artificial. Desvantagem em testes para intimidar ou controlar sua mente e +1 ponto de atributo ligado à habilidade própria. Evolui por pontos: Habilidade própria (nível 1), Sonido (5), Cero (7), Inex (10), Sonido aprimorado (14), Gran Rey cero (16), Habilidade própria aprimorada (17) e Devas (20). Natureza volátil de Hollow.' },
+  { n: 'Lobisomem', tam: '-', desl: '10, 12, 15 ou 18 m conforme a forma', t: 'Faro aguçado (+4 em Percepção por cheiro) e visão na penumbra. Vulnerável a prata e acônito. Na Lua Cheia o mestre rola 1d4 para a forma: Glabro (+1 For, +1 Int, -2 Car), Crinos (+1 For, +1 Con, -2 Int), Hispos (+1 Des, +1 Pre, -2 Con) ou Lúpus (+2 Int, -2 For). Ganha PV temporários e Frenesi Carniceiro, e perde Sanidade se matar inocentes.' },
+  { n: 'Meio-anjo', tam: '1,60 a 2,00 m', desl: '9 m, voo de 12 m', t: '+1 em um atributo à escolha. Bênção celestial (proteção de 30 C.R. por 1 rodada), Graça angelical (cura gastando 6 PV seus) e Golpe de luz. Desvantagem: -4 em Intuição e Iniciativa e desvantagem em Intimidação, mas vantagem em Diplomacia.' },
+  { n: 'Meio-orc', tam: '1,80 a 2,00 m', desl: '9 m', t: 'Desvantagem em Diplomacia e Enganação. Traços: Orc talentoso (+1 Constituição, exoesqueleto +4 em C.A. e C.R.), Orc de guerra (+1 Força, +2 Intimidação, ataque extra com -3) e Orc ancestral (+2 Conhecimento arcano e +1 atributo à escolha). Ganha pontos de evolução ao derrotar inimigos.' },
+  { n: 'Meio-elfo', tam: '1,80 a 2,20 m', desl: '9 m', t: 'Arma Nyss (obra-prima, mágica +1 e +1 a cada 4 níveis). Traços: Elfo-negro (+2 Conhecimento arcano, +1 atributo, Criar chamas, -4 em Diplomacia e Intimidação com outros elfos), Elfo-luminoso (+2 Conhecimento arcano, +1 ponto de atributo, Chamado da mana) e Elfo do reino (+1 Destreza e uma perícia extra).' },
+  { n: 'Meio-demônio', tam: '1,70 m ou mais', desl: '9 m', t: '+1 em dois atributos e um talento de combate. Habilidades Hakai (nível 1), Setsu (3), Kyō (5) e Kasai (6). +2 em Intimidação e não pode ter a perícia Religião. Desvantagem: ao chegar a um lugar novo, 1d100 acima de 45 atrai alguém para te matar.' },
+  { n: 'Meio Dragão', tam: 'Médio ou Grande', desl: '9 m', t: 'RD 2 contra o elemento da linhagem. Sopro dracônico: 2 + mod. Constituição usos por descanso longo. Linhagens: Vermelho (+1 For, +1 Int, -1 Car), Branco (+1 Des, +1 Int, -1 Car), Negro (+1 Con, +1 Des, -1 Car), Azul (+1 Con, +1 Car, -1 Int), Verde (+1 For, +1 Car, -1 Des) e Marinho (+1 For, +1 Con, -1 Des).' },
+  { n: 'Nephalem', tam: '1,80 a 2,80 m', desl: '9 m', t: 'Filho de demônio e anjo. Convergência: com ação bônus e 5 PM divide o tipo de dano. Desvantagem de -2 em todos os testes de Inteligência e fome dobrada. C.R. sobe para 10 no nível 10 e para 15 no nível 15.' },
+  { n: 'Preticita', tam: '-', desl: '-', t: 'Ser de mana rúnica. Dieta rúnica: a cada 5 níveis ganha uma Marca Rúnica (+1 em uma perícia e +1d4 de dano mágico). Sifão de mana: reação para reduzir dano de magia em um valor igual ao mod. Inteligência e recuperar PM. Começa com uma runa e +1 de atributo à escolha. Sensível a zonas de antimagia.' },
+  { n: 'Vampiro', tam: '1,80 a 2,80 m', desl: '9 m', inc: 1, t: 'Quatro tipos, entre eles Cristal, Psíquico e Biomecânico. Vantagens variam por tipo, como Memória celular (+1 Inteligência) e Mordida (1d6 + Força). Vulnerável a fogo e luz, precisa de sangue a cada 24 h. Parte das tabelas de evolução ainda está vazia no livro.' },
+  { n: 'SliMax', tam: '1,30 a 2,30 m', desl: '9 m', t: 'Corpo amorfo: passa por frestas, tem vantagem em testes de Força e Destreza contra ser agarrado e ganha +1 Constituição. Não usa armadura comum. Dorme mais da metade do dia.' },
+  { n: 'Henge-Youkais', tam: '-', desl: '-', t: 'Animais místicos em forma humanoide. Transformação animal (ação completa, custo 1 + mod. Presença; ação bônus no nível 10). Variantes: Lhotlan (+1 Carisma, +2 Diplomacia, Tempestade de plumas), Neko (+2 Furtividade, Gato tem sete vidas) e Raposa de nove caudas (+1 em Conhecimento arcano ou Vontade por cauda).' }
+];
+var RBYN = {}; RACES.forEach(function (r) { RBYN[r.n] = r; });
+
+var QUALS = $('#d-quals').textContent.trim().split('\n').map(function (l) { var p = l.split('|'); return { t: p[0], n: p[1], c: p[2], d: p[3] }; });
+function qCost(q) { var s = q.t === 'q' ? '-' : '+'; return q.c === '?' ? '?' : s + q.c.replace(' a ', ' a ' + s); }
+function qPts(q) { var n = parseInt(q.c, 10); return isFinite(n) ? n : 0; }
+
+/* ================= estado e armazenamento ================= */
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+function deepMerge(a, b) {
+  Object.keys(b).forEach(function (k) {
+    var v = b[k];
+    if (v && typeof v === 'object' && !Array.isArray(v)) a[k] = deepMerge(a[k] && typeof a[k] === 'object' && !Array.isArray(a[k]) ? a[k] : {}, v);
+    else a[k] = v;
+  });
+  return a;
+}
+function nest(path, val) {
+  var k = path.split('.'), o = {}, t = o;
+  for (var i = 0; i < k.length - 1; i++) { t[k[i]] = {}; t = t[k[i]]; }
+  t[k[k.length - 1]] = val;
+  return o;
+}
+function blank() {
+  var z = function () { return { car: '', con: '', des: '', 'for': '', int: '', pre: '' }; };
+  return { id: '', tipo: 'pc', dono: '', criado: 0, nome: '', jogador: '', race: '', cls: '', nivel: '1', xp: '', base: { car: '0', con: '1', des: '2', 'for': '3', int: '4', pre: '5' }, rb: z(), up: z(),
+    pvAtual: '', pmAtual: '', sanAtual: '', extra: { pv: '', pm: '', ca: '', cr: '' }, over: { pv: '', pvd: '', pm: '', pmn: '', tr: '' }, pvMode: 'media', pvRolls: '',
+    dtAttr: 'int', dado: 'd20', form: 'pg', per: {}, tal: [], q: {}, pontosIni: '', inv: '', gil: '', notas: '' };
+}
+function fix(f) {
+  var b = blank();
+  Object.keys(b).forEach(function (k) {
+    if (f[k] === undefined || f[k] === null) f[k] = b[k];
+    else if (b[k] && typeof b[k] === 'object' && !Array.isArray(b[k])) f[k] = Object.assign({}, b[k], f[k]);
+  });
+  if (!Array.isArray(f.tal)) f.tal = [];
+  return f;
+}
+function exemplo() {
+  var f = blank();
+  Object.assign(f, { nome: 'Personagem de exemplo', jogador: 'Exemplo', race: 'Humano', cls: 'Guerreiro espadachim', nivel: '5', xp: '15000',
+    notas: 'Ficha de exemplo para ver as contas funcionando. O mestre pode excluir.' });
+  f.base = { car: '2', con: '3', des: '4', 'for': '5', int: '1', pre: '0' };
+  f.rb.con = '1'; f.up['for'] = '1';
+  f.per = { luta: 1, atletismo: 1 };
+  f.inv = 'Espada longa, armadura de couro';
+  return f;
+}
+
+/* Banco local: mesmo formato do banco compartilhado, usado quando a página abre fora do Claude. */
+function LocalDB(ns, acl) {
+  var self = this; this.k = 'wzdb:' + ns; this.acl = acl || null; this.subs = []; this.mem = null;
+  window.addEventListener('storage', function (e) { if (e.key === self.k) self.emit(); });
+}
+LocalDB.prototype.read = function () { try { var r = window.localStorage.getItem(this.k); return r ? JSON.parse(r) : {}; } catch (e) { return this.mem ? JSON.parse(this.mem) : {}; } };
+LocalDB.prototype.write = function (o) { var s = JSON.stringify(o); try { window.localStorage.setItem(this.k, s); } catch (e) { this.mem = s; } this.emit(); };
+LocalDB.prototype.can = function (kind, path) { return !this.acl || this.acl[kind](path); };
+LocalDB.prototype.snapDoc = function (path) {
+  var d = this.read()[path], ok = d !== undefined && this.can('read', path);
+  return { id: path.split('/').pop(), exists: ok, data: function () { return ok ? JSON.parse(JSON.stringify(d)) : undefined; }, metadata: { fromCache: false, hasPendingWrites: false } };
+};
+LocalDB.prototype.snapCol = function (path) {
+  var self = this, all = this.read(), pre = path + '/';
+  var docs = Object.keys(all).filter(function (p) { return p.indexOf(pre) === 0 && p.slice(pre.length).indexOf('/') < 0 && self.can('read', p); }).sort().map(function (p) { return self.snapDoc(p); });
+  return { docs: docs, size: docs.length, empty: !docs.length, metadata: { fromCache: false, hasPendingWrites: false } };
+};
+LocalDB.prototype.sig = function (col, snap) { return JSON.stringify(col ? snap.docs.map(function (d) { return [d.id, d.data()]; }) : [snap.exists, snap.data()]); };
+LocalDB.prototype.emit = function () {
+  var self = this;
+  this.subs.slice().forEach(function (s) {
+    var snap = s.col ? self.snapCol(s.path) : self.snapDoc(s.path), sg = self.sig(s.col, snap);
+    if (sg !== s.sig) { s.sig = sg; s.next(snap); }
+  });
+};
+LocalDB.prototype.listen = function (path, col, next) {
+  var self = this, s = { path: path, col: col, next: next, sig: null };
+  this.subs.push(s);
+  setTimeout(function () {
+    if (self.subs.indexOf(s) < 0) return;
+    var snap = col ? self.snapCol(path) : self.snapDoc(path); s.sig = self.sig(col, snap); next(snap);
+  }, 0);
+  return function () { self.subs = self.subs.filter(function (x) { return x !== s; }); };
+};
+LocalDB.prototype.doc = function (path) {
+  var db = this;
+  function deny() { var e = new Error('negado'); e.code = 'invalid_argument'; throw e; }
+  return {
+    id: path.split('/').pop(), path: path,
+    get: function () { return Promise.resolve(db.snapDoc(path)); },
+    set: function (data) { return new Promise(function (ok) { if (!db.can('write', path)) deny(); var a = db.read(); a[path] = clone(data); db.write(a); ok(); }); },
+    update: function (data) { return new Promise(function (ok) { if (!db.can('write', path)) deny(); var a = db.read(); if (a[path] === undefined) deny(); a[path] = deepMerge(a[path], clone(data)); db.write(a); ok(); }); },
+    delete: function () { return new Promise(function (ok) { if (!db.can('write', path)) deny(); var a = db.read(); delete a[path]; db.write(a); ok(); }); },
+    onSnapshot: function (next) { return db.listen(path, false, next); }
+  };
+};
+LocalDB.prototype.collection = function (path) {
+  var db = this;
+  return { path: path, doc: function (id) { return db.doc(path + '/' + (id || 'x' + uid())); }, onSnapshot: function (next) { return db.listen(path, true, next); }, get: function () { return Promise.resolve(db.snapCol(path)); } };
+};
+
+/* ================= regras: validar atributos ================= */
+var VALID = (function () {
+  var s = {}, base = [0, 1, 2, 3, 4, 5]; s[base.join()] = 'puro';
+  for (var i = 0; i < 6; i++) for (var j = 0; j < 6; j++) if (i !== j) {
+    var a = base.slice(); a[i]--; a[j]++;
+    if (a[i] >= 0 && a[j] <= 6) { var k = a.slice().sort(function (x, y) { return x - y; }).join(); if (!s[k]) s[k] = 'transf'; }
+  }
+  return s;
+})();
+
+/* ================= cálculo ================= */
+function compute(f) {
+  var cls = CBYN[f.cls] || null, race = RBYN[f.race] || null;
+  var L = cl(parseInt(f.nivel, 10) || 1, 1, 20);
+  var tot = {}, bn = {}, baseSum = 0, upSum = 0;
+  ATTRS.forEach(function (a) {
+    var k = a[0]; tot[k] = num(f.base[k]) + num(f.rb[k]) + num(f.up[k]); bn[k] = aBonus(tot[k]);
+    baseSum += num(f.base[k]); upSum += num(f.up[k]);
+  });
+  var o = f.over || {};
+  var pvBase = has(o.pv) ? num(o.pv) : (cls && cls.pv != null ? cls.pv : null);
+  var dado = has(o.pvd) ? String(o.pvd) : (cls ? cls.pvd : '');
+  var dm = /(\d+)\s*d\s*(\d+)/i.exec(dado);
+  // O livro chama de "vida média" metade do máximo do dado (2d6 = 6, 2d8 = 8), não a média estatística.
+  var avg = dm ? Math.floor(+dm[1] * +dm[2] / 2) : null;
+  var pmBase = has(o.pm) ? num(o.pm) : (cls && cls.pm != null ? cls.pm : null);
+  var pmn = has(o.pmn) ? num(o.pmn) : (cls && cls.pmn != null ? cls.pmn : null);
+  var tr = has(o.tr) ? num(o.tr) : (cls && cls.tr != null ? cls.tr : null);
+  var q = f.q || {};
+  var bPV = q['Sobrevida'] ? 3 * L : 0, bPM = q['Fonte de Poder'] ? 3 * L : 0;
+  var pv = null;
+  if (pvBase != null) {
+    if (f.pvMode === 'manual') pv = pvBase + bn.con + num(f.pvRolls) + (L - 1) * bn.con;
+    else if (avg != null) pv = pvBase + bn.con + (L - 1) * (avg + bn.con);
+    else pv = pvBase + bn.con;
+    pv += num(f.extra.pv) + bPV;
+  }
+  var pm = null;
+  if (pmBase != null) pm = pmBase + bn.int + (L - 1) * ((pmn || 0) + bn.int) + num(f.extra.pm) + bPM;
+  else if (num(f.extra.pm) || bPM) pm = num(f.extra.pm) + bPM;
+  var P = prof(L);
+  var dtA = f.dtAttr && bn[f.dtAttr] !== undefined ? f.dtAttr : 'int';
+  var c = {
+    cls: cls, race: race, L: L, tot: tot, bn: bn, baseSum: baseSum, upSum: upSum, pvBase: pvBase, dado: dado, avg: avg, pmBase: pmBase, pmn: pmn, tr: tr, pv: pv, pm: pm,
+    P: P, dtA: dtA, bPV: bPV, bPM: bPM,
+    ca: 10 + bn.des + num(f.extra.ca),
+    lcm: LCM[L - 1] + bn.pre,
+    dt: 12 + Math.floor(L / 2) + P + bn[dtA],
+    asiAvail: ASI.filter(function (l) { return l <= L; }).length
+  };
+  c.cr = bn.con + (pv != null ? Math.floor(pv / 20) : 0) + num(f.extra.cr);
+  var B = Math.max(0, bn.int);
+  c.budget = tr == null ? null : Math.max(0, tr + bn.int) + (L >= 4 ? B : 0) + (L >= 12 ? B : 0);
+  c.B = B;
+  return c;
+}
+function skillTotal(f, c, s) {
+  var g = num(f.per[s.k]) | 0, mod = c.bn[s.a];
+  if (g <= 0) return s.so ? null : mod;
+  if (f.form === 'p') return mod + c.P;
+  if (f.form === 'g') return mod + GB[g];
+  return mod + c.P + GB[g];
+}
+function rollText(v, base) {
+  var n = aDice(v), b = aBonus(v), s = n + base;
+  if (Math.round(v) === 0) s += ' (pega o pior)';
+  else if (n > 1 && base === 'd10') s += ' (soma)';
+  else if (n > 1 && base === 'd12') s += ' (melhor)';
+  return s + ' ' + fmt(b);
+}
+
+/* ================= construção da ficha ================= */
+var skRows = {}, talCount = -1, habKey = '', showAll = false, lastC = null;
+
+function buildSelects() {
+  $('#sel-race').innerHTML = '<option value="">Escolha a raça</option>' + RACES.map(function (r) { return '<option value="' + esc(r.n) + '">' + esc(r.n) + '</option>'; }).join('');
+  $('#sel-cls').innerHTML = '<option value="">Escolha a classe</option>' + CLASSES.map(function (c) { return '<option value="' + esc(c.n) + '">' + esc(c.n) + '</option>'; }).join('');
+  var h = ''; for (var i = 1; i <= 20; i++) h += '<option value="' + i + '">Nível ' + i + '</option>';
+  $('#sel-lv').innerHTML = h;
+  $('#sel-dt').innerHTML = ATTRS.map(function (a) { return '<option value="' + a[0] + '">' + a[1] + '</option>'; }).join('');
+}
+function buildAttrs() {
+  $('#attrs').innerHTML = ATTRS.map(function (a) {
+    var k = a[0];
+    return '<div class="attr"><div class="head"><span class="nm">' + a[1] + '</span><span class="tot" id="a-t-' + k + '">0</span></div>' +
+      '<div class="roll" id="a-r-' + k + '"></div>' +
+      '<div class="ins">' +
+      '<label class="f">Base<input type="number" inputmode="numeric" data-bind="base.' + k + '" aria-label="' + a[1] + ' base"></label>' +
+      '<label class="f">Raça<input type="number" inputmode="numeric" data-bind="rb.' + k + '" aria-label="' + a[1] + ' raça e outros" placeholder="0"></label>' +
+      '<label class="f">Nível<input type="number" inputmode="numeric" min="0" data-bind="up.' + k + '" aria-label="' + a[1] + ' aumentos de nível" placeholder="0"></label>' +
+      '</div></div>';
+  }).join('');
+}
+function buildSkills() {
+  var box = $('#skills'); box.innerHTML = '';
+  SKILLS.forEach(function (s) {
+    var row = document.createElement('div'); row.className = 'sk';
+    row.innerHTML = '<div class="nm">' + esc(s.n) + '<span class="chip" hidden>classe</span>' + (s.so ? '<span class="chip mut">só treinada</span>' : '') +
+      '<span class="at">' + ATTRNAME[s.a] + '</span></div>' +
+      '<select data-sk="' + s.k + '" aria-label="Grau de ' + esc(s.n) + '">' + GRAU.map(function (g, i) { return '<option value="' + i + '">' + g + '</option>'; }).join('') + '</select>' +
+      '<div class="t">0</div>';
+    box.appendChild(row);
+    skRows[s.k] = { row: row, sel: $('select', row), t: $('.t', row), chip: $('.chip', row) };
+  });
+}
+function buildQuals() {
+  ['q', 'd'].forEach(function (t) {
+    var list = QUALS.filter(function (x) { return x.t === t; });
+    $('#l-' + t).innerHTML = list.map(function (x) {
+      return '<label class="qrow"><input type="checkbox" data-q="' + esc(x.n) + '"><span><b>' + esc(x.n) + '</b><span class="c">' + esc(qCost(x)) + '</span><small>' + esc(x.d) + '</small></span></label>';
+    }).join('');
+    setT('n-' + t, '(' + list.length + ')');
+  });
+}
+/* ================= atualização ================= */
+function recalc() {
+  var f = cur(), c = compute(f); lastC = c;
+  var cls = c.cls, race = c.race;
+  setT('o-pv', c.pv == null ? '?' : c.pv);
+  setT('o-pm', c.pm == null ? '-' : c.pm);
+  setT('o-ca', c.ca); setT('o-cr', c.cr); setT('o-dt', c.dt); setT('o-lcm', c.lcm); setT('o-prof', fmt(c.P));
+  setT('o-desl', race ? race.desl : '-');
+  var pvs = c.pvBase == null ? 'sem dados da classe, veja Ajustes' : 'base ' + c.pvBase + ', ' + (c.dado || 'sem dado') + (c.avg != null ? ' (vida média ' + c.avg + ')' : '') + (c.bPV ? ', Sobrevida +' + c.bPV : '');
+  setT('s-pv', pvs);
+  setT('s-pm', c.pmBase == null ? (c.pm == null ? 'sem PM no livro' : 'só extras') : 'base ' + c.pmBase + ', +' + (c.pmn || 0) + ' por nível' + (c.bPM ? ', Fonte de Poder +' + c.bPM : ''));
+  setT('s-ca', '10 + Des ' + fmt(c.bn.des) + (num(f.extra.ca) ? ' + equip. ' + num(f.extra.ca) : ''));
+  setT('s-cr', 'Con ' + fmt(c.bn.con) + ' + ' + (c.pv != null ? Math.floor(c.pv / 20) : 0) + ' (1 por 20 PV)');
+  setT('s-dt', '12 + ' + Math.floor(c.L / 2) + ' + prof. ' + c.P + ' + ' + ATTRNAME[c.dtA].slice(0, 3) + ' ' + fmt(c.bn[c.dtA]));
+  setT('s-lcm', LCM[c.L - 1] + ' + Presença ' + fmt(c.bn.pre));
+  setT('s-prof', 'nível ' + c.L);
+  $('#i-pva').placeholder = c.pv == null ? 'atual' : 'atual (' + c.pv + ')';
+  $('#i-pma').placeholder = c.pm == null ? 'atual' : 'atual (' + c.pm + ')';
+  // placeholders de ajustes
+  $('#ph-pv').placeholder = cls && cls.pv != null ? String(cls.pv) : 'sem dado';
+  $('#ph-pvd').placeholder = cls && cls.pvd ? cls.pvd : 'ex: 2d8';
+  $('#ph-pm').placeholder = cls && cls.pm != null ? String(cls.pm) : 'sem dado';
+  $('#ph-pmn').placeholder = cls && cls.pmn != null ? String(cls.pmn) : 'sem dado';
+  $('#ph-tr').placeholder = cls && cls.tr != null ? String(cls.tr) : 'sem dado';
+
+  // xp
+  var xp = f.xp;
+  if (has(xp)) {
+    var lx = xpLevel(num(xp)), nx = lx < 20 ? XP[lx] : null;
+    setT('o-xp', 'Pelo XP, o nível é ' + lx + (nx ? '. Próximo nível com ' + nx.toLocaleString('pt-BR') + ' XP (faltam ' + Math.max(0, nx - num(xp)).toLocaleString('pt-BR') + ').' : '. Nível máximo.') + (lx !== c.L ? ' O nível escolhido acima é ' + c.L + '.' : ''));
+  } else {
+    setT('o-xp', 'XP para o nível ' + c.L + ': ' + XP[c.L - 1].toLocaleString('pt-BR') + (c.L < 20 ? '. Para o ' + (c.L + 1) + ': ' + XP[c.L].toLocaleString('pt-BR') + '.' : '.'));
+  }
+  setMsg('o-clsnote', 'info', cls && cls.nota ? cls.nota : '');
+
+  // atributos
+  ATTRS.forEach(function (a) { var k = a[0]; setT('a-t-' + k, c.tot[k]); setT('a-r-' + k, rollText(c.tot[k], f.dado)); });
+  var key = ATTRS.map(function (a) { return Math.round(num(f.base[a[0]])); }).sort(function (x, y) { return x - y; }).join();
+  if (c.baseSum !== 15) setMsg('msg-base', 'bad', 'Os valores base devem somar 15 (0+1+2+3+4+5). Agora somam ' + c.baseSum + '.');
+  else if (!VALID[key]) setMsg('msg-base', 'bad', 'Base fora das regras: use 0 a 5 sem repetir e, se quiser, uma única transferência de 1 ponto (máximo 6).');
+  else setMsg('msg-base', 'ok', VALID[key] === 'puro' ? 'Distribuição inicial válida.' : 'Distribuição válida, com a transferência de 1 ponto.');
+  if (c.upSum > c.asiAvail) setMsg('msg-up', 'bad', 'Você usou ' + c.upSum + ' aumentos de nível, mas no nível ' + c.L + ' tem direito a ' + c.asiAvail + '.');
+  else if (c.upSum < c.asiAvail) setMsg('msg-up', 'warn', 'Aumentos de nível: faltam distribuir ' + (c.asiAvail - c.upSum) + ' de ' + c.asiAvail + ' (+1 nos níveis 4, 8, 11, 14, 18 e 20).');
+  else setMsg('msg-up', '', '');
+  var over = ATTRS.filter(function (a) { return c.tot[a[0]] > 12; });
+  if (over.length && c.upSum === c.asiAvail) setMsg('msg-up', 'warn', 'A tabela do livro vai só até 12 pontos. Acima disso a ficha usa o valor de 12.');
+
+  // perícias
+  var nTr = 0;
+  SKILLS.forEach(function (s) {
+    var r = skRows[s.k], g = num(f.per[s.k]) | 0, t = skillTotal(f, c, s);
+    if (String(g) !== r.sel.value) r.sel.value = String(g);
+    if (g > 0) nTr++;
+    var isCls = cls && cls.perSet[s.k];
+    r.chip.hidden = !isCls;
+    var txt = t == null ? '-' : fmt(t);
+    if (r.t.textContent !== txt) r.t.textContent = txt;
+    r.t.className = 't' + (t == null ? ' off' : '');
+    r.t.title = t == null ? 'Só pode ser usada se for treinada' : '';
+  });
+  if (c.budget == null) setMsg('msg-sk', 'info', 'Perícias com grau: ' + nTr + '. A classe não tem número de perícias treinadas no livro (veja Ajustes).');
+  else if (nTr > c.budget) setMsg('msg-sk', 'bad', 'Perícias com grau: ' + nTr + ' de ' + c.budget + ' possíveis (base da classe + bônus de Intelecto' + (c.L >= 4 ? ' + evoluções' : '') + ').');
+  else setMsg('msg-sk', 'ok', 'Perícias com grau: ' + nTr + ' de ' + c.budget + ' possíveis (base da classe + bônus de Intelecto' + (c.L >= 4 ? ' + evoluções' : '') + ').');
+  var evo = [];
+  if (c.L >= 4) evo.push('Nível 4: aprende ' + c.B + ' perícia(s) nova(s).');
+  if (c.L >= 8) evo.push('Nível 8: evolui ' + (2 + c.B) + ' perícia(s) de Treinado para Veterano.');
+  if (c.L >= 12) evo.push('Nível 12: aprende ' + c.B + ' perícia(s) já como Veterano.');
+  if (c.L >= 18) evo.push('Nível 18: evolui ' + c.B + ' perícia(s) de Veterano para Gênio.');
+  setT('o-evo', evo.join(' '));
+
+  renderHab(c);
+  renderRace(c);
+  renderTal(c, f);
+
+  // personalização
+  var gain = 0, spend = 0, nq = 0, nd = 0;
+  QUALS.forEach(function (x) { if (f.q[x.n]) { if (x.t === 'q') { spend += qPts(x); nq++; } else { gain += qPts(x); nd++; } } });
+  var saldo = num(f.pontosIni) + gain - spend;
+  setT('o-saldo', saldo);
+  setT('o-qinfo', nq + ' qualidade(s) custam ' + spend + ' ponto(s); ' + nd + ' defeito(s) dão ' + gain + '. Intervalos contam o mínimo. É uma leitura do livro: o texto não explica a regra por completo.');
+  var ap = [];
+  if (c.bPV) ap.push('Sobrevida: +' + c.bPV + ' PV'); if (c.bPM) ap.push('Fonte de Poder: +' + c.bPM + ' PM');
+  if (ap.length) $('#o-qinfo').textContent += ' Aplicado na ficha: ' + ap.join(', ') + '.';
+}
+
+function renderHab(c) {
+  var cls = c.cls, key = (cls ? cls.n : '') + '|' + c.L + '|' + showAll;
+  $('#b-allhab').textContent = showAll ? 'Mostrar só até o meu nível' : 'Mostrar todos os níveis';
+  if (key === habKey) return; habKey = key;
+  var info = $('#o-clsinfo'), box = $('#o-hab');
+  if (!cls) { info.textContent = 'Escolha uma classe para ver as habilidades.'; box.innerHTML = ''; return; }
+  var bits = [];
+  if (cls.prof) bits.push('<b>Proficiências:</b> ' + esc(cls.prof));
+  if (cls.per.length) bits.push('<b>Perícias da classe:</b> ' + esc(cls.per.join(', ')));
+  info.innerHTML = bits.join('<br>') || 'Sem proficiências ou perícias de classe no livro.';
+  if (!cls.hasLv) { box.innerHTML = '<p class="small" style="margin:0">Esta classe não tem tabela de habilidades por nível no livro.</p>'; return; }
+  var h = '';
+  for (var l = 1; l <= 20; l++) {
+    if (!cls.lv[l]) continue;
+    if (l > c.L && !showAll) continue;
+    h += '<div class="lv' + (l > c.L ? ' fut' : '') + '"><b>Nv ' + l + '</b><span>' + esc(cls.lv[l]) + '</span></div>';
+  }
+  box.innerHTML = h || '<p class="small" style="margin:0">Nenhuma habilidade listada até o nível ' + c.L + '.</p>';
+}
+function renderRace(c) {
+  var r = c.race, box = $('#o-race'), k = r ? r.n : '';
+  if (box.dataset.k === k) return; box.dataset.k = k;
+  if (!r) { box.innerHTML = '<p class="small" style="margin:0">Escolha uma raça para ver o resumo.</p>'; return; }
+  box.innerHTML = '<p style="margin:0 0 6px"><span class="chip mut" style="margin:0 6px 0 0">Tamanho</span>' + esc(r.tam) + ' <span class="chip mut" style="margin:0 6px 0 12px">Deslocamento</span>' + esc(r.desl) + '</p>' +
+    '<p style="margin:6px 0 0;max-width:68ch">' + esc(r.t) + '</p>' +
+    '<p class="small" style="margin:8px 0 0">Resumo do livro. Os bônus de atributo da raça você soma no campo Raça de cada atributo.</p>';
+}
+function renderTal(c, f) {
+  var n = Math.floor((c.L + 1) / 2);
+  setT('o-talinfo', n + ' talento(s) no nível ' + c.L + ': um em cada nível ímpar, de 1 a 19. Classe e raça podem dar extras.');
+  if (n === talCount) return; talCount = n;
+  var h = '';
+  for (var i = 0; i < n; i++) h += '<label class="f">' + (i * 2 + 1) + 'º nível<input data-tal="' + i + '" value="' + esc(f.tal[i] || '') + '" placeholder="Nome do talento" autocomplete="off"></label>';
+  $('#tal').innerHTML = h;
+}
+
+/* ================= sessão e dados compartilhados ================= */
+var TIPO = { pc: 'Jogador', npc: 'NPC', inimigo: 'Inimigo', aliado: 'Aliado' };
+var noop = function () { };
+var SES = { mode: 'carregando', gm: false, uid: null, db: null, user: null, canWrite: true, known: false, names: {}, loaded: false };
+var RAW = { f: {}, n: {} }, SH = {}, sel = null, shown = null, gmNotes = '';
+var pend = {}, timers = {}, flying = {}, dirty = {}, fil = '', bannerKind = '', notesTimer = null, toastTimer = null, tipoFor = '';
+
+function cur() { var s = SH[sel]; return s ? s.data : null; }
+function curPage() { var h = (location.hash || '').replace('#', ''); return PAGES.indexOf(h) < 0 ? 'mesa' : h; }
+function canCreate() { return SES.mode === 'local' || SES.gm || !!(SES.canWrite && SES.uid); }
+function canEdit(s) {
+  if (!s) return false;
+  if (SES.mode === 'local' || SES.gm) return true;
+  return !!(SES.canWrite && SES.uid && s.store === 'f' && s.owner === SES.uid);
+}
+function myTarget(kind) {
+  if (SES.gm || SES.mode === 'local') return kind === 'npc' ? { store: 'n', owner: '' } : { store: 'f', owner: 'mesa' };
+  return SES.canWrite && SES.uid ? { store: 'f', owner: SES.uid } : null;
+}
+function ownerLabel(s) {
+  if (s.store === 'n') return 'Só o mestre vê';
+  if (s.owner === 'mesa') return s.data.jogador || 'Mestre';
+  if (SES.uid && s.owner === SES.uid) return 'Você';
+  return SES.names[s.owner] || s.data.jogador || 'Jogador';
+}
+
+function banner(text, kind, tag) { bannerKind = text ? (tag || kind || 'info') : ''; setMsg('banner', kind || 'info', text || ''); }
+function status(t) { setT('sync', t); }
+function flash(t) {
+  var e = document.getElementById('toast');
+  if (!e) { e = document.createElement('div'); e.id = 'toast'; e.className = 'toast'; e.setAttribute('role', 'status'); document.body.appendChild(e); }
+  e.textContent = t; e.hidden = false; clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { e.hidden = true; }, 3200);
+}
+
+/* ---- dados crus -> fichas ---- */
+function rebuild() {
+  var next = {};
+  Object.keys(RAW.f).forEach(function (owner) {
+    var ch = (RAW.f[owner] && RAW.f[owner].chars) || {};
+    Object.keys(ch).forEach(function (cid) {
+      var key = 'f|' + owner + '|' + cid;
+      next[key] = (dirty[key] && SH[key]) ? SH[key] : { key: key, store: 'f', owner: owner, id: cid, data: fix(clone(ch[cid])) };
+    });
+  });
+  Object.keys(RAW.n).forEach(function (cid) {
+    var key = 'n||' + cid;
+    next[key] = (dirty[key] && SH[key]) ? SH[key] : { key: key, store: 'n', owner: '', id: cid, data: fix(clone(RAW.n[cid])) };
+  });
+  SH = next;
+}
+function putRaw(store, owner, id, data) {
+  if (store === 'n') RAW.n[id] = clone(data);
+  else { var d = RAW.f[owner] || (RAW.f[owner] = {}); (d.chars || (d.chars = {}))[id] = clone(data); }
+}
+function delRaw(store, owner, id) {
+  if (store === 'n') delete RAW.n[id];
+  else if (RAW.f[owner] && RAW.f[owner].chars) delete RAW.f[owner].chars[id];
+}
+function patchRaw(s, patch) {
+  if (s.store === 'n') { if (RAW.n[s.id]) deepMerge(RAW.n[s.id], clone(patch)); }
+  else if (RAW.f[s.owner] && RAW.f[s.owner].chars && RAW.f[s.owner].chars[s.id]) deepMerge(RAW.f[s.owner].chars[s.id], clone(patch));
+}
+function resolveNames() {
+  var u = SES.user; if (!u || typeof u.profiles !== 'function') return;
+  var ids = {};
+  Object.keys(SH).forEach(function (k) { var o = SH[k].owner; if (o && o !== 'mesa' && !(o in SES.names)) ids[o] = 1; });
+  var list = Object.keys(ids); if (!list.length) return;
+  list.forEach(function (i) { SES.names[i] = ''; });
+  Promise.resolve(u.profiles(list)).then(function (ps) {
+    var any = false;
+    list.forEach(function (i) { var n = ps && ps[i] && ps[i].name; if (n) { SES.names[i] = n; any = true; } });
+    if (any) renderNow();
+  }).catch(noop);
+}
+
+/* ---- escrita ---- */
+function writeFailed(e) {
+  var code = e && e.code;
+  status('Não salvou');
+  if (code === 'invalid_argument' && !SES.known) { SES.canWrite = false; setupUI(); }
+  flash(code === 'quota_exceeded' || code === 'resource-exhausted' ? 'O limite gratuito de dados da mesa foi atingido por hoje.' : code === 'permission-denied' ? 'Sem permissão para salvar isso. Só o dono da ficha e o mestre editam.' : 'Não consegui salvar. Confira se você tem permissão para editar.');
+}
+function writePatch(s, patch) {
+  if (s.store === 'n') return SES.db.doc('npcs/' + s.id).update(patch);
+  var o = {}; o[s.id] = patch;
+  return SES.db.doc('fichas/' + s.owner).update({ chars: o });
+}
+function queue(s, patch) {
+  dirty[s.key] = true; pend[s.key] = deepMerge(pend[s.key] || {}, patch);
+  clearTimeout(timers[s.key]); timers[s.key] = setTimeout(function () { flush(s.key); }, 450);
+  status('Salvando...');
+}
+function flush(key) {
+  if (flying[key]) return;
+  var patch = pend[key]; if (!patch) return;
+  var s = SH[key]; pend[key] = null;
+  if (!s) { dirty[key] = false; return; }
+  flying[key] = true;
+  Promise.resolve().then(function () { return writePatch(s, patch); }).then(function () { patchRaw(s, patch); status('Salvo'); }, writeFailed).then(function () {
+    flying[key] = false;
+    if (pend[key]) flush(key); else { dirty[key] = false; rebuild(); renderNow(); }
+  });
+}
+function editSheet(key, path, value) {
+  var s = SH[key]; if (!s || !canEdit(s)) return;
+  setPath(s.data, path, value);
+  queue(s, nest(path, value));
+}
+function createSheet(store, owner, data) {
+  var id = 'c' + uid(); data.id = id; data.criado = Date.now();
+  var key = store === 'n' ? 'n||' + id : 'f|' + owner + '|' + id, p;
+  if (store === 'n') p = SES.db.doc('npcs/' + id).set(data);
+  else {
+    var ref = SES.db.doc('fichas/' + owner);
+    p = ref.get().then(function (snap) { var o = {}; o[id] = data; return snap.exists ? ref.update({ chars: o }) : ref.set({ chars: o }); });
+  }
+  putRaw(store, owner, id, data); rebuild();
+  return p.then(function () { return key; }, function (e) { delRaw(store, owner, id); rebuild(); writeFailed(e); throw e; });
+}
+function deleteSheet(s) {
+  var p;
+  if (s.store === 'n') p = SES.db.doc('npcs/' + s.id).delete();
+  else {
+    var ref = SES.db.doc('fichas/' + s.owner);
+    p = ref.get().then(function (snap) { if (!snap.exists) return; var d = clone(snap.data()); if (d.chars) delete d.chars[s.id]; return ref.set(d); });
+  }
+  return p.then(function () { delRaw(s.store, s.owner, s.id); rebuild(); }, function (e) { writeFailed(e); throw e; });
+}
+function openSheet(key) {
+  sel = key; shown = null;
+  try { window.localStorage.setItem('wz-sel', key); } catch (e) { }
+  if (curPage() === 'ficha') renderFicha(); else location.hash = '#ficha';
+}
+function newSheet(kind) {
+  var t = myTarget(kind);
+  if (!t) { flash('Você não tem permissão para criar fichas aqui.'); return; }
+  var f = blank(); f.tipo = kind === 'npc' ? 'npc' : 'pc'; f.dono = t.owner === 'mesa' ? '' : t.owner;
+  createSheet(t.store, t.owner, f).then(openSheet, noop);
+}
+
+/* ---- leitura ao vivo ---- */
+function onErr(e) {
+  var c = e && e.code;
+  if (c === 'revoked') banner('O seu acesso a esta mesa foi retirado.', 'warn');
+  else if (c === 'permission-denied' && SES.fire) fireNeedLogin('Seu acesso à mesa não está liberado. Entre de novo com o código da mesa.');
+  else banner('Não consegui ler os dados da mesa agora. Recarregue a página em instantes.', 'bad');
+}
+function changed() {
+  Object.keys(RAW.f).forEach(function (o) { var n = RAW.f[o] && RAW.f[o].nome; if (n && o !== 'mesa') SES.names[o] = String(n); });
+  rebuild(); resolveNames();
+  if (SES.loaded) {
+    if (!sel) { try { var k = window.localStorage.getItem('wz-sel'); if (k && SH[k]) sel = k; } catch (e) { } }
+    if (sel && !SH[sel]) { sel = null; shown = null; }
+  }
+  renderNow();
+}
+function subscribe() {
+  var timer = setTimeout(function () { if (!SES.loaded) banner('A mesa ainda não respondeu. O que aparece pode estar desatualizado.', 'warn', 'timeout'); }, 10000);
+  function got(snap) {
+    if (!snap.metadata || !snap.metadata.fromCache) { SES.loaded = true; clearTimeout(timer); if (bannerKind === 'timeout') banner(''); }
+  }
+  SES.db.collection('fichas').onSnapshot(function (snap) {
+    got(snap); RAW.f = {};
+    snap.docs.forEach(function (d) { RAW.f[d.id] = clone(d.data() || {}); });
+    changed();
+  }, onErr);
+  if (SES.gm) {
+    SES.db.collection('npcs').onSnapshot(function (snap) {
+      RAW.n = {};
+      snap.docs.forEach(function (d) { RAW.n[d.id] = clone(d.data() || {}); });
+      changed();
+    }, onErr);
+    SES.db.doc('gm/notas').onSnapshot(function (snap) {
+      gmNotes = snap.exists ? String((snap.data() || {}).texto || '') : '';
+      var ta = $('#gm-notas'); if (ta && document.activeElement !== ta && ta.value !== gmNotes) ta.value = gmNotes;
+    }, onErr);
+  }
+}
+
+/* ---- telas ---- */
+function renderNow() { var p = curPage(); if (p === 'mesa') renderMesa(); else if (p === 'ficha') renderFicha(); }
+function listSheets(pred) {
+  var t = norm(fil);
+  return Object.keys(SH).map(function (k) { return SH[k]; }).filter(pred).filter(function (s) {
+    if (!t) return true; var f = s.data;
+    return norm([f.nome, f.race, f.cls, f.jogador, ownerLabel(s)].join(' ')).indexOf(t) >= 0;
+  }).sort(function (a, b) { return String(a.data.nome || '').localeCompare(String(b.data.nome || ''), 'pt'); });
+}
+function bar(kind, cur, max, label) {
+  var p = max ? cl(Math.round(cur / max * 100), 0, 100) : 0;
+  var k = kind === 'pv' ? (p < 25 ? ' bad' : p < 50 ? ' warn' : '') : ' pm';
+  return '<div class="mbar' + k + '" role="img" aria-label="' + label + ' ' + cur + ' de ' + (max == null ? '?' : max) + '"><span style="width:' + p + '%"></span><em>' + label + ' ' + cur + (max == null ? '' : '/' + max) + '</em></div>';
+}
+function sheetCard(s) {
+  var f = s.data, c = compute(f), ed = canEdit(s);
+  var pvc = has(f.pvAtual) ? num(f.pvAtual) : (c.pv == null ? 0 : c.pv);
+  var pmc = has(f.pmAtual) ? num(f.pmAtual) : (c.pm == null ? 0 : c.pm);
+  var k = esc(s.key), tp = TIPO[f.tipo] || 'Jogador';
+  var h = '<article class="mcard' + (SES.uid && s.owner === SES.uid ? ' mine' : '') + '" data-open="' + k + '">' +
+    '<div class="mc-top"><button type="button" class="mc-open" data-open="' + k + '">' + esc(f.nome || 'Sem nome') + '</button><span class="chip' + (f.tipo === 'pc' || !f.tipo ? '' : ' mut') + '">' + tp + '</span></div>' +
+    '<div class="mc-sub">' + esc((f.race || 'Sem raça') + ' · ' + (f.cls || 'Sem classe') + ' · Nv ' + c.L) + '<br>' + esc(ownerLabel(s)) + '</div>' +
+    (c.pv == null && !has(f.pvAtual) ? '<div class="mbar"><em>PV: escolha uma classe</em></div>' : bar('pv', pvc, c.pv, 'PV')) + (c.pm != null ? bar('pm', pmc, c.pm, 'PM') : '') +
+    '<div class="mc-stats"><span>CA ' + c.ca + '</span><span>CR ' + c.cr + '</span><span>DT ' + c.dt + '</span><span>LCM ' + c.lcm + '</span></div>';
+  if (ed) {
+    var b = function (what, d, lab, al) { return '<button type="button" class="btn" data-k="' + k + '" data-adj="' + what + '" data-d="' + d + '" aria-label="' + al + '">' + lab + '</button>'; };
+    h += '<div class="mc-adj"><span class="lab">PV</span>' + b('pv', -5, '−5', 'PV menos 5') + b('pv', -1, '−1', 'PV menos 1') + b('pv', 1, '+1', 'PV mais 1') + b('pv', 5, '+5', 'PV mais 5') + '</div>' +
+      (c.pm != null ? '<div class="mc-adj"><span class="lab">PM</span>' + b('pm', -1, '−1', 'PM menos 1') + b('pm', 1, '+1', 'PM mais 1') + '</div>' : '');
+  }
+  return h + '</article>';
+}
+function group(title, list, empty) {
+  if (!list.length && !empty) return '';
+  return '<div class="sec"><h2>' + title + ' <span class="small">(' + list.length + ')</span></h2>' +
+    (list.length ? '<div class="mgrid">' + list.map(sheetCard).join('') + '</div>' : '<p class="hint">' + empty + '</p>') + '</div>';
+}
+function adjust(key, what, d) {
+  var s = SH[key]; if (!s || !canEdit(s)) return;
+  var c = compute(s.data), f = s.data, field = what === 'pv' ? 'pvAtual' : 'pmAtual', max = what === 'pv' ? c.pv : c.pm;
+  var curv = has(f[field]) ? num(f[field]) : (max == null ? 0 : max);
+  var nv = Math.max(0, curv + d); if (max != null) nv = Math.min(nv, max);
+  editSheet(key, field, String(nv)); renderNow();
+}
+function renderMesa() {
+  var lg = $('#login'), login = SES.mode === 'login';
+  if (lg) lg.hidden = !login;
+  $('#mesa-acc').hidden = !(SES.fire && SES.gm && SES.mode === 'compartilhada');
+  $('#mesa-busca').hidden = login;
+  if (login) {
+    setT('mesa-lede', 'Entre para ver as fichas da mesa.');
+    $('#mesa-new').innerHTML = ''; $('#mesa-body').innerHTML = ''; $('#mesa-notas').hidden = true;
+    return;
+  }
+  var gm = SES.gm || SES.mode === 'local', me = SES.uid, h = '';
+  var lede = SES.mode === 'carregando' ? 'Conectando à mesa...' :
+    gm ? 'Você é o mestre: vê e edita todas as fichas e guarda NPCs ocultos, que os jogadores não veem.' :
+      'Aqui estão as fichas da mesa. Você edita as suas; as dos outros ficam só para ver.';
+  setT('mesa-lede', lede);
+  var nb = '';
+  if (SES.mode !== 'carregando') {
+    if (gm) nb = '<button class="btn pri" type="button" data-new="pc">Nova ficha de jogador</button><button class="btn" type="button" data-new="npc">Novo NPC</button>';
+    else if (canCreate()) nb = '<button class="btn pri" type="button" data-new="pc">Nova ficha</button>';
+  }
+  var nbEl = $('#mesa-new'); if (nbEl.innerHTML !== nb) nbEl.innerHTML = nb;
+  $('#mesa-notas').hidden = !gm || SES.mode === 'carregando';
+  if (SES.mode === 'carregando' || (SES.mode === 'compartilhada' && !SES.loaded)) { $('#mesa-body').innerHTML = '<p class="hint">Carregando as fichas...</p>'; return; }
+  if (gm) {
+    h += group('Jogadores', listSheets(function (s) { return s.store === 'f' && (s.data.tipo || 'pc') === 'pc'; }), fil ? '' : 'Ainda não tem ficha de jogador. Cada jogador cria a dele ao abrir o link, ou você cria uma em "Nova ficha de jogador".');
+    h += group('Na mesa (jogadores veem)', listSheets(function (s) { return s.store === 'f' && (s.data.tipo || 'pc') !== 'pc'; }), '');
+    h += group('NPCs ocultos (só você vê)', listSheets(function (s) { return s.store === 'n'; }), fil ? '' : 'Nenhum NPC oculto. Use "Novo NPC" para criar um e depois "Mostrar aos jogadores" quando quiser revelar.');
+  } else {
+    h += group('Minhas fichas', listSheets(function (s) { return s.store === 'f' && s.owner === me; }), fil ? '' : (canCreate() ? 'Você ainda não tem ficha. Toque em "Nova ficha".' : 'Você está só olhando: seu acesso não permite criar fichas.'));
+    h += group('Outros jogadores', listSheets(function (s) { return s.store === 'f' && s.owner !== me && (s.data.tipo || 'pc') === 'pc'; }), '');
+    h += group('NPCs e aliados da mesa', listSheets(function (s) { return s.store === 'f' && s.owner !== me && (s.data.tipo || 'pc') !== 'pc'; }), '');
+  }
+  if (fil && !h) h = '<p class="hint">Nada encontrado para "' + esc(fil) + '".</p>';
+  var body = $('#mesa-body'); if (body.innerHTML !== h) body.innerHTML = h;
+}
+
+function loadForm(skip) {
+  var f = cur(), ae = document.activeElement;
+  $$('[data-bind]').forEach(function (el) {
+    if (skip && el === ae) return;
+    var v = getPath(f, el.dataset.bind);
+    if (el.type === 'checkbox') el.checked = !!v; else el.value = v == null ? '' : String(v);
+  });
+  $$('[data-q]').forEach(function (el) { if (!(skip && el === ae)) el.checked = !!f.q[el.dataset.q]; });
+}
+function applyAccess(s) {
+  var ed = canEdit(s);
+  $$('#p-ficha [data-bind], #p-ficha [data-sk], #p-ficha [data-q], #p-ficha [data-tal]').forEach(function (el) { el.disabled = !ed; });
+  $('#backup-sec').hidden = !ed;
+}
+function updateToolbar(s) {
+  var f = s.data, ed = canEdit(s), hid = s.store === 'n', mesa = s.store === 'f' && s.owner === 'mesa';
+  setT('tb-title', f.nome || 'Sem nome'); setT('tb-tipo', TIPO[f.tipo] || 'Jogador'); setT('tb-owner', ownerLabel(s)); setT('tb-mode', ed ? 'Você pode editar' : 'Só leitura');
+  $('#tb-mode').className = 'chip' + (ed ? '' : ' mut');
+  var rv = $('#b-reveal'); rv.hidden = !(SES.gm && (hid || (mesa && f.tipo !== 'pc')));
+  rv.textContent = hid ? 'Mostrar aos jogadores' : 'Ocultar dos jogadores';
+  $('#b-del').hidden = !ed;
+  var dp = $('#b-dup'); dp.hidden = !(ed || canCreate()); dp.textContent = ed ? 'Duplicar' : 'Copiar para mim';
+  var tw = $('#tb-tipo-wrap'); tw.hidden = !(((SES.gm || SES.mode === 'local')) && (hid || mesa));
+  var tf = hid ? 'n' : 'f';
+  if (tipoFor !== tf) {
+    tipoFor = tf;
+    $('#sel-tipo').innerHTML = (hid ? ['npc', 'inimigo', 'aliado'] : ['pc', 'npc', 'inimigo', 'aliado']).map(function (t) { return '<option value="' + t + '">' + TIPO[t] + '</option>'; }).join('');
+    $('#sel-tipo').value = f.tipo || 'pc';
+  }
+  setMsg('msg-ro', 'info', ed ? '' : 'Você está só olhando esta ficha. Só o dono dela e o mestre editam.');
+}
+function renderFicha() {
+  var s = SH[sel], empty = $('#ficha-empty'), body = $('#ficha-body'), tb = $('#tb');
+  if (!s) { empty.hidden = false; body.hidden = true; tb.hidden = true; return; }
+  empty.hidden = true; body.hidden = false; tb.hidden = false;
+  var fresh = shown !== sel;
+  if (fresh) { shown = sel; talCount = -1; habKey = ''; showAll = false; tipoFor = ''; $('#out-json').value = ''; $('#in-json').value = ''; setMsg('msg-copy', '', ''); setMsg('msg-imp', '', ''); }
+  loadForm(!fresh);
+  recalc();
+  $$('.tal input').forEach(function (el) { if (el !== document.activeElement) el.value = s.data.tal[+el.dataset.tal] || ''; });
+  updateToolbar(s);
+  applyAccess(s);
+}
+
+/* ---- eventos ---- */
+document.addEventListener('input', function (e) {
+  var t = e.target, s = SH[sel];
+  if (t.id === 'mesa-filtro') { fil = t.value; renderMesa(); return; }
+  if (t.id === 'gm-notas') {
+    clearTimeout(notesTimer); var v = t.value;
+    notesTimer = setTimeout(function () { SES.db.doc('gm/notas').set({ texto: v }).catch(writeFailed); }, 700);
+    return;
+  }
+  if (!s || !canEdit(s) || !t.closest('#p-ficha')) return;
+  if (t.matches('[data-bind]')) { editSheet(sel, t.dataset.bind, t.type === 'checkbox' ? t.checked : t.value); recalc(); updateToolbar(s); }
+  else if (t.matches('[data-sk]')) { editSheet(sel, 'per.' + t.dataset.sk, +t.value); recalc(); }
+  else if (t.matches('[data-q]')) { editSheet(sel, 'q.' + t.dataset.q, t.checked); recalc(); }
+  else if (t.matches('[data-tal]')) {
+    var arr = (s.data.tal || []).slice(), n = Math.floor((compute(s.data).L + 1) / 2);
+    for (var i = 0; i < n; i++) arr[i] = arr[i] || '';
+    arr[+t.dataset.tal] = t.value; s.data.tal = arr; queue(s, { tal: arr });
+  }
+});
+document.addEventListener('click', function (e) {
+  var adj = e.target.closest('[data-adj]');
+  if (adj) { adjust(adj.dataset.k, adj.dataset.adj, +adj.dataset.d); return; }
+  var nw = e.target.closest('[data-new]');
+  if (nw) { newSheet(nw.dataset.new); return; }
+  var op = e.target.closest('[data-open]');
+  if (op && !e.target.closest('input,select,textarea,a')) openSheet(op.dataset.open);
+});
+$('#b-back').addEventListener('click', function () { location.hash = '#mesa'; });
+$('#b-empty').addEventListener('click', function () { location.hash = '#mesa'; });
+$('#b-dup').addEventListener('click', function () {
+  var s = SH[sel]; if (!s) return;
+  var d = clone(s.data), own = canEdit(s), t = own ? { store: s.store, owner: s.owner } : myTarget('pc');
+  if (!t) { flash('Você não tem permissão para criar fichas aqui.'); return; }
+  d.nome = (d.nome || 'Sem nome') + (own ? ' (cópia)' : ''); d.criado = 0;
+  if (!own) { d.tipo = 'pc'; d.dono = t.owner; }
+  createSheet(t.store, t.owner, d).then(openSheet, noop);
+});
+var delTimer = null;
+$('#b-del').addEventListener('click', function (e) {
+  var b = e.currentTarget, s = SH[sel];
+  if (!b.classList.contains('armed')) {
+    b.classList.add('armed'); b.textContent = 'Confirmar exclusão'; clearTimeout(delTimer);
+    delTimer = setTimeout(function () { b.classList.remove('armed'); b.textContent = 'Excluir'; }, 4000); return;
+  }
+  clearTimeout(delTimer); b.classList.remove('armed'); b.textContent = 'Excluir';
+  if (!s) return;
+  deleteSheet(s).then(function () { sel = null; shown = null; location.hash = '#mesa'; renderNow(); }, noop);
+});
+$('#b-reveal').addEventListener('click', function () {
+  var s = SH[sel]; if (!s || !SES.gm) return;
+  var toHidden = s.store === 'f';
+  createSheet(toHidden ? 'n' : 'f', toHidden ? '' : 'mesa', clone(s.data)).then(function (key) {
+    return deleteSheet(s).then(function () { openSheet(key); flash(toHidden ? 'Ficha oculta dos jogadores.' : 'Ficha visível para os jogadores.'); });
+  }, noop);
+});
+$('#b-allhab').addEventListener('click', function () { showAll = !showAll; recalc(); });
+$('#b-copy').addEventListener('click', function () {
+  var ta = $('#out-json'); ta.value = JSON.stringify({ v: 1, ficha: cur() });
+  var fallback = function () { ta.focus(); ta.select(); setMsg('msg-copy', 'info', 'Não consegui copiar sozinho. O texto está selecionado: copie manualmente.'); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(function () { setMsg('msg-copy', 'ok', 'Ficha copiada.'); }, fallback);
+  else fallback();
+});
+$('#b-imp').addEventListener('click', function () {
+  var txt = $('#in-json').value.trim();
+  if (!txt) { setMsg('msg-imp', 'bad', 'Cole o texto de uma ficha primeiro.'); return; }
+  var t = myTarget('npc') && (SES.gm || SES.mode === 'local') ? myTarget('npc') : myTarget('pc');
+  if (!t) { setMsg('msg-imp', 'bad', 'Você não tem permissão para criar fichas.'); return; }
+  try {
+    var o = JSON.parse(txt), g = o && o.ficha ? o.ficha : o;
+    if (!g || typeof g !== 'object' || (!g.base && !g.cls && !g.nome)) throw new Error('x');
+    g = fix(g); g.nome = g.nome || 'Ficha importada';
+    if (t.store === 'f' && t.owner !== 'mesa') { g.tipo = 'pc'; g.dono = t.owner; } else if (t.store === 'n' && g.tipo === 'pc') g.tipo = 'npc';
+    createSheet(t.store, t.owner, g).then(function (key) { $('#in-json').value = ''; openSheet(key); flash('Ficha "' + g.nome + '" importada' + (t.store === 'n' ? ' como NPC oculto.' : '.')); }, noop);
+  } catch (err) { setMsg('msg-imp', 'bad', 'Esse texto não parece uma ficha do World Zero.'); }
+});
+function useOnSheet(field, value) {
+  var s = SH[sel];
+  if (!s || !canEdit(s)) { flash('Abra uma ficha que você pode editar (aba Mesa) para usar isso.'); return; }
+  editSheet(sel, field, value); location.hash = '#ficha'; renderNow();
+}
+
+/* ================= páginas de consulta ================= */
+function table(head, rows) {
+  return '<div class="tw"><table><thead><tr>' + head.map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+    rows.map(function (r) { return '<tr>' + r.map(function (x) { return '<td>' + esc(x) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
+}
+function build_tabelas() {
+  var h = '<h1 class="title">Tabelas e regras</h1><p class="lede">Tudo o que a ficha usa para calcular, direto do livro 4.7.7.</p>';
+  h += '<div class="sec"><h2>Atributos</h2>' + table(['Pontos', 'Dados', 'Bônus'], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (v) { return [v, v === 0 ? '2 (pega o pior)' : aDice(v), fmt(aBonus(v))]; })) +
+    '<ul class="rules"><li>Criação: distribua 0, 1, 2, 3, 4 e 5 entre os seis atributos, sem repetir. Depois faça uma única transferência de 1 ponto de um atributo para outro. Máximo 6 na criação.</li>' +
+    '<li>Aumento de +1 em um atributo nos níveis 4, 8, 11, 14, 18 e 20.</li>' +
+    '<li>O livro não diz como combinar 2d20 ou 3d20. Para isso ele sugere trocar o dado: d10 somando os dados (opção 1) ou d12 pegando o melhor (opção 2). A ficha mostra qualquer um dos três em Ajustes.</li></ul></div>';
+  h += '<div class="sec"><h2>Proficiência e XP</h2><div class="grid g2"><div>' +
+    table(['Nível', 'Proficiência'], [['1 a 5', '+1'], ['6 a 10', '+2'], ['11 a 15', '+3'], ['16 a 18', '+4'], ['19 e 20', '+5']]) + '</div><div>' +
+    table(['Nível', 'XP'], XP.map(function (x, i) { return [i + 1, x.toLocaleString('pt-BR')]; })) + '</div></div></div>';
+  h += '<div class="sec"><h2>Limite de mana por turno (LCM)</h2>' + table(['Nível', 'Limite de PM por turno'], LCM.map(function (x, i) { return [i + 1, x + ' + Presença']; })) +
+    '<p class="hint">O livro escreve o limite como valor por nível mais o modificador do atributo mágico, e a tabela usa Presença. A ficha segue a tabela. Passar do limite causa estouro de mana: 1 nível de exaustão, perda de PV igual aos PM excedentes ou backlash, à escolha do mestre.</p></div>';
+  h += '<div class="sec"><h2>Perícias: graus</h2>' + table(['Grau', 'Bônus'], [['Treinado', '+2'], ['Veterano', '+3'], ['Gênio', '+4']]) +
+    '<ul class="rules"><li>Nível 4: aprende perícias iguais ao bônus de Intelecto.</li><li>Nível 8: evolui 2 + bônus de Intelecto perícias de Treinado para Veterano.</li><li>Nível 12: aprende perícias iguais ao bônus de Intelecto, já como Veterano.</li><li>Nível 18: evolui perícias iguais ao bônus de Intelecto de Veterano para Gênio.</li></ul></div>';
+  h += '<div class="sec"><h2>Contas rápidas</h2><ul class="rules">' +
+    '<li><b>C.A.</b> = 10 + bônus de Destreza + bônus de equipamento e magias.</li>' +
+    '<li><b>D.T.</b> (magias e habilidades) = 12 + metade do nível (para baixo) + bônus de proficiência + modificador do atributo-chave.</li>' +
+    '<li><b>C.R.</b> (classe de resistência) reduz o dano recebido. O livro diz bônus de Constituição e +1 a cada 20 pontos de vida. A ficha soma os dois.</li>' +
+    '<li><b>PV</b> = valor inicial da classe + bônus de Constituição, e a cada nível o dado da classe + bônus de Constituição. O livro indica "vida média" como metade do máximo do dado (2d6 = 6, 2d8 = 8), e é isso que a ficha usa. Se você rolar, troque para "Eu rolei" em Ajustes.</li>' +
+    '<li><b>PM</b> = valor inicial da classe + Intelecto, e a cada nível o valor da classe + Intelecto. A ficha usa o bônus da tabela de atributos onde o livro diz "inteligência" ou "mod".</li>' +
+    '<li><b>Sanidade</b>: todo personagem começa com 100%.</li>' +
+    '<li><b>Talentos</b>: um em cada nível ímpar (1, 3, 5 até 19), no máximo 10 no nível 20.</li></ul></div>';
+  return h;
+}
+function build_pericias() {
+  var h = '<h1 class="title">Perícias</h1><p class="lede">Treino, experiência e talento prático. Você soma o atributo da perícia, a proficiência e o grau quando ela é treinada.</p>';
+  h += '<div class="tw"><table><thead><tr><th>Perícia</th><th>Atributo</th><th>Só treinada</th><th>Carga</th><th>Kit</th><th>Serve para</th></tr></thead><tbody>' +
+    SKILLS.map(function (s) { return '<tr><td><b>' + esc(s.n) + '</b></td><td>' + ATTRNAME[s.a] + '</td><td>' + (s.so ? 'Sim' : 'Não') + '</td><td>' + (s.carga ? 'Sim' : 'Não') + '</td><td>' + (s.kit ? 'Sim' : 'Não') + '</td><td>' + esc(s.d) + '</td></tr>'; }).join('') +
+    '</tbody></table></div><p class="hint">Carga: sofre penalidade por carga. Kit: sofre penalidade se estiver sem o kit certo.</p>';
+  return h;
+}
+function build_racas() {
+  var h = '<h1 class="title">Raças</h1><p class="lede">Resumo de cada raça do livro. Para o texto completo, use o site do livro.</p>';
+  h += RACES.map(function (r) {
+    return '<details class="item"><summary>' + esc(r.n) + '<span class="meta">' + esc(r.tam) + ' · ' + esc(r.desl) + (r.inc ? ' · incompleta' : '') + '</span></summary><div class="in"><p>' + esc(r.t) + '</p>' +
+      '<p><button class="btn pri" type="button" data-use-race="' + esc(r.n) + '">Usar na ficha</button></p></div></details>';
+  }).join('');
+  return h;
+}
+function build_classes() {
+  var h = '<h1 class="title">Classes</h1><p class="lede">PV, PM, perícias e habilidades por nível de cada classe.</p>';
+  h += '<div class="search"><input type="search" id="q-cls" placeholder="Buscar classe" autocomplete="off" aria-label="Buscar classe"></div><div id="l-cls">';
+  h += CLASSES.map(function (c) {
+    var meta = [];
+    if (c.pv != null) meta.push('PV ' + c.pv + ' + ' + c.pvd); if (c.pm != null) meta.push(c.pmRot + ' ' + c.pm + ' + ' + c.pmn); if (c.pv == null) meta.push('sem números no livro');
+    var body = '';
+    if (c.nota) body += '<div class="msg info">' + esc(c.nota) + '</div>';
+    if (c.pv != null) body += '<p><b>Vida:</b> ' + c.pv + ' + Con no nível 1 e ' + esc(c.pvd) + ' + Con por nível.' + (c.pm != null ? ' <b>' + esc(c.pmRot) + ':</b> ' + c.pm + ' + Int no nível 1 e ' + c.pmn + ' + Int por nível.' : '') + '</p>';
+    if (c.tr != null) body += '<p><b>Perícias treinadas:</b> ' + c.tr + ' + Intelecto.</p>';
+    if (c.per.length) body += '<p><b>Perícias da classe:</b> ' + esc(c.per.join(', ')) + '.</p>';
+    if (c.prof) body += '<p><b>Proficiências:</b> ' + esc(c.prof) + '.</p>';
+    if (c.hasLv) {
+      body += '<div class="tw"><table><thead><tr><th>Nível</th><th>Habilidades</th></tr></thead><tbody>';
+      for (var l = 1; l <= 20; l++) if (c.lv[l]) body += '<tr><td>' + l + '</td><td>' + esc(c.lv[l]) + '</td></tr>';
+      body += '</tbody></table></div>';
+    }
+    body += '<p><button class="btn pri" type="button" data-use-cls="' + esc(c.n) + '">Usar na ficha</button></p>';
+    return '<details class="item" data-n="' + esc(norm(c.n)) + '"><summary>' + esc(c.n) + '<span class="meta">' + esc(meta.join(' · ')) + '</span></summary><div class="in">' + body + '</div></details>';
+  }).join('') + '</div>';
+  return h;
+}
+var qFilter = 'all', qText = '';
+function build_qualidades() {
+  var h = '<h1 class="title">Qualidades e defeitos</h1><p class="lede">Personalização do personagem. Qualidades gastam pontos, defeitos devolvem pontos.</p>';
+  h += '<div class="seg" id="seg-q"><button type="button" data-f="all" aria-pressed="true">Todos</button><button type="button" data-f="q" aria-pressed="false">Qualidades</button><button type="button" data-f="d" aria-pressed="false">Defeitos</button></div>';
+  h += '<div class="search"><input type="search" id="q-q" placeholder="Buscar" autocomplete="off" aria-label="Buscar qualidade ou defeito"></div><div id="l-qq"></div>';
+  return h;
+}
+function drawQuals() {
+  var t = norm(qText);
+  var list = QUALS.filter(function (x) { return (qFilter === 'all' || x.t === qFilter) && (!t || norm(x.n + ' ' + x.d).indexOf(t) >= 0); });
+  $('#l-qq').innerHTML = list.length ? '<div class="tw"><table><thead><tr><th>Nome</th><th>Pontos</th><th>Efeito</th></tr></thead><tbody>' +
+    list.map(function (x) { return '<tr><td><b>' + esc(x.n) + '</b><br><span class="small">' + (x.t === 'q' ? 'Qualidade' : 'Defeito') + '</span></td><td>' + esc(qCost(x)) + '</td><td>' + esc(x.d) + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<p class="hint">Nada encontrado.</p>';
+}
+var BUILD = { tabelas: build_tabelas, pericias: build_pericias, racas: build_racas, classes: build_classes, qualidades: build_qualidades }, built = {};
+document.addEventListener('click', function (e) {
+  var t = e.target.closest('button'); if (!t) return;
+  if (t.dataset.useCls !== undefined) useOnSheet('cls', t.dataset.useCls);
+  else if (t.dataset.useRace !== undefined) useOnSheet('race', t.dataset.useRace);
+  else if (t.closest('#seg-q') && t.dataset.f) { qFilter = t.dataset.f; $$('#seg-q button').forEach(function (b) { b.setAttribute('aria-pressed', b === t ? 'true' : 'false'); }); drawQuals(); }
+});
+document.addEventListener('input', function (e) {
+  if (e.target.id === 'q-cls') { var v = norm(e.target.value); $$('#l-cls details').forEach(function (d) { d.hidden = v && d.dataset.n.indexOf(v) < 0; }); }
+  else if (e.target.id === 'q-q') { qText = e.target.value; drawQuals(); }
+});
+
+/* ================= rotas e tema ================= */
+var PAGES = ['mesa', 'ficha', 'classes', 'racas', 'pericias', 'tabelas', 'qualidades'];
+function route() {
+  var h = (location.hash || '').replace('#', ''); if (PAGES.indexOf(h) < 0) h = 'mesa';
+  if (h !== 'ficha' && h !== 'mesa' && !built[h]) { $('#p-' + h).innerHTML = BUILD[h](); built[h] = 1; if (h === 'qualidades') drawQuals(); }
+  PAGES.forEach(function (p) { $('#p-' + p).hidden = p !== h; });
+  $$('.tabs a').forEach(function (a) { a.setAttribute('aria-current', a.dataset.p === h ? 'page' : 'false'); });
+  var act = $('.tabs a[aria-current="page"]'); if (act && act.scrollIntoView) { try { act.scrollIntoView({ block: 'nearest', inline: 'center' }); } catch (e) { } }
+  window.scrollTo(0, 0);
+  renderNow();
+}
+window.addEventListener('hashchange', route);
+var tema = 'auto';
+try { var tt = window.localStorage.getItem('wz-tema'); if (tt === 'light' || tt === 'dark') tema = tt; } catch (e) { }
+function applyTema() {
+  var r = document.documentElement; r.removeAttribute('data-theme'); if (tema !== 'auto') r.setAttribute('data-theme', tema);
+  $('#btn-tema').textContent = 'Tema: ' + { auto: 'auto', light: 'claro', dark: 'escuro' }[tema];
+}
+$('#btn-tema').addEventListener('click', function () {
+  tema = tema === 'auto' ? 'light' : tema === 'light' ? 'dark' : 'auto'; applyTema();
+  try { window.localStorage.setItem('wz-tema', tema); } catch (e) { }
+});
+
+/* ================= Firebase (versão do GitHub) ================= */
+function fbConfigured() {
+  var c = window.WZ_FIREBASE;
+  return !!(c && c.apiKey && c.projectId && String(c.apiKey).indexOf('COLE') < 0 && window.firebase && firebase.firestore && firebase.auth);
+}
+function flatten(o, pre, out) {
+  Object.keys(o).forEach(function (k) {
+    var v = o[k], p = pre.concat(k);
+    if (v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length) flatten(v, p, out); else out.push([p, v]);
+  });
+  return out;
+}
+/* Mesmo formato do banco do Claude. O update do Firestore troca mapas inteiros, então o patch vira caminhos de campo (FieldPath), que mexem só no que mudou. */
+function FireDB(fs, FP) { this.fs = fs; this.FP = FP; }
+FireDB.prototype.doc = function (path) {
+  var FP = this.FP, ref = this.fs.doc(path);
+  return {
+    id: ref.id, path: path,
+    get: function () { return ref.get(); },
+    set: function (data, opt) { return opt ? ref.set(data, opt) : ref.set(data); },
+    update: function (patch) {
+      var pairs = flatten(patch, [], []), args = [];
+      if (!pairs.length) return Promise.resolve();
+      pairs.forEach(function (pr) { args.push(new FP(...pr[0]), pr[1]); });
+      return ref.update.apply(ref, args);
+    },
+    delete: function () { return ref.delete(); },
+    onSnapshot: function (next, err) { return ref.onSnapshot(next, err); }
+  };
+};
+FireDB.prototype.collection = function (path) {
+  var ref = this.fs.collection(path);
+  return { onSnapshot: function (next, err) { return ref.onSnapshot(next, err); } };
+};
+
+function fireNeedLogin(msg) {
+  SES.mode = 'login'; SES.gm = false; SES.uid = null; SES.verifiedUid = null;
+  RAW = { f: {}, n: {} }; SH = {}; sel = null; shown = null;
+  banner('');
+  setupUI();
+  if (msg) setMsg('msg-login', 'bad', msg);
+}
+function fireVerify(u) {
+  var fs = SES.fs, uid = u.uid;
+  if (SES.verifyingUid === uid) return;
+  SES.verifyingUid = uid;
+  fs.doc('gm/notas').get().then(function () { return true; }, function () { return false; }).then(function (gm) {
+    if (gm) return { gm: true, ok: true };
+    return fs.doc('membros/' + uid).get().then(function (s) { return { gm: false, ok: !!s.exists }; }, function () { return { gm: false, ok: false }; });
+  }).then(function (r) {
+    SES.verifyingUid = null;
+    if (!r.ok) {
+      if (!u.isAnonymous) { SES.auth.signOut().then(noop, noop); fireNeedLogin('Essa conta não é a do mestre.'); }
+      else fireNeedLogin('');
+      return;
+    }
+    if (SES.verifiedUid === uid && SES.mode === 'compartilhada') return;
+    SES.verifiedUid = uid; SES.gm = r.gm; SES.uid = uid; SES.canWrite = true; SES.known = true; SES.mode = 'compartilhada'; SES.loaded = false;
+    setMsg('msg-login', '', '');
+    setupUI(); subscribe();
+  });
+}
+function startFirebase() {
+  try { firebase.initializeApp(window.WZ_FIREBASE); } catch (e) { }
+  SES.fire = true; SES.auth = firebase.auth(); SES.fs = firebase.firestore();
+  SES.db = new FireDB(SES.fs, firebase.firestore.FieldPath);
+  SES.mode = 'carregando'; SES.known = true; renderNow();
+  var to = setTimeout(function () { if (SES.mode === 'carregando') useLocal('Não consegui falar com o Firebase a tempo.'); }, 12000);
+  SES.auth.onAuthStateChanged(function (u) {
+    clearTimeout(to);
+    if (SES.joining) return;
+    if (!u) fireNeedLogin(''); else fireVerify(u);
+  });
+}
+$('#seg-login').addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  $$('#seg-login button').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+  $('#f-jog').hidden = b.dataset.r !== 'p'; $('#f-mes').hidden = b.dataset.r !== 'm';
+  setMsg('msg-login', '', '');
+});
+$('#f-jog').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var nome = $('#l-nome').value.trim(), cod = $('#l-cod').value.trim();
+  if (!SES.fire) return;
+  if (!nome || !cod) { setMsg('msg-login', 'bad', 'Preencha o seu nome e o código da mesa.'); return; }
+  SES.joining = true; setMsg('msg-login', 'info', 'Entrando...');
+  var u0 = SES.auth.currentUser;
+  (u0 ? Promise.resolve(u0) : SES.auth.signInAnonymously().then(function (c) { return c.user; })).then(function (u) {
+    return SES.fs.doc('membros/' + u.uid).set({ codigo: cod, nome: nome }).then(function () {
+      return SES.fs.doc('fichas/' + u.uid).set({ nome: nome }, { merge: true });
+    }).then(function () { SES.joining = false; fireVerify(u); }, function (err) {
+      SES.joining = false;
+      setMsg('msg-login', 'bad', err && err.code === 'permission-denied' ? 'Código da mesa incorreto.' : 'Não consegui entrar. Tente de novo.');
+    });
+  }, function (err) {
+    SES.joining = false;
+    setMsg('msg-login', 'bad', err && err.code === 'auth/operation-not-allowed' ? 'O login de jogador (anônimo) não está ligado no Firebase.' : 'Não consegui entrar. Confira a internet.');
+  });
+});
+$('#f-mes').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var mail = $('#l-mail').value.trim(), pw = $('#l-senha').value;
+  if (!SES.fire) return;
+  if (!mail || !pw) { setMsg('msg-login', 'bad', 'Preencha o e-mail e a senha do mestre.'); return; }
+  SES.joining = true; setMsg('msg-login', 'info', 'Entrando...');
+  SES.auth.signInWithEmailAndPassword(mail, pw).then(function (c) { SES.joining = false; fireVerify(c.user); }, function (err) {
+    SES.joining = false;
+    var c = err && err.code;
+    setMsg('msg-login', 'bad', c === 'auth/operation-not-allowed' ? 'O login por e-mail e senha não está ligado no Firebase.' : c === 'auth/too-many-requests' ? 'Muitas tentativas. Espere um pouco e tente de novo.' : c === 'auth/network-request-failed' ? 'Sem internet.' : 'E-mail ou senha incorretos.');
+  });
+});
+$('#b-sair').addEventListener('click', function () {
+  var done = function () { location.reload(); };
+  if (SES.auth) SES.auth.signOut().then(done, done); else done();
+});
+
+/* ================= início ================= */
+function setupUI() {
+  var chip = $('#chip-role');
+  chip.hidden = SES.mode === 'carregando' || SES.mode === 'login';
+  var writer = SES.mode === 'local' || SES.gm || !!(SES.canWrite && SES.uid);
+  chip.textContent = SES.mode === 'local' ? 'Modo local' : SES.gm ? 'Mestre' : writer ? 'Jogador' : 'Só leitura';
+  chip.className = 'chip role' + (SES.gm ? '' : ' mut');
+  if (SES.mode === 'compartilhada' && !writer) banner('Seu acesso é só de leitura. Peça ao mestre para liberar a edição para você.', 'warn', 'leitura');
+  renderNow();
+}
+function useLocal(msg) {
+  SES.mode = 'local'; SES.gm = true; SES.uid = 'local'; SES.canWrite = true; SES.known = true;
+  SES.db = new LocalDB('local');
+  banner(msg + ' Modo local: as fichas ficam só neste navegador.', 'info', 'local');
+  setupUI(); subscribe();
+}
+function startSession() {
+  var c = window.claude, done = false, to;
+  if (!c || typeof c.use !== 'function') {
+    if (window.WZ_FIREBASE) {
+      if (fbConfigured()) { startFirebase(); return; }
+      useLocal(window.firebase ? 'A mesa compartilhada ainda não foi configurada: falta colar a configuração do Firebase.' : 'Não consegui carregar o Firebase. Confira a internet.');
+      return;
+    }
+    useLocal('Esta página não está conectada à mesa compartilhada.'); return;
+  }
+  to = setTimeout(function () { if (!done) { done = true; useLocal('O Claude não respondeu a tempo.'); } }, 10500);
+  Promise.all([c.use('db'), c.use('user')]).then(function (r) {
+    if (done) return; done = true; clearTimeout(to);
+    if (!r[0]) { useLocal('Para ver a mesa compartilhada, entre no Claude e abra o link que o mestre mandou.'); return; }
+    var u = r[1];
+    SES.db = r[0]; SES.user = u; SES.mode = 'compartilhada';
+    SES.gm = !!(u && typeof u.isOwner === 'function' && u.isOwner());
+    return Promise.all([u && typeof u.id === 'function' ? u.id() : null, u && typeof u.can === 'function' ? u.can('data.write') : null]).then(function (v) {
+      SES.uid = v[0] || null; SES.known = v[1] === true || v[1] === false; SES.canWrite = v[1] !== false;
+      setupUI(); subscribe();
+    });
+  }).catch(function () { if (!done) { done = true; useLocal('Não consegui conectar à mesa.'); } });
+}
+buildSelects(); buildAttrs(); buildSkills(); buildQuals(); applyTema(); route();
+window.__wzLocalDB = LocalDB;
+window.__wz = { compute: compute, blank: blank, exemplo: exemplo, CLASSES: CLASSES, skillTotal: skillTotal, SES: SES, SH: function () { return SH; } };
+$('#sel-tipo').addEventListener('change', function (e) { var s = SH[sel]; if (s && canEdit(s)) { editSheet(sel, 'tipo', e.target.value); renderNow(); } });
+startSession();
+})();
+</script>
+
+</body>
+</html>
