@@ -1,11 +1,10 @@
-// Cole aqui a configuração do seu projeto Firebase (veja o LEIA-ME.md, passo 6).
-// Enquanto estiver com COLE_AQUI, a Mesa funciona só no modo local (cada navegador com as suas fichas).
+// Configuração do projeto Firebase "mesa-world-zero".
 // Esta chave pode ficar pública: quem protege os dados são as regras do Firestore (regras-firestore.txt).
 window.WZ_FIREBASE = {
-  apiKey: "COLE_AQUI",
-  authDomain: "COLE_AQUI",
-  projectId: "COLE_AQUI",
-  storageBucket: "COLE_AQUI",
-  messagingSenderId: "COLE_AQUI",
-  appId: "COLE_AQUI"
+  apiKey: "AIzaSyD2jeX_kr4DX6PjlOJ_EShTSqlii3awwkE",
+  authDomain: "mesa-world-zero.firebaseapp.com",
+  projectId: "mesa-world-zero",
+  storageBucket: "mesa-world-zero.firebasestorage.app",
+  messagingSenderId: "898597944484",
+  appId: "1:898597944484:web:a09ffd7ff734071be37a31"
 };
