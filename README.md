@@ -34,6 +34,6 @@ Endereço: https://marcos-mili.github.io/WORLD-ZERO/ficha/
 
 ## Mesa compartilhada
 
-A pasta `mesa/` tem a Mesa World Zero: o mestre vê e edita todas as fichas e NPCs e os jogadores veem as fichas e editam as próprias, com tudo aparecendo na hora para todo mundo. Usa um banco gratuito do Firebase. Antes de funcionar compartilhada, precisa ligar o Firebase: o passo a passo está em `mesa/LEIA-ME.md`.
+A pasta `mesa/` tem a Mesa World Zero: o mestre vê e edita todas as fichas e NPCs e os jogadores (qualquer pessoa com conta Google) veem as fichas e editam as próprias, com tudo aparecendo na hora para todo mundo. Usa um banco gratuito do Firebase. Antes de funcionar compartilhada, precisa ligar o Firebase: o passo a passo está em `mesa/LEIA-ME.md`.
 
 Endereço: https://marcos-mili.github.io/WORLD-ZERO/mesa/
