@@ -7,7 +7,7 @@ Endereço depois de configurar: https://marcos-mili.github.io/WORLD-ZERO/mesa/
 ## Como funciona
 
 - **Jogador:** entra com o nome e o código da mesa. Cria, edita, duplica e exclui as próprias fichas. Vê as fichas dos outros e os NPCs que o mestre mostrar, só para ler.
-- **Mestre:** entra com a conta Google dele. Vê e edita tudo, cria NPCs (ocultos até ele mostrar), ajusta PV e PM de qualquer ficha e tem um campo de anotações só dele.
+- **Mestre:** entra com a conta Google dele. Pode haver vários mestres: basta colocar o e-mail de cada um na lista das regras, e para tirar ou pôr um mestre depois é só editar a lista e publicar de novo. Todos os mestres veem e editam tudo, inclusive NPCs ocultos e anotações (as anotações são um texto só). Vê e edita tudo, cria NPCs (ocultos até ele mostrar), ajusta PV e PM de qualquer ficha e tem um campo de anotações só dele.
 - A trava é de verdade: as regras do Firestore impedem que um jogador escreva na ficha de outro ou leia os NPCs ocultos.
 - Sem configurar o Firebase, a página abre em **modo local** (as fichas ficam só naquele navegador).
 
@@ -17,7 +17,7 @@ Endereço depois de configurar: https://marcos-mili.github.io/WORLD-ZERO/mesa/
 2. Menu **Segurança > Authentication > Vamos começar**. Na aba **Método de login**, ligue **Anônimo** (é o login dos jogadores). Depois **Adicionar novo provedor > Google**, ligue **Ativar**, escolha o seu e-mail em "E-mail de suporte do projeto" e salve (é o login do mestre).
 3. Ainda em Authentication, aba **Configurações > Domínios autorizados > Adicionar domínio**: coloque `marcos-mili.github.io`. Sem isso o Google bloqueia o login.
 4. Menu **Bancos de dados e armazenamento > Firestore Database > Criar banco de dados**. Escolha o modo de produção e um local (por exemplo `southamerica-east1`, São Paulo).
-5. No Firestore, aba **Regras**: apague tudo, cole o conteúdo do arquivo `regras-firestore.txt`, troque `SEU_EMAIL_DO_MESTRE` pelo e-mail da conta Google do mestre (em minúsculas) e `CODIGO_DA_MESA` por um código que você vai passar aos jogadores. Clique em **Publicar**.
+5. No Firestore, aba **Regras**: apague tudo, cole o conteúdo do arquivo `regras-firestore.txt`, troque os e-mails da lista dentro de `mestre()` pelos e-mails das contas Google dos mestres (em minúsculas, pode ter vários) e `CODIGO_DA_MESA` por um código que você vai passar aos jogadores. Clique em **Publicar**.
 6. Na engrenagem ao lado de "Visão geral do projeto" > **Configurações do projeto**, role até **Seus aplicativos**, clique no ícone web `</>`, dê um apelido (por exemplo `mesa`), deixe o Hosting desligado e clique em Registrar. Vai aparecer um bloco `firebaseConfig`. Copie.
 7. Abra o arquivo `mesa/firebase-config.js` aqui no repositório e troque os `COLE_AQUI` pelos valores do bloco. Salve (commit). Em alguns minutos o GitHub Pages atualiza.
 
