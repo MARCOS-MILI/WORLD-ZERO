@@ -2292,11 +2292,17 @@ $('#f-jog').addEventListener('submit', function (e) {
       return SES.fs.doc('fichas/' + u.uid).set({ nome: nome }, { merge: true });
     }).then(function () { SES.joining = false; fireVerify(u); }, function (err) {
       SES.joining = false;
-      setMsg('msg-login', 'bad', err && err.code === 'permission-denied' ? 'Código da mesa incorreto.' : 'Não consegui entrar. Tente de novo.');
+      var c2 = err && err.code;
+      setMsg('msg-login', 'bad', c2 === 'permission-denied' ? 'Código da mesa incorreto (ou as regras do Firestore ainda não foram publicadas).' : 'Não consegui entrar (' + (c2 || 'erro desconhecido') + ').');
     });
   }, function (err) {
     SES.joining = false;
-    setMsg('msg-login', 'bad', err && err.code === 'auth/operation-not-allowed' ? 'O login de jogador (anônimo) não está ligado no Firebase.' : 'Não consegui entrar. Confira a internet.');
+    var c = err && err.code;
+    setMsg('msg-login', 'bad',
+      c === 'auth/operation-not-allowed' || c === 'auth/admin-restricted-operation' ? 'O login de jogador (Anônimo) não está ligado no Firebase. Ligue em Authentication > Método de login > Anônimo.' :
+      c === 'auth/network-request-failed' ? 'Sem internet. Confira a conexão e tente de novo.' :
+      c === 'auth/invalid-api-key' || c === 'auth/api-key-not-valid.-please-pass-a-valid-api-key.' ? 'A chave do Firebase (apiKey) em firebase-config.js está errada.' :
+      'Não consegui entrar (' + (c || 'erro desconhecido') + ').');
   });
 });
 $('#b-google').addEventListener('click', function () {
@@ -2312,7 +2318,7 @@ $('#b-google').addEventListener('click', function () {
       c === 'auth/popup-blocked' ? 'O navegador bloqueou a janela do Google. Libere pop-ups para este site e tente de novo.' :
       c === 'auth/unauthorized-domain' ? 'Este endereço ainda não está liberado no Firebase (Authentication > Configurações > Domínios autorizados).' :
       c === 'auth/operation-not-allowed' ? 'O login com Google não está ligado no Firebase.' :
-      c === 'auth/network-request-failed' ? 'Sem internet.' : 'Não consegui entrar com o Google.');
+      c === 'auth/network-request-failed' ? 'Sem internet.' : 'Não consegui entrar com o Google (' + (c || 'erro desconhecido') + ').');
   });
 });
 $('#b-sair').addEventListener('click', function () {
