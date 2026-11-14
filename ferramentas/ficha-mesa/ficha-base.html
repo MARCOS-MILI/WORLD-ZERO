@@ -1,0 +1,2382 @@
+<title>Ficha World Zero</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Ficha automática e consulta de classes, raças, perícias e tabelas do sistema World Zero.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234638C9' stroke-width='2.6' stroke-linecap='square'%3E%3Ccircle cx='12' cy='12' r='8.2'/%3E%3Cpath d='M7.4 17.2 16.8 6.8'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Literata:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+/* Layout: ferramenta de mesa para celular. Cabeçalho fixo com abas por seção; a ficha é uma coluna de cartões
+   (resumo primeiro, detalhe depois) que vira grade em tela larga. Mesmo visual do site do livro. */
+:root {
+  --bg: #F3F4F9;
+  --surface: #FFFFFF;
+  --bar: #FFFFFF;
+  --fg: #161827;
+  --muted: #565A74;
+  --rule: #DADCE8;
+  --accent: #4638C9;
+  --accent-fg: #FFFFFF;
+  --tint: #E8E6FA;
+  --tint-2: #ECEEF6;
+  --bad: #A4261D; --bad-bg: #FBE6E4;
+  --warn: #7F4B00; --warn-bg: #FAEDCF;
+  --ok: #1B6B36; --ok-bg: #DDF1E3;
+  --display: "Chakra Petch", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --body: "Literata", Georgia, "Times New Roman", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E0F18; --surface: #161826; --bar: #12131F; --fg: #E7E8F3; --muted: #A0A3BC; --rule: #292C42;
+    --accent: #ABA0FF; --accent-fg: #0E0F18; --tint: #25224A; --tint-2: #1C1E31;
+    --bad: #FF9E96; --bad-bg: #3B1C1B; --warn: #F2BF6C; --warn-bg: #352A10; --ok: #8EE0A8; --ok-bg: #16301F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E0F18; --surface: #161826; --bar: #12131F; --fg: #E7E8F3; --muted: #A0A3BC; --rule: #292C42;
+  --accent: #ABA0FF; --accent-fg: #0E0F18; --tint: #25224A; --tint-2: #1C1E31;
+  --bad: #FF9E96; --bad-bg: #3B1C1B; --warn: #F2BF6C; --warn-bg: #352A10; --ok: #8EE0A8; --ok-bg: #16301F;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.6; -webkit-text-size-adjust: 100%; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); background: var(--bar); z-index: 80; }
+a { color: var(--accent); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+/* ---------- cabeçalho ---------- */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; background: var(--bar); border-bottom: 1px solid var(--rule); }
+.bar { height: 52px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.brand { display: flex; align-items: center; gap: 9px; font: 700 1.02rem/1 var(--display); letter-spacing: .14em; text-transform: uppercase; white-space: nowrap; }
+.brand svg { width: 24px; height: 24px; color: var(--accent); flex: none; }
+.brand b { font-weight: 400; color: var(--muted); letter-spacing: .1em; }
+.tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs a { flex: none; padding: 9px 12px 8px; font: 600 .88rem var(--display); color: var(--muted); text-decoration: none; border-bottom: 2px solid transparent; }
+.tabs a:hover { color: var(--fg); }
+.tabs a[aria-current="page"] { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ---------- estrutura ---------- */
+.page { max-width: 980px; margin: 0 auto; padding-block: 20px 56px; }
+h1.title { font: 700 clamp(1.7rem, 5.5vw, 2.5rem)/1.08 var(--display); margin: .1em 0 .25em; text-wrap: balance; }
+.lede { color: var(--muted); margin: 0 0 1.2em; max-width: 62ch; }
+.sec { margin-top: 26px; }
+.sec > h2 { font: 600 1.15rem/1.2 var(--display); display: flex; align-items: center; gap: .6em; margin: 0 0 10px; text-wrap: balance; }
+.sec > h2::before { content: ""; width: 8px; height: 8px; background: var(--accent); transform: rotate(45deg); flex: none; }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; }
+.grid { display: grid; gap: 12px; }
+.g2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
+.g3 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); }
+.hint { color: var(--muted); font-size: .9rem; margin: 10px 0 0; }
+.hint:empty { display: none; }
+.small { font-size: .88rem; color: var(--muted); }
+
+label.f { display: grid; gap: 4px; font: 600 .7rem var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); min-width: 0; }
+input, select, textarea { font: 500 16px/1.2 var(--display); color: var(--fg); background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; padding: 0 10px; height: 42px; width: 100%; min-width: 0; -webkit-appearance: none; appearance: none; letter-spacing: 0; text-transform: none; }
+select { padding-right: 28px; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50%; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; }
+textarea { height: auto; min-height: 104px; padding: 10px; font-family: var(--body); line-height: 1.5; resize: vertical; }
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
+input[type="checkbox"] { width: 20px; height: 20px; padding: 0; flex: none; accent-color: var(--accent); -webkit-appearance: auto; appearance: auto; }
+.btn { height: 40px; padding: 0 14px; border: 1px solid var(--rule); background: var(--surface); border-radius: 6px; font: 600 .88rem var(--display); cursor: pointer; white-space: nowrap; }
+.btn:hover { border-color: var(--accent); }
+.btn.pri { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.btn.bad { color: var(--bad); }
+.btn.bad.armed { background: var(--bad); color: var(--bg); border-color: var(--bad); }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.pick { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 640px) { .pick { grid-template-columns: minmax(0, 1fr) auto; align-items: end; } }
+
+.msg { padding: 8px 11px; border-radius: 6px; font: 500 .86rem/1.4 var(--display); margin: 10px 0 0; }
+.msg:empty { display: none; }
+.msg.ok { background: var(--ok-bg); color: var(--ok); }
+.msg.bad { background: var(--bad-bg); color: var(--bad); }
+.msg.warn { background: var(--warn-bg); color: var(--warn); }
+.msg.info { background: var(--tint); color: var(--fg); }
+
+/* ---------- resumo ---------- */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; }
+.stat { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; display: grid; gap: 3px; min-width: 0; align-content: start; }
+.stat .k { font: 600 .66rem var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.stat .v { font: 700 1.75rem/1.05 var(--display); font-variant-numeric: tabular-nums; }
+.stat .v.txt { font-size: 1.05rem; line-height: 1.25; overflow-wrap: anywhere; }
+.stat .s { font: 500 .74rem/1.35 var(--display); color: var(--muted); overflow-wrap: anywhere; }
+.stat input { height: 32px; font-size: 15px; margin-top: 3px; padding: 0 8px; }
+
+/* ---------- atributos ---------- */
+.attrs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 10px; }
+.attr { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 12px; display: grid; gap: 8px; min-width: 0; }
+.attr .head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.attr .nm { font: 600 .95rem var(--display); }
+.attr .tot { font: 700 2rem/1 var(--display); font-variant-numeric: tabular-nums; }
+.attr .roll { font: 600 .84rem var(--display); color: var(--accent); }
+.attr .ins { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.attr .ins label { font-size: .6rem; letter-spacing: .06em; }
+.attr .ins input { height: 36px; padding: 0 4px; text-align: center; font-size: 15px; }
+
+/* ---------- perícias ---------- */
+.skills { border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); overflow: hidden; }
+.sk { display: grid; grid-template-columns: minmax(0, 1fr) 112px 44px; gap: 8px; align-items: center; padding: 8px 12px; border-top: 1px solid var(--rule); }
+.sk:first-child { border-top: 0; }
+.sk .nm { font: 600 .95rem/1.25 var(--display); overflow-wrap: anywhere; }
+.sk .at { display: block; font: 500 .72rem var(--display); color: var(--muted); margin-top: 1px; }
+.sk select { height: 36px; font-size: 14px; padding: 0 22px 0 8px; background-position: calc(100% - 12px) 50%, calc(100% - 7px) 50%; }
+.sk .t { font: 700 1.15rem var(--display); text-align: right; font-variant-numeric: tabular-nums; }
+.sk .t.off { color: var(--muted); font-weight: 500; }
+.chip { display: inline-block; font: 600 .6rem var(--display); letter-spacing: .1em; text-transform: uppercase; padding: 1px 6px; border-radius: 999px; background: var(--tint); color: var(--accent); margin-left: 6px; vertical-align: .1em; white-space: nowrap; }
+.chip.mut { background: var(--tint-2); color: var(--muted); }
+
+/* ---------- listas ---------- */
+.lv { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 10px; padding: 7px 0; border-top: 1px solid var(--rule); }
+.lv:first-child { border-top: 0; }
+.lv b { font: 700 .8rem var(--display); color: var(--accent); padding-top: 3px; }
+.lv span { overflow-wrap: anywhere; }
+.lv.fut { opacity: .5; }
+.tal { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+.tal label { grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: 8px; font-size: .8rem; }
+.qbox { border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); margin-top: 8px; }
+.qbox > summary { cursor: pointer; padding: 11px 14px; font: 600 .95rem var(--display); }
+.qbox .list { padding: 0 14px 10px; max-height: 360px; overflow: auto; }
+.qrow { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-top: 1px solid var(--rule); align-items: start; cursor: pointer; }
+.qrow input { margin-top: 3px; }
+.qrow b { font: 600 .92rem var(--display); }
+.qrow .c { font: 700 .78rem var(--display); color: var(--accent); margin-left: 6px; white-space: nowrap; }
+.qrow small { display: block; color: var(--muted); font-size: .84rem; line-height: 1.4; }
+details.card > summary { cursor: pointer; font: 600 .95rem var(--display); }
+details.adv > .in { margin-top: 12px; display: grid; gap: 14px; }
+
+/* ---------- tabelas e consulta ---------- */
+.tw { overflow-x: auto; margin: 10px 0; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); }
+.tw table { border-collapse: collapse; width: 100%; font-size: .9rem; line-height: 1.45; font-variant-numeric: tabular-nums; }
+.tw th { text-align: left; font: 600 .74rem var(--display); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--tint-2); padding: .6em .9em; white-space: nowrap; }
+.tw td { padding: .55em .9em; border-top: 1px solid var(--rule); vertical-align: top; }
+.tw tbody tr:first-child td { border-top: 0; }
+.rules { margin: 8px 0 0; padding-left: 1.2em; max-width: 68ch; }
+.rules li { margin: .35em 0; }
+.rules li::marker { color: var(--accent); }
+details.item { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; margin-top: 8px; }
+details.item > summary { cursor: pointer; padding: 11px 14px; font: 600 1rem var(--display); display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+details.item > summary .meta { font: 500 .78rem var(--display); color: var(--muted); }
+details.item .in { padding: 2px 14px 14px; }
+details.item p { margin: .5em 0; max-width: 68ch; }
+.search { margin: 6px 0 4px; }
+.seg { display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; margin: 6px 0; }
+.seg button { border: 0; background: var(--surface); padding: 8px 14px; font: 500 .86rem var(--display); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); font-weight: 600; }
+.foot { border-top: 1px solid var(--rule); padding-block: 18px 40px; color: var(--muted); font: 400 .82rem/1.55 var(--display); }
+.foot p { margin: 0 auto; max-width: 980px; }
+/* ---------- inventário ---------- */
+.fseg { display: grid; grid-template-columns: 1fr 1fr; width: 100%; margin: 18px 0 0; }
+.fseg button { padding: 10px 12px; font-size: .95rem; }
+#p-ficha[data-v="inv"] .sec:not(.inv-sec) { display: none; }
+#p-ficha:not([data-v="inv"]) .inv-sec { display: none; }
+#p-ficha[data-iv="gil"] .iv-itens, #p-ficha:not([data-iv="gil"]) .iv-gil { display: none; }
+.stat .v.neg, .money.neg { color: var(--bad); }
+.ilist { display: grid; gap: 8px; margin-top: 12px; }
+.it { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; min-width: 0; }
+.it.zero .it-nm { opacity: .55; }
+.it-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px 8px 6px 12px; }
+.it-nm { border: 0; background: none; padding: 6px 0; text-align: left; cursor: pointer; min-width: 0; display: grid; gap: 2px; }
+.it-nm b { font: 600 .98rem/1.25 var(--display); overflow-wrap: anywhere; }
+.it-nm b::after { content: " ▸"; color: var(--muted); font-weight: 400; }
+.it-nm[aria-expanded="true"] b::after { content: " ▾"; }
+.it-nm small { font: 500 .76rem/1.4 var(--display); color: var(--muted); overflow-wrap: anywhere; }
+.qty { display: flex; align-items: center; gap: 4px; }
+.qty .btn { width: 38px; padding: 0; font-size: 1.1rem; }
+.qty output { min-width: 34px; text-align: center; font: 700 1.05rem var(--display); font-variant-numeric: tabular-nums; }
+.it-more { padding: 10px 12px 12px; display: grid; gap: 10px; border-top: 1px solid var(--rule); }
+.it-more p { margin: 0; max-width: 68ch; font-size: .94rem; overflow-wrap: anywhere; }
+.it-more textarea { min-height: 72px; }
+.cat-res { margin-top: 12px; max-height: 460px; overflow: auto; border-top: 1px solid var(--rule); }
+.cr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; padding: 10px 0; border-bottom: 1px solid var(--rule); align-items: start; }
+.cr b { font: 600 .95rem/1.25 var(--display); overflow-wrap: anywhere; }
+.cr .chip { margin-left: 4px; }
+.cr small { display: block; color: var(--muted); font: 500 .76rem/1.4 var(--display); margin-top: 2px; overflow-wrap: anywhere; }
+.cr details { grid-column: 1 / -1; font-size: .9rem; }
+.cr details summary { cursor: pointer; color: var(--accent); font: 600 .78rem var(--display); }
+.cr details p { margin: 6px 0 0; max-width: 68ch; }
+.cr-b { display: grid; gap: 6px; justify-items: stretch; }
+.cr-b .btn { height: 36px; padding: 0 12px; }
+.lgl { border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); margin-top: 10px; }
+.lg { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; padding: 9px 12px; border-top: 1px solid var(--rule); align-items: center; }
+.lg:first-child { border-top: 0; }
+.lg b { font: 600 .92rem/1.3 var(--display); overflow-wrap: anywhere; }
+.lg small { display: block; color: var(--muted); font: 500 .74rem/1.4 var(--display); margin-top: 1px; }
+.lg-r { display: flex; align-items: center; gap: 8px; }
+.lg .val { font: 700 1rem var(--display); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lg .val.pos { color: var(--ok); }
+.lg .val.neg { color: var(--bad); }
+.lg .btn { height: 32px; min-width: 32px; padding: 0 8px; }
+.lg.ini { background: var(--tint-2); }
+.inv-mini { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.inv-mini span { font: 600 .9rem/1.4 var(--display); }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<header class="top">
+  <div class="wrap bar">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M7.4 17.2 16.8 6.8"/></svg>
+      <span>World <b>Zero</b></span>
+    </div>
+    <button class="btn" id="btn-tema" type="button" aria-label="Trocar tema">Tema: auto</button>
+  </div>
+  <nav class="wrap tabs" aria-label="Seções">
+    <a href="#ficha" data-p="ficha">Ficha</a>
+    <a href="#classes" data-p="classes">Classes</a>
+    <a href="#racas" data-p="racas">Raças</a>
+    <a href="#pericias" data-p="pericias">Perícias</a>
+    <a href="#tabelas" data-p="tabelas">Tabelas</a>
+    <a href="#qualidades" data-p="qualidades">Qualidades</a>
+  </nav>
+</header>
+
+<main class="wrap" id="main">
+  <!-- ================= FICHA ================= -->
+  <section id="p-ficha" class="page">
+    <h1 class="title">Ficha automática</h1>
+    <p class="lede">Escolha raça, classe e nível, distribua os atributos e o resto sai calculado. Tudo fica salvo neste aparelho. Os números vêm do livro 4.7.7; onde o livro não diz, está avisado.</p>
+
+    <div class="card pick">
+      <label class="f">Ficha salva<select id="sel-ficha"></select></label>
+      <div class="btns">
+        <button class="btn pri" id="b-nova" type="button">Nova</button>
+        <button class="btn" id="b-dup" type="button">Duplicar</button>
+        <button class="btn bad" id="b-del" type="button">Excluir</button>
+      </div>
+    </div>
+
+    <div class="seg fseg" id="seg-fi" role="group" aria-label="Parte da ficha"><button type="button" data-fv="ficha" aria-pressed="true">Ficha</button><button type="button" data-fv="inv" aria-pressed="false">Inventário</button></div>
+
+    <div class="sec">
+      <h2>Personagem</h2>
+      <div class="card">
+        <div class="grid g2">
+          <label class="f">Nome<input data-bind="nome" placeholder="Nome do personagem" autocomplete="off"></label>
+          <label class="f">Jogador<input data-bind="jogador" placeholder="Quem joga" autocomplete="off"></label>
+          <label class="f">Raça<select data-bind="race" id="sel-race"></select></label>
+          <label class="f">Classe<select data-bind="cls" id="sel-cls"></select></label>
+          <label class="f">Nível<select data-bind="nivel" id="sel-lv"></select></label>
+          <label class="f">XP atual<input type="number" inputmode="numeric" min="0" data-bind="xp" placeholder="0"></label>
+        </div>
+        <p class="hint" id="o-xp"></p>
+        <div class="msg info" id="o-clsnote"></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h2>Resumo</h2>
+      <div class="stats">
+        <div class="stat"><span class="k">PV máx.</span><span class="v" id="o-pv">0</span><span class="s" id="s-pv"></span><input type="number" inputmode="numeric" data-bind="pvAtual" id="i-pva" aria-label="PV atuais" placeholder="atual"></div>
+        <div class="stat"><span class="k">PM máx.</span><span class="v" id="o-pm">0</span><span class="s" id="s-pm"></span><input type="number" inputmode="numeric" data-bind="pmAtual" id="i-pma" aria-label="PM atuais" placeholder="atual"></div>
+        <div class="stat"><span class="k">Sanidade</span><span class="v">100%</span><span class="s">começa em 100%</span><input type="number" inputmode="numeric" data-bind="sanAtual" aria-label="Sanidade atual" placeholder="atual"></div>
+        <div class="stat"><span class="k">C.A.</span><span class="v" id="o-ca">10</span><span class="s" id="s-ca"></span></div>
+        <div class="stat"><span class="k">C.R.</span><span class="v" id="o-cr">0</span><span class="s" id="s-cr"></span></div>
+        <div class="stat"><span class="k">D.T.</span><span class="v" id="o-dt">0</span><span class="s" id="s-dt"></span></div>
+        <div class="stat"><span class="k">LCM por turno</span><span class="v" id="o-lcm">0</span><span class="s" id="s-lcm"></span></div>
+        <div class="stat"><span class="k">Proficiência</span><span class="v" id="o-prof">+1</span><span class="s" id="s-prof"></span></div>
+        <div class="stat"><span class="k">Deslocamento</span><span class="v txt" id="o-desl">-</span><span class="s">da raça</span></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h2>Atributos</h2>
+      <div class="attrs" id="attrs"></div>
+      <div class="msg" id="msg-base"></div>
+      <div class="msg" id="msg-up"></div>
+      <p class="hint">Base: use 0, 1, 2, 3, 4 e 5 sem repetir, depois uma transferência de 1 ponto (máximo 6). Raça: bônus ou penalidades da raça e de outras fontes. Nível: aumentos de +1 nos níveis 4, 8, 11, 14, 18 e 20.</p>
+    </div>
+
+    <div class="sec">
+      <h2>Perícias</h2>
+      <div class="skills" id="skills"></div>
+      <div class="msg" id="msg-sk"></div>
+      <p class="hint" id="o-evo"></p>
+    </div>
+
+    <div class="sec">
+      <h2>Classe</h2>
+      <div class="card">
+        <p class="small" id="o-clsinfo" style="margin:0 0 8px">Escolha uma classe para ver as habilidades.</p>
+        <div id="o-hab"></div>
+        <p style="margin:10px 0 0"><button class="btn" id="b-allhab" type="button">Mostrar todos os níveis</button></p>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h2>Raça</h2>
+      <div class="card" id="o-race"><p class="small" style="margin:0">Escolha uma raça para ver o resumo.</p></div>
+    </div>
+
+    <div class="sec">
+      <h2>Talentos</h2>
+      <div class="card">
+        <p class="small" style="margin:0 0 10px" id="o-talinfo"></p>
+        <div class="tal" id="tal"></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h2>Personalização</h2>
+      <div class="card">
+        <div class="grid g3">
+          <label class="f">Pontos iniciais<input type="number" inputmode="numeric" data-bind="pontosIni" placeholder="0"></label>
+          <div class="stat" style="border:0;padding:0"><span class="k">Saldo</span><span class="v" id="o-saldo">0</span></div>
+        </div>
+        <p class="hint" id="o-qinfo"></p>
+        <details class="qbox"><summary>Qualidades <span class="small" id="n-q"></span></summary><div class="list" id="l-q"></div></details>
+        <details class="qbox"><summary>Defeitos <span class="small" id="n-d"></span></summary><div class="list" id="l-d"></div></details>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h2>Equipamento e anotações</h2>
+      <div class="card grid">
+        <div class="inv-mini"><span id="o-invmini"></span><button class="btn" type="button" data-fv="inv">Abrir inventário</button></div>
+        <label class="f">Bônus de equipamento na C.A.<input type="number" inputmode="numeric" data-bind="extra.ca" placeholder="0"></label>
+        <label class="f">História e anotações<textarea data-bind="notas" placeholder="Passado, objetivos, notas de sessão"></textarea></label>
+      </div>
+    </div>
+
+    <!-- ================= INVENTÁRIO ================= -->
+    <div class="sec inv-sec">
+      <h2>Inventário</h2>
+      <div class="stats">
+        <div class="stat"><span class="k">Dinheiro</span><span class="v" id="o-gil">0</span><span class="s">Gil</span></div>
+        <div class="stat"><span class="k">Peso</span><span class="v" id="o-peso">0</span><span class="s" id="s-peso"></span></div>
+      </div>
+      <div class="msg" id="msg-peso"></div>
+      <div class="seg fseg" id="seg-iv" role="group" aria-label="Parte do inventário"><button type="button" data-iv="itens" aria-pressed="true">Itens</button><button type="button" data-iv="gil" aria-pressed="false">Dinheiro</button></div>
+    </div>
+
+    <div class="sec inv-sec iv-itens">
+      <h2>Itens <span class="small" id="n-itens"></span></h2>
+      <div class="btns" id="inv-btns">
+        <button class="btn pri" type="button" data-inv-panel="cat" aria-expanded="false">Adicionar do livro</button>
+        <button class="btn" type="button" data-inv-panel="novo" aria-expanded="false">Criar item</button>
+      </div>
+      <div class="card" id="inv-cat" hidden style="margin-top:10px">
+        <div class="grid g2">
+          <label class="f">Buscar no livro<input type="search" id="cat-q" placeholder="Nome, dano ou efeito" autocomplete="off"></label>
+          <label class="f">Categoria<select id="cat-c"></select></label>
+        </div>
+        <div class="msg" id="msg-cat"></div>
+        <div class="cat-res" id="cat-res"></div>
+        <p class="hint" id="cat-info"></p>
+        <p style="margin:10px 0 0"><button class="btn" type="button" data-inv-panel="">Fechar</button></p>
+      </div>
+      <div class="card" id="inv-novo" hidden style="margin-top:10px">
+        <p class="small" style="margin:0 0 10px">Para itens que não estão no livro: um vinho raro, uma chave, um presente do mestre.</p>
+        <div class="grid g2">
+          <label class="f">Nome do item<input id="nv-n" maxlength="80" placeholder="ex: Vinho raro" autocomplete="off"></label>
+          <label class="f">Categoria<select id="nv-c"></select></label>
+          <label class="f">Quantidade<input id="nv-q" type="number" inputmode="numeric" min="1" placeholder="1"></label>
+          <label class="f">Peso de cada (kg)<input id="nv-kg" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0"></label>
+          <label class="f">Paguei (Gil, opcional)<input id="nv-gil" type="number" inputmode="numeric" min="0" placeholder="0"></label>
+        </div>
+        <label class="f" style="margin-top:12px">Descrição<textarea id="nv-d" placeholder="O que faz, de onde veio"></textarea></label>
+        <div class="btns" style="margin-top:12px"><button class="btn pri" type="button" id="nv-ok">Adicionar item</button><button class="btn" type="button" data-inv-panel="">Cancelar</button></div>
+        <div class="msg" id="msg-nv"></div>
+      </div>
+      <div class="ilist" id="inv-list"></div>
+      <p class="hint" id="inv-empty"></p>
+      <div class="card grid" style="margin-top:16px">
+        <label class="f">Anotações de equipamento<textarea data-bind="inv" placeholder="O que não for item: coisas guardadas em casa, dívidas, recompensas prometidas"></textarea></label>
+        <label class="f">Carga extra (kg)<input type="number" inputmode="decimal" data-bind="extra.carga" placeholder="0"></label>
+        <p class="hint" style="margin:0">Carga pelo livro: normal 3 × Força em kg, máximo 10 × Força. Mochilas do catálogo somam sozinhas. Use a carga extra para bônus de classe, raça ou do mestre.</p>
+      </div>
+    </div>
+
+    <div class="sec inv-sec iv-gil">
+      <h2>Dinheiro</h2>
+      <div class="card" id="cx-form">
+        <div class="grid g2">
+          <label class="f">Valor (Gil)<input id="cx-v" type="number" inputmode="numeric" min="0" placeholder="0"></label>
+          <label class="f">Motivo<input id="cx-m" maxlength="120" placeholder="ex: comprei uma espada curta" autocomplete="off"></label>
+        </div>
+        <div class="btns" style="margin-top:12px"><button class="btn pri" type="button" id="cx-mais">+ Ganhei</button><button class="btn" type="button" id="cx-menos">− Gastei</button></div>
+        <div class="msg" id="msg-cx"></div>
+      </div>
+      <div class="lgl" id="cx-list"></div>
+      <p class="hint">O saldo é o saldo inicial mais tudo o que entrou menos tudo o que saiu. Errou um lançamento? Apague no × e lance de novo.</p>
+      <div class="card" style="margin-top:12px">
+        <label class="f">Saldo inicial (Gil)<input type="number" inputmode="numeric" data-bind="gil" placeholder="0"></label>
+        <p class="hint">O Gil com que o personagem começou. Fichas antigas: é o valor que estava no campo Gil.</p>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h2>Ajustes</h2>
+      <details class="card adv">
+        <summary>Mudar as contas e corrigir números da classe</summary>
+        <div class="in">
+          <div>
+            <p class="small" style="margin:0 0 8px">Campos vazios usam o número do livro. Preencha só se a classe estiver sem dados ou se a sua mesa usar outro valor.</p>
+            <div class="grid g3">
+              <label class="f">PV inicial<input type="number" inputmode="numeric" data-bind="over.pv" id="ph-pv"></label>
+              <label class="f">Dado de PV por nível<input data-bind="over.pvd" id="ph-pvd" placeholder="ex: 2d8"></label>
+              <label class="f">PM inicial<input type="number" inputmode="numeric" data-bind="over.pm" id="ph-pm"></label>
+              <label class="f">PM por nível<input type="number" inputmode="numeric" data-bind="over.pmn" id="ph-pmn"></label>
+              <label class="f">Perícias treinadas (base)<input type="number" inputmode="numeric" data-bind="over.tr" id="ph-tr"></label>
+            </div>
+          </div>
+          <div class="grid g3">
+            <label class="f">PV por nível<select data-bind="pvMode"><option value="media">Vida média do livro</option><option value="manual">Eu rolei</option></select></label>
+            <label class="f">Soma dos dados rolados<input type="number" inputmode="numeric" data-bind="pvRolls" placeholder="só se rolou"></label>
+            <label class="f">PV extra<input type="number" inputmode="numeric" data-bind="extra.pv" placeholder="0"></label>
+            <label class="f">PM extra<input type="number" inputmode="numeric" data-bind="extra.pm" placeholder="0"></label>
+            <label class="f">C.R. extra<input type="number" inputmode="numeric" data-bind="extra.cr" placeholder="0"></label>
+          </div>
+          <div class="grid g3">
+            <label class="f">Atributo da D.T.<select data-bind="dtAttr" id="sel-dt"></select></label>
+            <label class="f">Dado dos testes<select data-bind="dado"><option value="d20">d20 (padrão)</option><option value="d10">d10 (opção 1 do livro)</option><option value="d12">d12 (opção 2 do livro)</option></select></label>
+            <label class="f">Conta da perícia<select data-bind="form"><option value="pg">Mod. + proficiência + grau</option><option value="p">Mod. + proficiência</option><option value="g">Mod. + grau</option></select></label>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div class="sec">
+      <h2>Backup e compartilhar</h2>
+      <details class="card adv">
+        <summary>Copiar ou importar uma ficha</summary>
+        <div class="in">
+          <div>
+            <p class="small" style="margin:0 0 8px">Copie o texto abaixo para guardar ou mandar a ficha para alguém.</p>
+            <textarea id="out-json" readonly aria-label="Texto da ficha"></textarea>
+            <p style="margin:8px 0 0"><button class="btn pri" id="b-copy" type="button">Copiar ficha</button></p>
+            <div class="msg" id="msg-copy"></div>
+          </div>
+          <div>
+            <p class="small" style="margin:0 0 8px">Cole aqui o texto de uma ficha para criar uma cópia dela.</p>
+            <textarea id="in-json" aria-label="Colar ficha" placeholder="Cole o texto da ficha"></textarea>
+            <p style="margin:8px 0 0"><button class="btn" id="b-imp" type="button">Importar</button></p>
+            <div class="msg" id="msg-imp"></div>
+          </div>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <section id="p-classes" class="page" hidden></section>
+  <section id="p-racas" class="page" hidden></section>
+  <section id="p-pericias" class="page" hidden></section>
+  <section id="p-tabelas" class="page" hidden></section>
+  <section id="p-qualidades" class="page" hidden></section>
+</main>
+
+<footer class="foot wrap">
+  <p>Site criado por Marcos. Sistema World Zero criado por J.Carvalho_20. Regras do livro World Zero 4.7.7. Onde o livro tem lacunas ou erros, a ficha segue o texto mais provável e avisa.</p>
+</footer>
+
+<script type="text/plain" id="d-classes">
+@Aceleração molecular
+pv=20
+dado=2d6
+pm=15
+pmn=6
+tr=1
+per=acrobacia, conhecimento arcano, crime, intuição, meditação, pontaria
+prof=armaduras leves e todo tipo de arma
+nota=O livro traz dois dados de vida por nível: 2d6 (média 6) e 1d10. A ficha usa 2d6. Confira com o criador.
+1|Acúmulo de energia, imbuído de energia cinética
+2|Liberação de energia
+3|Vibração constante
+4|Energia avançada
+5|Atributos aprimorados
+6|Regeneração acelerada, Vibração constante
+7|Rompimento da mente
+8|Imbuição avançada
+9|Vibração constante
+10|Interferência no ataque, Regeneração acelerada
+11|Energia total!!
+12|Vibração constante
+13|Interferência no ataque
+14|Regeneração acelerada
+15|Vibração constante
+16|Interferência no ataque
+17|Liberação total de energia
+18|Vibração constante
+19|Interferência no ataque, Regeneração acelerada
+20|Explosão molecular
+@A imperatriz
+pv=24
+dado=2d8
+pm=10
+pmn=3
+tr=3
+per=atletismo, diplomacia, fortitude, luta, pontaria, vontade
+nota=O livro traz 2d8 (cura média 8) e também 1d10 de vida por nível. A ficha usa 2d8.
+1|Arsenal de guerra
+2|Implacável
+3|Aptidão para o combate
+4|Corpo esculpido em Ferro, mente forjada em Aço
+5|Repúdio, Item de guerra
+6|Arsenal de guerra aprimorado
+7|Golpe ardiloso
+8|Blood Sweat & Tears
+9|Item de guerra aprimorado
+10|Item de guerra, Dupla-Guarda de amaranto, aprimoramento de habilidades
+11|Sedenta por sangue
+12|Treinamento Noxiano
+13|Em ritmo de combate
+14|Item de guerra aprimorado
+15|Item de guerra, aprimoramento de habilidades
+16|Dupla-Guarda de amaranto aprimorado
+17|Aprimoramento de habilidades, Lacerar
+18|Aprimoramento de habilidades
+19|Item de guerra aprimorado
+20|Execução Pública
+@Apostador
+pv=23
+dado=2d6
+pm=15
+pmn=4
+tr=1
+per=atuação, crime, diplomacia, enganação, intuição, percepção, tática
+prof=armaduras leves e todo tipo de arma
+1|Cara ou coroa (1 uso), Intuição de guerra
+2|Reflexos rápidos
+3|Sorte de principiante
+4|Início tardio
+5|Cara ou coroa (2 usos), Tudo ou nada
+6|Olhos de águia
+7|Mãos limpas
+8|Início tardio
+9|Cara ou coroa (3 usos)
+10|Sorte, Tudo ou nada
+11|Ninguém viu
+12|Provocação crítica
+13|Cara ou coroa (4 usos)
+14|Início tardio
+15|Reflexos aprimorados
+17|Tudo ou nada, Cara ou coroa (5 usos)
+18|Tenta a sorte, Início tardio
+20|Cara ou coroa (6 usos), O Grande apostador, Bug no sistema
+@Atirador
+pv=21
+dado=2d6
+pm=10
+pmn=4
+tr=1
+per=acrobacia, atletismo, diplomacia, enganação, intimidação, intuição, pontaria, ofício, percepção
+prof=armas de fogo, armas de pontaria e armaduras leves
+1|Atirador do futuro, Produzir e atirar, Recuo
+2|Acabou a munição, Mira e atira, Supremacia à distância
+3|Atirador profissional, Conhecimento de pólvora
+4|Treinamento militar
+5|Evasão, Supremacia à distância, Recuo
+6|Produzir e atirar (nível cheio), Melhoria de armamento leve
+7|Munição melhorada
+8|Mira assassina
+9|Armamento médio, Supremacia à distância
+10|Treinamento militar aprimorado, Adaptar melhorias, Roupa militar, Recuo
+11|Especialista em tiros
+12|Disparo impossível
+13|Supremacia à distância
+14|Acrobacia, Contra-ataque
+15|Mira assassina (aumento médio), Recuo
+16|Melhoria avançada
+17|Supremacia à distância
+18|Evasão aprimorada
+19|Mira assassina (efeito duplo)
+20|Tiro infalível, Supremacia à distância, Recuo
+@Assassino
+pv=20
+dado=2d6
+tr=3
+per=acrobacia, atletismo, crime, furtividade, intuição, percepção, luta
+prof=armas exóticas e armaduras leves
+1|Ataque furtivo (1d10), Lâmina oculta, Duelista
+2|Evasão, Salto de fé, Invisibilidade natural
+3|Ataque furtivo (2d8), Nas sombras
+4|Técnica precisa, Esquiva sobrenatural
+5|Ataque furtivo (3d8), Fabricar venenos
+6|Visão de águia, Lâmina venenosa
+7|Ataque furtivo (4d8)
+8|Técnica precisa, Esquiva aprimorada
+9|Ataque furtivo (5d8), Nas sombras, Concentração do assassino
+10|Memória eidética, Resistência a veneno
+11|Ataque furtivo (6d8), Visão de águia aprimorada
+12|Técnica precisa
+13|Ataque furtivo (7d8)
+14|Esquiva sobrenatural
+15|Ataque furtivo (8d8)
+16|Técnica precisa, Golpe venenoso
+17|Ataque furtivo (9d8), Imunidade a veneno
+18|Mimetismo, Visão divina
+19|Ataque furtivo (10d8)
+20|Técnica precisa, Morte invisível
+@Andarilho espiritual
+pv=26
+dado=2d6
+tr=1
+per=acrobacia, atletismo, conhecimento arcano, diplomacia, lidar com animais, luta, sobrevivência
+prof=armas simples e marciais, armaduras leves e médias
+1|Código de conduta, Punho da besta (1d6), Pele grossa +1, Comunhão com a besta
+2|Agilidade do macaco, Caminho difícil, Evasão
+3|Postura animal
+4|Caminho da floresta, Punho da besta (1d8)
+5|Totens espirituais, Punhos do avatar espiritual, Conhecimento marcial 1, Pele grossa +2
+6|Forma animalesca, Andarilho dos sonhos
+7|Familiar astral, Evasão aprimorada, Postura animal (nível 7)
+8|Agilidade do macaco superior, Postura animal (2ª), Punho da besta (1d10)
+9|Pacto com a natureza
+10|Projeção astral, Golpes naturais aprimorados, Conhecimento marcial 2, Forma animalesca (2), Forma híbrida, Pele grossa +3
+12|Golpes elementais, Postura animal (3ª), Punho do avatar espiritual (adamante), Punho da besta (2d6)
+13|Resistência do elefante
+14|Forma animalesca (3), Forma híbrida superior
+15|Força de Ártio, Pele grossa +4
+16|Postura animal (4ª), Forma animalesca (4), Punho da besta (2d8)
+17|Maestria em posturas, Força de Ártio +2, Corpo imortal
+19|Amigo das bestas
+20|Recipiente perfeito, Pele grossa +5, Punho da besta (2d10)
+@Assassino Mecânico
+pv=26
+dado=2d8
+pm=14
+pmn=4
+tr=3
+per=criação de item, intuição, luta, medicina, pontaria
+prof=armas simples e marciais, armaduras leves e médias
+1|Espada do dragão, Mente distópica
+2|Investida pesada, Neuron chip
+3|Supressor de insanidade, Avanço assassino
+4|Assassino mecânico, Neuron chip
+5|Espada do dragão
+6|Rocket-Arm-57, Assassino mecânico, Supressor de insanidade
+7|Avanço assassino, Neuron chip
+8|Defletir
+9|Assassino mecânico, Supressor de insanidade
+10|Espada do dragão, Neuron chip evoluído
+11|Avanço assassino
+12|Sinta a lâmina do dragão!, Supressor de insanidade
+13|Neuron chip evoluído
+15|Espada do dragão, Supressor de insanidade
+16|Neuron chip Sandevistan
+17|Suprimir loucura
+18|Ataque surpresa, Supressor de insanidade
+19|I Really Want to Stay at Tour House
+20|Espada do dragão, Lâmina dos dragões duplos!
+@Bardo
+pv=16
+dado=2d6
+pm=16
+pmn=6
+tr=2
+per=conhecimento arcano, atuação, diplomacia, enganação, intuição, história, percepção
+1|Instrumental, Inspiração
+2|Harmonia protetora
+3|Inspiração, Voz que ecoa
+4|Taiko-yaku
+5|Inspiração, Sinfonia da convergência
+6|Harmonia protetora
+7|Inspiração, Taiko-yaku, Ac… (texto cortado no livro)
+8|Acorde disruptivo
+9|Inspiração, Taiko-yaku
+10|Harmonia protetora, Acorde disruptivo
+11|Inspiração, Taiko-yaku
+12|Ressonância elemental
+13|Inspiração, Taiko-yaku, Acorde disruptivo
+14|Harmonia protetora, Melodia revigorante
+15|Inspiração, Taiko-yaku, Acorde disruptivo
+16|Maestro de mil vozes
+17|Inspiração, Taiko-yaku
+18|Harmonia protetora
+19|Réquiem dos caídos
+20|Inspiração, Taiko-yaku, Acorde disruptivo, Maestria do vazio
+@Berserk de metal
+pv=25
+dado=2d6
+pm=10
+pmn=4
+tr=2
+per=atletismo, iniciativa, intimidação, percepção, luta, sobrevivência
+prof=armas simples e marciais
+nota=Página incompleta no livro: Brutalidade (cura e PM) está em branco em alguns níveis.
+1|Lâmina corporal, Fator de cura
+2|Técnica de luta, Brutalidade, Adaptabilidade
+3|Mata-gigantes, Sentidos aguçados
+4|Lâminas corporais, Fator de cura
+5|Fúria selvagem, Brutalidade
+6|Adaptabilidade, Empatia selvagem, Técnica de luta
+7|Técnica de luta
+8|Lâminas corporais, Fator de cura
+9|Brutalidade, Sentidos aguçados
+10|Fúria selvagem, Adaptabilidade
+11|Couraça metálica, Brutalidade
+12|Lâminas corporais, Fator de cura
+13|Técnica de luta, Fúria selvagem
+15|Couraça metálica, Adaptabilidade
+16|Lâminas corporais, Fator de cura
+17|Sentidos bestiais, Brutalidade
+18|Técnica de luta, Controle completo do metal do corpo, Adaptabilidade definitiva
+19|Couraça definitiva, Fúria selvagem final
+20|Besta de ferro
+@Caçador estiloso
+pv=24
+dado=2d6
+pm=11
+pmn=3
+tr=2
+per=atletismo, fortitude, furtividade, iniciativa, luta, percepção, reflexo
+prof=armas marciais e exóticas, armaduras leves
+nota=O livro não traz a tabela de habilidades por nível desta classe.
+@Dark Knight
+nota=O livro não traz PV, PM, perícias nem tabela por nível para esta classe. Preencha em Ajustes.
+@Dark Slayer
+nota=O livro não traz PV, PM, perícias nem tabela por nível para esta classe. Preencha em Ajustes.
+@Devil Bringer
+nota=O livro não traz PV, PM, perícias nem tabela por nível para esta classe. Preencha em Ajustes.
+@Mysterious man
+nota=O livro não traz PV, PM, perícias nem tabela por nível para esta classe. Preencha em Ajustes.
+@Demon Weapon
+nota=O livro não traz PV, PM, perícias nem tabela por nível para esta classe. Preencha em Ajustes.
+@Cavaleiro sagrado
+pv=23
+dado=2d8
+pm=11
+pmn=5
+tr=3
+per=conhecimento arcano, fortitude, luta, meditação, vontade
+1|Voto do cavaleiro, Dano desarmado (1d8), Devoto, Treinamento de um cavaleiro, Constelação protetora
+2|Sentir cosmo, Elevar cosmo, Poder de cavaleiro sagrado
+3|Marcador de cosmo, Constelação protetora, Movimento rápido +3m, Golpes da constelação
+4|Ajuda da constelação, Poder de cavaleiro sagrado, Dano desarmado (1d10)
+5|Uno com a armadura +2
+6|Ajuda da constelação, Poder de cavaleiro sagrado
+7|Técnica especial, Constelação protetora
+8|Ajuda da constelação, Poder de cavaleiro sagrado, Dano desarmado (2d10)
+9|Movimento rápido
+10|Ajuda da constelação, Poder de cavaleiro sagrado, Uno com a armadura +1
+11|Constelação protetora
+12|Ajuda da constelação, Poder de cavaleiro sagrado, Dano desarmado (3d10)
+13|Ajuda divina
+14|Ajuda da constelação, Poder de cavaleiro sagrado
+15|Constelação protetora, Uno com a armadura +1
+16|Ajuda da constelação, Poder de cavaleiro sagrado, Dano desarmado (4d10)
+17|Velocidade da luz!
+18|Ajuda da constelação, Poder de cavaleiro sagrado
+19|Constelação protetora, Sétimo sentido
+20|Ajuda da constelação, Poder de cavaleiro sagrado, Uno com a armadura +1, Cavaleiro divino abençoado, Dano desarmado (4d12+12)
+@Cavaleiro sombrio
+pv=20
+dado=2d6
+pm=12
+pmn=3
+tr=2
+per=conhecimento arcano, intuição, luta, meditação, vontade
+1|Dor e sacrifício, Shadowstride, Souleater
+2|Grit, Flood of Darkness
+3|Blood Weapon, Carve and Split
+4|Souleater
+5|Blackest Night
+6|Stalwart Soul, Carve and Split
+7|Quietus
+8|Souleater, Blood Weapon
+9|Carve and Split
+10|Blackest Night, Stalwart Soul, Living Dead
+11|Bloodspiller, Quietus
+12|Syphon Strike, Souleater, Blood Weapon
+13|Abyssal Drain, Carve and Split
+14|Salted Earth, Stalwart Soul, Bloodspiller
+15|Unmend, Blackest Night, Quietus
+16|Souleater, Blood Weapon
+17|Bloodspiller, Salted Earth
+18|Shadowbringer, Stalwart Soul
+19|Delirium, Quietus
+20|Impalement, Blackest Night, Salted Earth
+@Guerreiro arcano
+pv=18
+dado=2d6
+pm=14
+pmn=3
+tr=1
+per=conhecimento arcano, iniciativa, luta, meditação, reflexo
+prof=armas simples e marciais, armaduras leves
+1|Armas arcanas
+2|Escolha de estilos
+3|Ataque arcano carregado
+4|Escolha de estilos, Poderes arcanos
+5|Conjurador combatente
+6|Ataque arcano carregado, Escolha de estilos
+7|Poderes arcanos
+8|Mente blindada
+9|Ataque arcano carregado (veloz)
+10|Ataque arcano superior, Escolha de estilo
+11|Poderes arcanos
+12|Maestria em combate místico
+13|Conjurador de elite
+14|Escolha de estilo
+15|Canalização veloz
+16|Poderes arcanos
+17|Mestre da lâmina mística
+18|Poderes arcanos
+19|Fluxo de mana constante
+20|Armazenamento mágico superior, Escolha de estilo
+@Guerreiro comandante
+pv=21
+dado=2d6
+tr=1
+per=diplomacia, enganação, história, iniciativa, intimidação, luta, percepção, tática
+prof=armas simples e marciais, armaduras leves e médias
+1|Aura de heroísmo +1 (pessoal)
+2|Aura de heroísmo (toque), Palavra de Deus (2d8), Talento de combate ou magia
+3|Cura pelas mãos 4d8+4
+4|Aura de heroísmo +1, Talento de combate ou magia
+5|Experiência em comando
+6|Aura de heroísmo +1, Palavra de Deus (3d8), Talento de combate ou magia
+7|Cura pelas mãos 10d8+10
+8|Aura de heroísmo +1, Talento de combate ou magia
+9|Gritos de guerra
+10|Experiência em comando, Aura de heroísmo (alcance 3m), Palavra de Deus (4d8), Talento de combate ou magia
+11|Cura pelas mãos 14d8+12
+14|Palavra de Deus (5d8), Talento de combate ou magia
+15|Experiência em comando, Cura pelas mãos 18d8+14
+17|Converte inimigo, Talento de combate ou magia
+18|Aura de heroísmo +1 (alcance 6m), Palavra de Deus (6d8)
+19|Cura pelas mãos 22d8+16
+20|Experiência em comando, Aura de heroísmo +1 (alcance 9m), Talento de combate ou magia
+@Guerreiro espadachim
+pv=25
+dado=2d8
+pm=11
+pmn=5
+tr=2
+per=atletismo, fortitude, iniciativa, luta, reflexo
+prof=armas listadas na classe e armaduras leves
+1|Golpes especiais, A vida da lâmina, Devoção da lâmina
+2|Manuseio, Arte da espada
+3|Talento de combate
+4|Golpes especiais
+5|Arte da espada
+6|Talento de combate
+7|Golpes especiais
+8|Arte da espada
+9|Talento de combate, Manuseio aprimorado
+10|Golpes especiais, Arte da espada, Lâmina sem fim
+11|Talento de combate
+12|Minha lâmina, minha vida
+13|Golpe especial, Talento de combate
+14|Minha lâmina, minha vida
+15|Talento de combate
+16|Manuseio divino, Minha lâmina, minha vida
+17|Golpe especial, Talento de combate
+18|Minha lâmina, minha vida
+19|Talento de combate
+20|Golpe especial, Minha lâmina, minha vida, Arma divina
+@Jedi
+pv=26
+dado=2d8
+pm=11
+pmn=4
+pmrot=Pontos de força
+tr=2
+per=acrobacia, conhecimento arcano, enganação, iniciativa, intuição, luta, meditação, vontade
+prof=armaduras leves
+1|Defesa sem armadura, Poderes da Força, Sabre de luz
+2|Dano ampliado (1d12)
+3|Estilo de luta, Poderes da Força, Caminho da Força
+4|Dano ampliado (2d8)
+5|Poderes da Força
+6|Dano ampliado (2d10), Caminho da Força
+7|Poderes da Força
+8|Dano ampliado (3d8)
+9|Poderes da Força
+10|Dano ampliado (3d12)
+11|Poderes da Força, Caminho da Força
+12|Dano ampliado (4d10)
+13|Poderes da Força
+14|Dano ampliado (5d10)
+15|Poderes da Força
+16|Dano ampliado (5d12+8)
+17|Poderes da Força, Caminho da Força
+18|Dano ampliado (6d10+10)
+19|Poderes da Força
+20|Dano ampliado (7d12+12), Uno com a Força
+@Los lobos
+pv=18
+dado=2d8
+tr=2
+per=atletismo, conhecimento arcano, fortitude, luta, pontaria, reflexo, vontade
+prof=armas simples
+1|Arma assinatura, Solitude dividida
+2|Cero
+3|Segundo disparo
+4|Hierro
+5|Pistoleiro
+6|Cero
+7|Bala
+8|Percibir acciones
+9|Sonido, Pistoleiro
+10|Cero
+11|Cero: pistola
+12|Resurrección: Los Lobos
+13|Pistoleiro
+14|Cero
+15|Variação de liberação: Gran sonido, Hierro aprimorado
+17|Resurrección segunda etapa: Los Lobos
+18|Cero, Hierro retroativo
+19|Gran Rey cero
+20|Cero, Disparo del solitude
+@Invocador de plantas
+pv=16
+dado=2d6
+tr=2
+per=conhecimento arcano, enganação, iniciativa, medicina, ofício, percepção
+prof=armaduras leves e armas simples
+1|Cura, Disparo de ervilha, Girassol
+2|Laser solar
+3|Metralhaervilha
+4|Cura, Noz
+5|Laser solar, Gelhidão
+6|Metralhaervilha, Cerejinha
+7|Cura, Fogaréu
+8|Laser solar, Casca grossa, Carnívora
+9|Metralhaervilha
+10|Cura, Enfeitiçado, Mini solzinho
+11|Laser solar, Batamina
+12|Metralhaervilha, Ervilha ninja
+13|Medogumelo
+14|Cura, Laser solar
+15|Metralhaervilha
+16|Gasogumelo
+17|Cura, Laser solar
+18|Metralhaervilha
+19|Bonk Choy
+20|Hipnogumelo
+@Lutador mágico
+pv=22
+dado=2d8
+tr=2
+per=atletismo, acrobacia, fortitude, iniciativa, luta, reflexo
+prof=armaduras leves e armas simples
+1|Briga (1d6), Técnica de luta, Chute da ventania
+2|Técnica de luta, Evasão, Estamina, Turbilhão
+3|Durão +1, Golpes especiais, Parede de chutes
+4|Briga (1d8), Ao
+5|Golpe poderoso, Avanço hostil
+6|Técnica de luta, Hadouken, Avanço celeste
+7|Durão +2, Canalizar energia, Chute em gancho
+8|Briga (1d10+1), Chute da tempestade
+9|Golpe quebra-piso
+10|Técnica de luta, Evasão aprimorada, Conexão de chutes
+11|Durão +3, Contra-ataque
+12|Briga (2d6+2)
+13|Golpe poderoso aprimorado, Impulso brutal
+14|Técnica de luta
+15|Chute comburente 2d10
+16|Durão +4, Briga (2d8+3)
+17|Chute comburente 3d8
+18|Técnica de luta
+19|Durão +5, Chute comburente (2d10+4)
+20|Briga (2d12+5), Shun Goku Satsu, Chute comburente (4d10)
+@Metálica
+pv=18
+dado=2d6
+tr=2
+per=atletismo, atuação, intimidação, acrobacia, reflexo, fortitude
+prof=armaduras leves e médias, armas simples e armas marciais do grupo Machado
+nota=A tabela de habilidades do livro está incompleta: vários níveis estão em branco.
+1|Guitarra Machado, Fluxo musical
+2|Smells Like a Teen Spirit, Come as You Are
+3|Lithium, Heart-Shaped Box
+4|Rape Me
+5|Paint It, Black
+6|Smells Like a Teen Spirit
+10|Smells Like a Teen Spirit
+14|Smells Like a Teen Spirit
+18|Smells Like a Teen Spirit
+20|Smells Like a Teen Spirit
+@Mestre das máscaras
+pv=22
+dado=2d6
+tr=2
+per=conhecimento arcano, diplomacia, furtividade, história, intuição, luta, vontade
+prof=armas básicas e armaduras leves
+1|Máscara de sangue, Caminho de sangue
+2|Compartilhar sangue, Poder de caminho das máscaras
+3|Ataque visceral (2d6), Poder de caminho das máscaras
+4|Poder de caminho das máscaras
+5|Poder de caminho das máscaras, Vida prolongada
+6|Poder de caminho das máscaras
+7|Ataque visceral (2d10), Poder de caminho das máscaras
+8|Poder de caminho das máscaras
+9|Poder de caminho das máscaras
+10|Poder de caminho das máscaras, Controle de sangue
+11|Ataque visceral (3d10), Poder de caminho das máscaras
+12|Poder de caminho das máscaras
+13|Poder de caminho das máscaras
+14|Poder de caminho das máscaras
+15|Ataque visceral (4d10), Poder de caminho das máscaras
+16|Poder de caminho das máscaras
+17|Poder de caminho das máscaras
+18|Poder de caminho das máscaras
+19|Ataque visceral (5d10), Poder de caminho das máscaras
+20|Poder de caminho das máscaras, Controle de sangue
+@Monarca das sombras
+pv=20
+dado=3d4
+tr=2
+per=conhecimento arcano, diplomacia, enganação, intimidação, luta, vontade
+prof=armas básicas, marciais e exóticas
+1|Extração de sombras, Gadanho negro (2d12)
+2|Carisma mortal
+3|Gadanho negro (3d10)
+4|Preservação sombria, Inventário do jogador
+5|Autoridade do monarca, Gadanho negro (4d10)
+6|Troca de sombras
+7|Gadanho negro (4d12+5)
+8|Velocidade sobrenatural
+9|Força colossal, Gadanho negro (5d10+8)
+10|Domínio do monarca
+11|Gadanho negro (5d12+10), Invulnerabilidade
+12|Presença mortal
+13|Gadanho negro (6d10+14)
+14|Sombra protetora
+15|Comando das sombras, Gadanho negro (6d12+18)
+16|Resistência a magia
+17|Gadanho negro (7d10+22)
+18|Forma do monarca das sombras
+19|Armadura sombria, Gadanho negro (10d12+30)
+20|Golpe vital
+@Olho maldito
+pv=21
+dado=2d8
+pm=15
+pmn=5
+tr=4
+per=conhecimento arcano, enganação, intuição, percepção
+1|Bola de rancor, Coração rancoroso
+2|Chute trivela
+3|Drible do Ronaldinho
+4|Bola de rancor
+5|Bola rápida, Corpo de atleta
+6|Construção de rancor
+7|Bola de rancor, Paredes de ricochete
+8|Bola curva
+9|Casa amaldiçoada
+10|Bola de rancor
+11|Parede rancorosa
+12|Mestre das goleadas
+13|Bola de rancor
+14|Olhar suicida
+15|Olho maligno
+16|Bola de rancor
+17|Combo com a bola
+18|Chute ao GOOOOLLLLLL
+19|Combo com a bola
+20|Bola de rancor, FDS A BOLA OLHA A BICUDA
+@Samurai das almas
+pv=24
+dado=2d6
+tr=2
+per=atletismo, conhecimento arcano, iniciativa, luta, meditação, reflexo
+prof=armas simples e marciais, armaduras leves
+1|Relíquias das almas, Talento de combate
+2|Almas rubras, Almas vingativas
+3|Marca do flagelo corrompido
+4|Lâmina das almas (1º estilo)
+5|Relíquias das almas maior
+6|Talento de combate
+7|Prisão das almas, Talento de combate
+8|Lâmina das almas (2º estilo)
+9|Talento de combate
+10|Relíquias das almas superiores, Alma regenerada
+11|Talento de combate
+12|Lâmina das almas (3º estilo)
+13|Talento de combate
+14|Círculo das almas I
+15|Talento de combate
+16|Relíquias das almas imperiais, Olhos da morte
+17|Talento de combate
+18|Círculo das almas II, Talento de combate
+19|Talento de combate
+20|Lord das almas
+@Rainha da podridão
+pv=22
+dado=2d8
+tr=2
+per=conhecimento arcano, fortitude, iniciativa, intuição, luta
+prof=armaduras leves e armas simples, marciais e exóticas
+1|Mão de Malenia (1d10), Podridão escarlate
+2|A protetora, Golpe às cegas
+3|Deusa da podridão
+4|Mão de Malenia (2d8), Podridão escarlate
+5|Recuo rápido, Explosão sequencial
+6|Braço protético
+7|Grande runa, Chute desestabilizador
+8|Mão de Malenia (2d12+5), Podridão escarlate, Perfuração dupla
+9|Luta às cegas
+10|Corte superior
+11|Erupção das borboletas
+12|Mão de Malenia (3d8+8), Podridão escarlate
+13|Sequência da podridão
+14|Sequência cortante
+15|Dança das borboletas
+16|Mão de Malenia (5d8+10), Podridão escarlate
+17|Waterfowl Dance
+18|Forma de borboleta
+19|Impulso empalador
+20|Mão de Malenia (8d8+12), Podridão escarlate, Aeônia escarlate
+@Senhor das moscas
+pv=18
+dado=2d8
+tr=2
+per=conhecimento arcano, enganação, intimidação, vontade
+prof=armaduras leves e armas simples
+1|Vibração, Asas do diabo
+2|Portões emergentes
+3|Portões do inferno
+4|Asas do diabo
+5|Vibração óssea
+6|Vibração dos tendões, Portões do inferno
+7|Transmitir vibrações
+8|Asas do diabo
+9|Portões do inferno
+10|Cortejo das moscas
+11|Escudo vibrante
+12|Abismo de Satã, Asas do diabo, Portões do inferno
+13|Orações das traves
+14|Pecado da gula
+15|Liberação da besta, Portões do inferno
+16|Asas do diabo, Área de tremores
+18|Vibração hemorrágica, Portões do inferno
+19|Gula do anjo caído
+20|Asas do diabo, Chifres de Sara
+@Shinigami
+tr=3
+per=atletismo, conhecimento arcano, reflexo, luta, intuição
+prof=armas marciais e exóticas
+nota=Página incompleta: o livro não traz PV, PM nem dado de vida desta classe. Preencha em Ajustes.
+1|Zanpakutou, Liberação Asauchi, Shunpo, Hakuda, Kido ou Zanjutsu
+2|Dano ampliado (1d10)
+3|Hakuda, Kido ou Zanjutsu
+4|Dano ampliado (1d12), Pressão espiritual
+5|Hakuda, Kido ou Zanjutsu, Liberação de Shikai
+6|Dano ampliado (2d8)
+7|Hakuda, Kido ou Zanjutsu
+8|Dano ampliado (2d10), Pressão espiritual +2
+9|Hakuda, Kido ou Zanjutsu
+10|Dano ampliado (2d12), Liberação de Bankai
+11|Hakuda, Kido ou Zanjutsu
+12|Dano ampliado (3d8), Pressão espiritual +3
+13|Hakuda, Kido ou Zanjutsu
+14|Dano ampliado (3d10)
+15|Hakuda, Kido ou Zanjutsu, Mestre espadachim / Kido / Hakuda
+16|Dano ampliado (3d12), Pressão espiritual +4
+17|Hakuda, Kido ou Zanjutsu
+18|Dano ampliado (4d10)
+19|Hakuda, Kido ou Zanjutsu
+20|Dano ampliado (4d12), Mestre espadachim / Kido / Hakuda, Pressão espiritual +5
+@Vikings
+pv=28
+dado=2d10
+tr=2
+per=lidar com animais, atletismo, iniciativa, intimidação, percepção, sobrevivência
+prof=armaduras leves, médias e pesadas, armas simples e marciais
+1|Arma rúnica
+2|Técnica de luta
+3|Mata-gigantes
+4|Arma rúnica, Caçador de tundra
+5|Armadura rúnica, Resistência viking
+6|Runa gélida, Runa flamejante, Técnica de luta
+8|Vontade inabalável, Arma rúnica
+10|Armadura rúnica, Força ancestral, Técnica de luta
+12|Arma rúnica
+14|Técnica de luta
+15|Armadura rúnica
+16|Arma rúnica
+18|Técnica de luta
+20|Arma rúnica, Armadura rúnica, Bênção das valquírias
+@O Visionário
+nota=Classe em branco no livro (só existe o Pincel no nível 1). Preencha em Ajustes se precisar.
+1|Pincel
+</script>
+
+<script type="text/plain" id="d-itens">
+# Gerado por ferramentas/ficha-mesa/gerar-itens.js a partir de fonte/livro.txt. Não edite à mão: rode o script.
+arma-adaga|Armas|Básicas, corpo a corpo|Adaga|1|||Alcance corpo a corpo · Perfuração · Dano 1d4 · Crítico 19-20|Essa faca afiada é muito usada por ladrões e assassinos, por ser facilmente escondida. Você recebe um bônus de +4 tem teste de crime para escondê-la. adaga também pode ser arremessado
+arma-bastao|Armas|Básicas, corpo a corpo|Bastão|2|||Alcance corpo a corpo · Esmagamento · Dano 1d6 · Crítico x2|
+arma-bota-com-lamina|Armas|Básicas, corpo a corpo|Bota com lâmina|1|||Alcance corpo a corpo · Perfuração · Dano 1d8 · Crítico 19-20|Esta bota possui um solado grosso, que esconde uma adaga com mola. Estender ou retrair a lâmina é uma ação de movimento. Quando a lâmina está retraída seu deslocamento não é afetado; quando está estendida, você não pode correr ou fazer investidas. Se você estender a lâmina e, na mesma rodada, atacar um oponente com ela, o oponente fica desprevenido contra esse ataque. Isto funciona apenas uma vez por combate.
+arma-cajado|Armas|Básicas, corpo a corpo|Cajado|2|||Alcance corpo a corpo · Esmagamento · Dano 1d6 · Crítico x2|
+arma-clava|Armas|Básicas, corpo a corpo|Clava|2|||Alcance corpo a corpo · Esmagamento · Dano 1d6 · Crítico x2|
+arma-espada-curta|Armas|Básicas, corpo a corpo|Espada curta|2|||Alcance corpo a corpo · Corte · Dano 1d6 · Crítico 19-20|É o mais comum tipo de espada, muito usada por milicianos e soldados rasos - ou ainda como arma secundária. Possui entre 40 a 50 cm de comprimento
+arma-manopla|Armas|Básicas, corpo a corpo|Manopla|1|||Alcance corpo a corpo · Esmagamento · Dano 1d6 · Crítico x2|Uma luva metálica que protege a mão e também permite socos mais fortes. Uma armadura completa inclui um par de manoplas. Você não pode ser desarmado quando usa esta arma.
+arma-maca|Armas|Básicas, corpo a corpo|Maça|1|||Alcance corpo a corpo · Esmagamento · Dano 1d8 · Crítico x2|Composta por um bastão metálico com um peso cheio de protuberâncias na extremidade, a maçã é muito usada por clérigos que fazem votos de não derramar sangue. De fato, um golpe de maçã nem sempre derrama sangue, mas pode esmagar alguns ossos.
+arma-lanca|Armas|Básicas, corpo a corpo|Lança|2|||Alcance corpo a corpo · Perfuração · Dano 1d8/1d6 · Crítico x2|É qualquer arma feita com uma haste de madeira e ponta afiada, natural ou metálica. Por sua facilidade de fabricação, é muito comum entre diversas raças menos civilizadas. Uma lança também pode ser arremessada.
+arma-peixeira|Armas|Básicas, corpo a corpo|Peixeira|2|||Alcance corpo a corpo · Corte · Dano 1d8 · Crítico 19-20|
+arma-arco-curto|Armas|Básicas, a distância|Arco curto|1|||Alcance Curto · Perfuração · Dano 1d6 · Crítico x3|Este arco bastante comum é próprio para caçadas, muito usado por povos selvagens ou caçadores — o tamanho pequeno é apropriado para manuseio em florestas e outros ambientes fechados. Exige as duas mãos.
+arma-azagaia|Armas|Básicas, a distância|Azagaia|1|||Alcance Curto · Perfuração · Dano 1d6 · Crítico x2|
+arma-besta-leve|Armas|Básicas, a distância|Besta leve|1|||Alcance Curto · Perfuração · Dano 1d8 · Crítico 19-20|Um arco montado sobre uma coronha de madeira com um gatinlho, a besta leve é uma arma que dispara virotes com grande potência. Recarregar uma besta leve é uma ação de movimento. Exige as duas mãos.
+arma-pistola-de-polvora|Armas|Básicas, a distância|Pistola de pólvora|1|||Alcance Curto · Balístico · Dano 1d6 · Crítico 18-20|
+arma-chicote|Armas|Marciais, corpo a corpo, leves|Chicote|2|||Alcance 6 m · Esmagamento · Dano 1d4 · Crítico x2|Você pode atacar um inimigo a até 4,5m com um chicote. Esta arma pode se enroscar nas mãos, pernas ou armas do adversário; você recebe +4 em jogadas de ataque para derrubar ou desarmar. O talento Acuidade com Arma se aplica ao chicote.
+arma-machadinha|Armas|Marciais, corpo a corpo, leves|Machadinha|1|||Alcance corpo a corpo · Corte · Dano 1d6 · Crítico x3|Uma ferramenta bem útil para cortar madeira, e também inimigos. Uma machadinha pode ser arremessada.
+arma-martelo|Armas|Marciais, corpo a corpo, leves|Martelo|1|||Alcance corpo a corpo · Esmagamento · Dano 1d6 · Crítico x2|Em sua essência é uma ferramenta para bater pregos, em caso de problemas uma arma para bater em inimigos.
+arma-cimitarra|Armas|Marciais, corpo a corpo, uma mão|Cimitarra|2|||Alcance corpo a corpo · Corte · Dano 1d6 · Crítico 18-20|Uma espada com a lâmina curva, leve e muito afiada. O talento Acuidade com Arma se aplica à cimitarra.
+arma-espada-longa|Armas|Marciais, corpo a corpo, uma mão|Espada longa|2.5|||Alcance 1,5 m · Corte · Dano 1d8 · Crítico x2|Em geral, são chamadas de "espadas longas" espadas com 85 cm a 1,15 m de comprimento total e peso entre 0,9 kg e 1,5 kg. Não existe uma convenção precisa sobre os limites entre espadas curtas e longas, mas a diferença entre espadas longas e bastardas é marcada pelo tamanho da empunhadura - as bastardas têm uma empunhadura bem mais longa, que permite serem seguradas com as duas mãos. A maioria das espadas longas tinha dois gumes e uma ponta rombuda, servindo apenas para cortar. Espadas de ponta perfurante, mais comuns no sul do continente, popularizaram-se pouco tempo depois.
+arma-florete|Armas|Marciais, corpo a corpo, uma mão|Florete|2|||Alcance corpo a corpo · Perfuração · Dano 1d6 · Crítico 19-20|Com uma lâmina fina e afiada, esta espada se torna muito precisa. O talento Acuidade com arma se aplica ao florete.
+arma-machado|Armas|Marciais, corpo a corpo, uma mão|Machado|3|||Alcance corpo a corpo · Corte · Dano 1d8 · Crítico x3|
+arma-mangual|Armas|Marciais, corpo a corpo, uma mão|Mangual|3|||Alcance 1,5 m · Esmagamento · Dano 1d8 · Crítico 20|Arma composta por uma haste metálica ligada a uma corrente que por sua vez é ligada a uma esfera de aço. O mangual pode se enroscar na arma do adversário; você recebe +4 em jogadas de ataque para desarmar.
+arma-martelo-medio|Armas|Marciais, corpo a corpo, uma mão|Martelo médio|3.5|||Alcance corpo a corpo · Esmagamento · Dano 1d8 · Crítico 19/x2|
+arma-picareta|Armas|Marciais, corpo a corpo, uma mão|Picareta|3|||Alcance corpo a corpo · Perfuração · Dano 1d6 · Crítico x4|É uma ferramenta análoga ao martelo que consiste em uma cabeça de metal pontiaguda fixada na ponta de um cabo comprido feito usualmente de madeira. Seu principal uso é quebrar pedras e rochas, sendo muito utilizada em minas e obras para escavação de túneis, onde o trabalho para quebrar as pedras é manual. Alpinistas também fazem uso de picaretas especiais, principalmente quando realizam escalada no gelo. A função da picareta neste caso é prover um ponto de fixação no gelo ou simplesmente para quebrá-lo para abrir caminho.
+arma-alabarda|Armas|Marciais, corpo a corpo, duas mãos|Alabarda|4|||Alcance corpo a corpo · Corte · Dano 1d10 · Crítico x3|É uma arma composta por uma longa haste. A haste é rematada por uma peça pontiaguda, de metal, que por sua vez é atravessada por uma lâmina em forma de meia-lua (similar à de um machado). É considerada a arma de infantaria mais eficaz contra invasores em fortificações e muralhas. É por excelência a arma usada pelos guardas de castelos e palácios e ainda hoje aparece como padrão em unidades militares. Muitos nobres a mantém em suas paredes para fins decorativos, tratadas como peças de arte.
+arma-espada-grande|Armas|Marciais, corpo a corpo, duas mãos|Espada grande|4|||Alcance corpo a corpo · Corte · Dano 2d6 · Crítico 19-20|Uma arma enorme e muito pesada, esta espada tem cerca de 1,5m de comprimento. É uma das armas mais poderosas que uma criatura Média consegue empunhar.
+arma-foice|Armas|Marciais, corpo a corpo, duas mãos|Foice|2|||Alcance corpo a corpo · Corte · Dano 2d4 · Crítico x4|Diferente da ferramenta usada por fazendeiros, uma foice de combate é bem mais forte e balanceada. Capaz de infligir ferimentos precisos e letais.
+arma-lanca-montada|Armas|Marciais, corpo a corpo, duas mãos|Lança montada|3|||Alcance 1,5 m · Perfuração · Dano 1d8 · Crítico x3|Quando montado, você pode utilizar essa arma com apenas uma mão. A lança montada é uma arma de haste, e causa dano dobrado se usada durante uma investida montada
+arma-machado-grande|Armas|Marciais, corpo a corpo, duas mãos|Machado grande|4|||Alcance corpo a corpo · Corte · Dano 1d12 · Crítico x3|Diferente de uma machadinha, este não é um simples instrumento para cortes de árvores, mas sim uma poderosa arma capaz de causar ferimentos terríveis.
+arma-mangual-pesado|Armas|Marciais, corpo a corpo, duas mãos|Mangual pesado|4.5|||Alcance corpo a corpo · Esmagamento · Dano 1d12 · Crítico x3|Uma versão mais pesada do mangual, feita para ser usada com duas mãos. Assim como um mangual comum, fornece +4 nas jogadas de ataque para desarmar.
+arma-martelo-de-guerra|Armas|Marciais, corpo a corpo, duas mãos|Martelo de guerra|4|||Alcance corpo a corpo · Esmagamento · Dano 1d10 · Crítico x3|Mais uma ferramenta modificada para combate. É muito eficiente contra alguns tipos de mortos-vivos, por exemplo esqueletos. Também é a arma preferida de quase todos os anões que recusam os machados.
+arma-marreta|Armas|Marciais, corpo a corpo, duas mãos|Marreta|2.5|||Alcance corpo a corpo · Esmagamento · Dano 3d4 · Crítico x2|Este martelo tem o cabo comprido e a cabeça chata e pesada. É uma arma desajeitada, mas poderosa.
+arma-arco-composto|Armas|Marciais, a distância|Arco composto|2|||Alcance Médio · Perfuração · Dano 1d10 · Crítico x3|Este arco é feito de chifres, madeira ou ossos laminados, e recurvado de forma a continuar estirado mesmo quando desarmado. Devido a isso, o arco composto dispara com mais força que um arco comum. Ao contrário de outros arcos, você aplica seu modificador de Força nas jogadas de dano com um arco composto. Usar um arco composto exige as duas mãos.
+arma-arco-longo|Armas|Marciais, a distância|Arco longo|3|||Alcance Longo · Perfuração · Dano 1d8 · Crítico x3|Este arco reforçado tem a altura de uma pessoa. Diferente do arco curto, é próprio para campos de batalha e outras áreas abertas — seu longo alcance permite atingir o inimigo a grandes distâncias. Exige as duas mãos.
+arma-besta-pesada|Armas|Marciais, a distância|Besta pesada|4|||Alcance Longo · Perfuração · Dano 1d10 · Crítico 19-20|Versão maior e mais potente da besta leve. Recarregar uma besta pesada é uma ação padrão. Usar esta besta também exige as duas mãos.
+arma-chicote-espino|Armas|Exóticas, corpo a corpo, uma mão|Chicote espino|1|||Alcance 1,5 m · Corte · Dano 1d8 · Crítico x2|
+arma-espada-bastarda|Armas|Exóticas, corpo a corpo, uma mão|Espada bastarda|3|||Alcance corpo a corpo · Corte · Dano 1d10 · Crítico 19-20|Maior e mais pesada que a espada longa, esta poderosa arma é usada por cavaleiros para vencer a proteção de uma armadura completa. Uma espada bastarda é muito grande para ser usada com só uma mão sem treinamento especial; por isso é uma arma exótica. Ela pode ser usada como uma arma marcial de duas mãos.
+arma-katana|Armas|Exóticas, corpo a corpo, uma mão|Katana|3|||Alcance corpo a corpo · Corte · Dano 1d10 · Crítico 19-20|A Katana é a espada tradicional dos samurais. Sua lâmina delgada é levemente preservada, e possui apenas um único fio. É muito longa para ser usada com uma só mão sem treinamento especial; por isso, é uma arma exótica.Ela pode ser usada com duas mãos como uma arma marcial. Por seu desenho elegante, também recebe os benefícios do talento Acuidade com Arma. Cada Katana é uma peça de arte única,com entalhes na bainha e lamina, e cabo decorado com fios de seda e metais preciosos, e o metal de sua lâmina é temperado de maneira especial. Por essas características, uma Katana é sempre considerada uma arma Obra Prima, e oferece um bônus de +1 no ataque.
+arma-kusari-gama|Armas|Exóticas, corpo a corpo, uma mão|Kusari-gama|2|||Alcance corpo a corpo · Corte ou esmagamento · Dano 1d8 · Crítico 19-20|Uma foice pequena com uma corrente. Na ponta da corrente há uma bola de metal. A Kusarigama é uma arma dupla — é possível atacar tanto com a foice quanto com a bola de metal. Por causa da corrente, também é uma arma de haste, permitindo atacar inimigos a até 3m — mas, ao contrário de outras armas de haste, pode ser usada para atacar alvos adjacentes. Como a Kusarigama pode se enroscar nas mãos ou nas pernas do adversário, você recebe +4 em jogadas de ataque para derrubar ou desarmar. Por fim, o talento Acuidade com Arma se aplica à Kusari-gama.
+arma-machado-anao|Armas|Exóticas, corpo a corpo, uma mão|Machado-anão|4|||Alcance corpo a corpo · Corte · Dano 1d10 · Crítico x3|Esse poderoso machado é a arma favorita dos anões, quase um símbolo da raça. O Machado Anão é pesado demais para ser usado com uma mão sem treinamento: Por isso é uma arma exótica. O machado anão pode ser usado como uma arma marcial de duas mãos
+arma-maca-de-guerra|Armas|Exóticas, corpo a corpo, uma mão|Maça de guerra|6|||Alcance corpo a corpo · Esmagamento · Dano 1d12 · Crítico x3|Uma versão mais perigosa da maçã comum, com uma cabeça formada por grandes placas de metal. O peso da maçã de guerra torna seu golpe poderoso, mas desajeitado. Um personagem usando uma maça de guerra sofre -1 nas jogadas de ataque.
+arma-hidden-blade|Armas|Exóticas, corpo a corpo, uma mão|Hidden blade|2.5|||Alcance corpo a corpo · Corte · Dano 1d8/1d10 · Crítico x3|Uma braçadeira de metal que fica fixada em seu braço por baixo do antebraço após levantar e sai uma lâmina. Bom se você usar duas hidden blade em ambos os braço ganha +1 na sua Ca e caso tenha o talento combater com duas arma o bônus aumenta para +2 essa arma não pode ser desarmada
+arma-nunchaku|Armas|Exóticas, corpo a corpo, uma mão|Nunchaku|1|||Alcance corpo a corpo · Esmagamento · Dano 1d6 · Crítico x3|Composto por dois bastões curtos de madeira ligados por uma corrente ou tira de couro. O nunchaku era utilizado por camponeses para separar o joio do trigo, sendo mais tarde adotado como arma. O nunchaku também é uma arma de monge (pode ser utilizado com algumas habilidades, como rajada de golpes).
+arma-sabre-serrilhado|Armas|Exóticas, corpo a corpo, uma mão|Sabre serrilhado|2|||Alcance corpo a corpo · Corte · Dano 1d8 · Crítico 19-20|Esta arma cruel possui uma lâmina parecida com um serrote. Ela causa grande estrago quando atinge a carne, rasgando e destruindo tudo. Devido a seus "dentes", é comum que fique profundamente entrelaçada nas costelas (ou órgãos equivalentes). Após um acerto crítico, em vez de causar dano multiplicado, o sabre fica preso - e requer uma ação de movimento para ser arrancado. Esse ato causa à vítima 1d6 pontos de dano adicional. Caso não seja removida, a arma causa 1d4 pontos de dano para cada ação completa ou padrão realizados pela vítima.
+arma-tonfa|Armas|Exóticas, corpo a corpo, uma mão|Tonfa|1|||Alcance corpo a corpo · Esmagamento · Dano 1d8 · Crítico x2|Bastão de madeira com uma guarda de um lado que serve para segurar e executar manobras. A Tonfa é usada pelos ninjas também como arma de defesa — você recebe um bônus de +1 na CA se usar o talento Bloqueio Ambidestro ou Especialização em Combate (não cumulativo).
+arma-corrente-com-cravos|Armas|Exóticas, duas mãos|Corrente com cravos|5|||Alcance corpo a corpo · Perfuração · Dano 3d4 · Crítico x4|Você pode atacar um inimigo a até 4,5m com uma corrente com cravos. Esta arma pode se enroscar nas mãos, pernas e armas do adversário; você recebe +4 em jogadas de ataque para derrubar ou desarmar. O talento Acuidade com Arma se aplica à corrente com cravos.
+arma-espada-de-lamina-dupla|Armas|Exóticas, duas mãos|Espada de lâmina dupla|5|||Alcance corpo a corpo · Corte · Dano 1d8 · Crítico 19-20|Duas espadas longas, presas em lados opostos de um mesmo cabo. É uma arma dupla.
+arma-espada-taurica|Armas|Exóticas, duas mãos|Espada táurica|7.5|||Alcance corpo a corpo · Corte · Dano 2d8 · Crítico x3|Esta espada gigantesca é usada pelos maiores campeões e gladiadores do Reino dos Minotauros. Além do talento Usar arma exótica, também exige Força 15 ou mais para ser utilizada.
+arma-machado-taurico|Armas|Exóticas, duas mãos|Machado táurico|12|||Alcance corpo a corpo · Corte · Dano 2d8 · Crítico x3|Uma haste de 2m de comprimento com uma lâmina extremamente grossa na ponta, o machado táurico é muito pesado, e impõe uma penalidade de -1 na CA de seu usuário. Além do talento Usar Arma Exótica, exige Força 15 ou mais para ser manuseado.
+arma-machado-ogro|Armas|Exóticas, duas mãos|Machado ogro|12|||Alcance corpo a corpo · Corte · Dano 2d8 · Crítico x3|Esta arma exageradamente grande consiste de um cabo longo com uma lâmina larga, grossa e pesada na ponta. É utilizada apenas pelos guerreiros mais brutais, como bárbaros das montanhas, por isso seu nome. O machado ogro é uma arma de haste. Por seu tamanho extremo, além do talento Usar Arma Exótica, exige Força 19 ou mais para ser manuseado e impõem uma penalidade de -1 na CA de seu usuário.
+arma-marreta-estilhacado|Armas|Exóticas, duas mãos|Marreta estilhaçado|7|||Alcance corpo a corpo · Esmagamento · Dano 1d10 · Crítico 20/especial|Este grande e desajeitado martelo de guerra é pouco eficaz em combate normal. Com o cabo longo e uma imensa cabeça de metal, a marreta estilhaçadora conta com uma superfície de impacto larga, incapaz de causar muito dano real. Sua verdadeira finalidade é despedaçar armaduras e carapaças de monstros - especialmente seres da realidade aberrante; com um sucesso decisivo, em vez de causar dano multiplicado, a marreta reduz em 2 o bônus de armadura natural da criatura atingida, ou o bônus de armadura da armadura que a criatura estiver usando.
+arma-balestra|Armas|Exóticas, a distância|Balestra|6|||Alcance Médio · Perfuração · Dano 1d12 · Crítico 19-20|Uma besta com mecanismo pesado, que permite que seu usuário use toda sua força ao engatilhar. Você aplica seu modificador de Força nas jogadas de dano com uma balestra. Recarregar esta arma é uma ação padrão. Exige duas mãos.
+arma-besta-de-mao|Armas|Exóticas, a distância|Besta de mão|1|||Alcance Curto · Perfuração · Dano 1d6 · Crítico 19-20|Uma besta em miniatura, ideal para ser escondida sob um casaco, e usada por nobres e jogadores. Se você sacar a besta de mão, e na mesma rodada, usá-la para atacar, o oponente fica desprevenido contra esse ataque (mas esse truque só funciona uma vez por combate). Recarregar esta arma é uma ação de movimento. Exige uma mão.
+arma-besta-leve-de-repeticao|Armas|Exóticas, a distância|Besta leve de repetição|4.5|||Alcance Curto · Perfuração · Dano 1d10 · Crítico 19-20|
+arma-besta-pesada-de-repeticao|Armas|Exóticas, a distância|Besta pesada de repetição|6|||Alcance Médio · Perfuração · Dano 1d12 · Crítico 19-20|
+arma-boleadeira|Armas|Exóticas, a distância|Boleadeira|1|||Alcance 3 m · Esmagamento · Dano 1d4 · Crítico x3|Uma boleadeira é um par de pesos metálicos ou de pedra, conectados por uma corda fina. Boleadeiras causam dano não letal e podem ser usadas na manobra derrubar, mesmo à distância. Halflings e nativos de Namalkah tratam a boleadeira como arma marcial em vez de arma exótica.
+arma-mosquete|Armas|Exóticas, a distância|Mosquete|5|||Alcance Longo · Balístico · Dano 2d8 · Crítico 19/x3|Uma arma de uso complicado, que é rejeitada pela maioria dos guerreiros, porém devastadora ao atingir seu alvo. Recarregar um mosquete é uma ação padrão. Exige as duas mãos.
+arma-pistola|Armas|Exóticas, a distância|Pistola|1.5|||Alcance Curto · Balístico · Dano 2d6 · Crítico 19/x3|Considerada a mais popular arma de fogo, tem capacidade para apenas um tiro. Requer apenas uma mão - mas se empunhada com duas mãos, oferece um bônus de +1 em jogadas de ataque devido a estabilidade extra. Devido ao tempo de recarga (uma ação padrão), alguns pistoleiros trazem consigo várias pistolas em diversos coldres. Até seis pistolas podem ser transportadas dessa forma.
+arma-shuriken|Armas|Exóticas, a distância|Shuriken|0.25|||Alcance 3 m · Perfuração · Dano 1d4 · Crítico x3|São pequenos projéteis metálicos em forma de estrelas ou dardos. Você pode gastar uma ação padrão para arremessar duas shurikens. Esta é uma arma de monge. (pode ser utilizada com determinadas habilidades)
+arma-espada-diapasao|Armas|Tecnológicas, corpo a corpo, uma mão|Espada diapasão|2.5|||Alcance corpo a corpo · Corte · Dano 1d8 · Crítico 19-20|Esta espada de aparência estranha tem duas lâminas separadas entre si por alguns milímetros. O personagem pode realizar uma manobra especial com uma ação de movimento, golpeando o chão (que deve ser duro como pedra ou metal). A espada então entra em ressonância, passando a vibrar e emitir um ruído muito incômodo. O próximo ataque com esta arma causa +2d6 pontos de dano sônico.
+arma-florete-agulha|Armas|Tecnológicas, corpo a corpo, uma mão|Florete agulha|1|||Alcance corpo a corpo · Perfuração · Dano 1d6 · Crítico 19-20|Este florete possui um minúsculo êmbolo interno, que carrega uma dose de líquido — geralmente veneno. Permite usar um veneno do tipo contato, além do tipo ferimento. Veneno de contato administrado desta forma recebe um bônus de +2 em sua CD.
+arma-lanca-foguete|Armas|Tecnológicas, corpo a corpo, uma mão|Lança foguete|4.5|||Alcance 6 m · Perfuração · Dano 1d10 · Crítico x2|Esta lança parece normal, mas há um “foguete” (um reservatório de pólvora) no meio de sua haste. Este foguete pode ser ativado por uma corda na haste (uma ação livre), fazendo com que o próximo arremesso da lança tenha o seu alcance dobrado (para um total de 12m) e receba um bônus de +2 nas jogadas de ataque e dano. Depois de arremessada com o foguete de acesso, a lança torna-se inútil.
+arma-lanca-mola|Armas|Tecnológicas, corpo a corpo, uma mão|Lança mola|2.5|||Alcance corpo a corpo · Perfuração · Dano 1d6 · Crítico x2|Esta lança retrátil de metal possui no meio de sua haste uma forte mola, que fica encolhida. O personagem pode realizar um ataque especial apertando um botão para soltar a mola (uma ação livre). Este ataque recebe um bônus de +2 na jogada de ataque e tem seu alcance aumentado para 3m. O personagem pode remontar a mola com uma ação completa.
+arma-maca-granada|Armas|Tecnológicas, corpo a corpo, uma mão|Maça-granada|6.5|||Alcance 3 m · Esmagamento · Dano 1d8 · Crítico x3 + 4d6|Esta maçã tem uma carga explosiva em sua cabeça. A granada é ativada quando submetida a uma grande pressão. Quando o personagem faz um acerto crítico, além de infligir dano dobrado, causa uma explosão, que faz 4d6 pontos de dano de fogo no alvo (e 2d6 pontos de dano no usuário). Esta explosão não dá direito a teste de resistência. Depois de explodir, a maçã fica inutilizada.
+arma-martelo-pistao|Armas|Tecnológicas, corpo a corpo, uma mão|Martelo pistão|3.5|||Alcance corpo a corpo · Esmagamento · Dano 1d8 · Crítico 20/especial|Este martelo tem um mecanismo avançado em seu interior. Com uma ação completa, você puxa o pistão e “carrega” uma carga de vapor na arma. Em qualquer momento até 1 hora depois de carregar a arma, você pode liberar a energia do pistão para a ponta do martelo com uma alavanca na haste. Quando fizer isso, o martelo move sua cabeça muito rapidamente e dá um impulso extra no ataque, concedendo um bônus de +4 na jogada de ataque.
+arma-marreta-pistao|Armas|Tecnológicas, duas mãos|Marreta pistão|9|||Alcance corpo a corpo · Esmagamento · Dano 1d10 · Crítico 20/especial|Semelhante ao martelo-pistão, mas maior, para ser usada com duas mãos. Funciona da mesma maneira — use uma ação completa para carregar uma carga de vapor. Ao liberar a carga, a marreta concede um bônus de +4 na jogada de ataque. Além disso, funciona como uma marreta estilhaçadora — com um acerto crítico, reduz o bônus de CA do alvo em 2 pontos.
+arma-bazuca|Armas|Tecnológicas, a distância|Bazuca|5|||Alcance Médio · Fogo · Dano 5d8 · Crítico 19-20|Uma das maiores criações dos mestres armeiros, esta arma tem potencial destrutivo comparável ao das mais avançadas magias. Uma bazuca é um cilindro de metal com um compartimento para pólvora e um grande pavio. A munição é um grande obus explosivo, capaz de obliterar a maior parte dos alvos. Para disparar a bazuca, o usuário deve antes acender o pavio (uma ação de movimento). Uma vez que o pavio seja aceso, a bazuca dispara em 1d2 rodadas — ou seja, dispara na rodada seguinte ou na rodada após a seguinte. O usuário pode acender o pavio de forma a que ela dispare na mesma rodada, mas deve ser bem-sucedido num teste de Ofícios (armeiro) contra CD 20. Em caso de falha, a bazuca explode e o usuário sofre o dano do tiro. O disparo tem um "coice" extremamente forte. Criaturas com Força menor que 15 sofrem -4 de penalidade na jogada de ataque e são arrastados 3 metros para trás no momento do disparo. Mesmo assim, esta arma é terrível. A explosão atinge um raio de 6m, causando 10d8 pontos de dano e deixando todas as criaturas atordoadas por uma rodada. Um teste de Reflexos (CD igual ao resultado da jogada de ataque) reduz o dano à metade e evita o atordoamento. Uma criatura atingida diretamente não tem direito ao teste de Reflexos. A bazuca ainda é mais destrutiva contra alvos não vivos. Qualquer armadura vestida por um alvo atingido deve ser bem-sucedida num teste de Fortitude (CD 15) ou ficar inutilizada, deixando de oferecer qualquer bônus. Itens normais tem bônus de resistência +0; itens mágicos tem bônus de resistência de acordo com sua aura: +2 para aura tênue, +5 para moderada e +10 para aura poderosa. Objetos atingidos por um tiro de bazuca aplicam apenas metade de sua redução de dano. Uma bazuca fica inutilizada após um disparo. É necessário um teste de Ofícios (armero) contra CD 20 e uma hora de trabalho para consertá-la.
+arma-canhao|Armas|Tecnológicas, a distância|Canhão|200|||Alcance Extremo · Esmagamento · Dano 5d12 · Crítico x3|Usados extensivamente nas naves-vivas que cruzam o vazio, canhões são pesados e lentos, mas oferecem grande poder de destruição. Assim como uma balista, um canhão só pode ser usado instalado em uma plataforma (em termos de regras, um canhão que possa ser carregado na verdade é um mosquetão Grande). Disparar um canhão é uma ação completa; recarregá-lo exige quatro ações completas, mas até duas pessoas podem carregá-lo ao mesmo tempo (de modo que duas pessoas gastando suas ações completas podem carregá-lo em duas rodadas). Se as duas pessoas carregando o canhão tiverem o talento Rapidez de Recarga, a recarga demora apenas uma ação completa.
+arma-canhao-portatil|Armas|Tecnológicas, a distância|Canhão portátil|20|||Alcance Médio · Esmagamento · Dano 3d12 · Crítico x3|Uma versão muito menor do seu primo Enorme, o canhão de mão é suficientemente pequeno para ser utilizado como uma arma de alcance de duas mãos. O canhão fica pendente do lado do corpo enquanto uma longa alça de couro serve de apoio. Também há dois cabos — um do lado e um embaixo — para auxiliar na mira. O canhão dispara uma bola de metal maciço e demora uma ação completa para ser recarregado. Criaturas com Força menor que 15 sofrem –4 de penalidade nas jogadas de ataque com o canhão e são arrastadas 3 metros para trás no momento do disparo.
+arma-catapulta-de-braco|Armas|Tecnológicas, a distância|Catapulta de braço|2|||Alcance Médio · Esmagamento · Dano 2d4 · Crítico x4|Um dos diversos engenhos criados por halflings, para praticar seus esportes de arremesso de pedras. A catapulta-de-braço é uma arma que presa ao braço com fivelas, arremessa pedras ao movimento correto do pulso, tão longe quanto os arcos lançam flechas. Recarregá-la é uma ação livre
+arma-revolver|Armas|Tecnológicas, a distância|Revolver|2|||Alcance Curto · Balístico · Dano 2d6 · Crítico 19/x3|Esta maravilha tecnológica conta com um tambor capaz de girar, alinhando cargas de pólvora e balas com o cano repetidas vezes. Depois de dar um tiro, o usuário pode usar uma ação de movimento para girar o tambor e realizar outro tiro com a mesma pistola, até um máximo de quatro tiros no total por pistola. Esta arma é quase desconhecida, provavelmente a mais rara das armas tecnológicas. Está disponível apenas com autorização do mestre.
+arma-shotgun|Armas|Tecnológicas, a distância|Shotgun|3|||Alcance Médio · Balístico · Dano 3d6 · Crítico x2|Uma arma de fogo com cano longo maior do que uma pistola e depois atira pode ser pego em área diferente do revólver essa arma é muito rara, essa talvez seja a maior arma de fogo criado pela tecnologia na história. Disponível apenas a critério do mestre
+armadura-roupa-reforcada|Armaduras|Leves|Roupa reforçada|1|||C.A. +1|Só uma armadura vale por vez. Sem proficiência: desvantagem em todos os testes físicos e não soma a C.A.
+armadura-couro-leve|Armaduras|Leves|Couro leve|2|||C.A. +2 · C.R. física +1|Só uma armadura vale por vez. Sem proficiência: desvantagem em todos os testes físicos e não soma a C.A.
+armadura-couro-batido|Armaduras|Leves|Couro batido|3|||C.A. +3 · C.R. física +2|Só uma armadura vale por vez. Sem proficiência: desvantagem em todos os testes físicos e não soma a C.A.
+armadura-tecelagem-arcana|Armaduras|Leves|Tecelagem arcana|4|||C.A. +4 · Penalidade: Vulnerabilidade a raio|Só uma armadura vale por vez. Sem proficiência: desvantagem em todos os testes físicos e não soma a C.A.
+armadura-gibao-reforcado|Armaduras|Médias|Gibão reforçado|5|||C.A. +4 · C.R. física +3 · C.R. elemental +1 · Penalidade: Furtividade -2|Só uma armadura vale por vez. Sem proficiência: desvantagem em todos os testes físicos e não soma a C.A.
+armadura-cota-de-escamas|Armaduras|Médias|Cota de escamas|7|||C.A. +5 · C.R. física +4 · C.R. elemental +1 · Penalidade: Furtividade -3 e -2m Deslocamento|Só uma armadura vale por vez. Sem proficiência: desvantagem em todos os testes físicos e não soma a C.A.
+armadura-armadura-hibrida|Armaduras|Médias|Armadura híbrida|8|||C.A. +6 · Penalidade: Deslocamento -3m|Só uma armadura vale por vez. Sem proficiência: desvantagem em todos os testes físicos e não soma a C.A.
+armadura-cota-de-malha|Armaduras|Pesadas|Cota de malha|10|||C.A. +7 · C.R. física +5 · C.R. elemental +2 · Penalidade: Deslocamento -2m|Só uma armadura vale por vez. Sem proficiência: desvantagem em todos os testes físicos e não soma a C.A.
+armadura-armadura-de-placas|Armaduras|Pesadas|Armadura de placas|12|||C.A. +8 · C.R. física +6 · C.R. elemental +3 · Penalidade: Deslocamento -3m e desvantagem em furtividade|Só uma armadura vale por vez. Sem proficiência: desvantagem em todos os testes físicos e não soma a C.A.
+armadura-armadura-de-cerco|Armaduras|Pesadas|Armadura de cerco|14|||C.A. +9 · C.R. física +8 · C.R. elemental +4 · Penalidade: Deslocamento -4 e teste de agilidade e força -2|Só uma armadura vale por vez. Sem proficiência: desvantagem em todos os testes físicos e não soma a C.A.
+municao-flecha|Munição|Flechas e virotes|Flecha|0.05|||Munição|São hastes de madeira geralmente com ponta metálica e penas para estabilizar seu voo, costumam ser vendidas em aljavas com 20 unidades. Carregar um arco com uma flecha é uma ação livre. Flechas possuem variações especiais que podem ser usadas em qualquer arma que as utilize como munição:
+municao-flecha-assobiadora|Munição|Flechas e virotes|Flecha assobiadora|1.5|||Munição|estas ﬂechas simulam o pio de um pássaro quando disparadas. Artesãos élficos criavam ﬂechas que faziam chamados específicos, reconhecidos pelos seus rangers. Por exemplo, o crocitar de um falcão indicava um ataque, enquanto que o chiado de uma coruja significava um avanço furtivo. Um teste de Sobrevivência (CD 20) permite indicar se o som vem de um animal ou de outra fonte. Os entalhes intrincados da haste da ﬂecha prejudicam seu voo, impondo uma penalidade de –2 em jogadas de ataque.
+municao-flecha-de-caca|Munição|Flechas e virotes|Flecha de caça|1.5|||Munição|estas ﬂechas têm cabeças chatas e pesadas, criadas para atordoar presas pequenas em vez de destruí-las completamente, como outros tipos de ﬂechas faria. Uma ﬂecha de caça causa dano não letal de esmagamento.
+municao-flecha-farpada|Munição|Flechas e virotes|Flecha farpada|1.5|||Munição|estas ﬂechas possuem ganchos cruéis (similares a anzóis) ao longo de suas cabeças. Por isso, possuem uma chance maior de causar ferimentos severos ao acertar. A margem de ameaça de um arco usando ﬂechas farpadas aumenta em +1 (o multiplicador de crítico permanece x3).
+municao-flecha-incendiaria|Munição|Flechas e virotes|Flecha incendiária|2|||Munição|cada uma destas ﬂechas carrega uma carga de fogo alquímico em sua haste oca. Quando a ﬂecha atinge seu alvo, a haste se parte, liberando o fogo alquímico. Além do dano normal, esta ﬂecha causa 1d6 pontos de dano de fogo.
+municao-flecha-metalica|Munição|Flechas e virotes|Flecha metálica|2|||Munição|com uma grande parte de sua haste feita de metal, estas ﬂechas são mais perigosas — mas também mais pesadas — que o normal. O dano de um arco usando ﬂechas metálicas aumenta em uma categoria de tamanho; entretanto, seu incremento de distância é reduzido à metade. Por exemplo, um arco longo (dano 1d8 e distância 24m) com ﬂechas metálicas fica com dano 1d10 e distância 12m.
+municao-flecha-perfurante|Munição|Flechas e virotes|Flecha perfurante|1.5|||Munição|Flecha Perfurante: estas ﬂechas têm pontas longas e finas. A área de impacto menor permite que ela atravesse armaduras com facilidade. Quando usa estas ﬂechas, você recebe um bônus de +2 nas jogadas de ataque contra alvos usando armaduras.
+municao-flecha-voadora|Munição|Flechas e virotes|Flecha voadora|1|||Munição|uma ﬂecha construída com madeira leve e penas selecionadas, de modo a atingir maiores distâncias. O incremento de distância de um arco usando ﬂechas voadoras aumenta em 50%, mas seu dano é reduzido em uma categoria.
+municao-balas-canhao|Munição|Balas|Balas canhão|5|||Munição|
+municao-balas-canhao-menor|Munição|Balas|Balas canhão menor|1.5|||Munição|
+municao-balas-curta|Munição|Balas|Balas curta|1|||Munição|As balas atiram pequenas esferas de metal que pode ser fatal para todas as pessoas no mundo ao comprar as balas tem 10 balas
+municao-bala-de-dose|Munição|Balas|Bala de Dose|2|||Munição|As balas de espingarda com várias minis bolinhas de metal presas dentro de cartucho vermelho uma caixa vem 8 Balas
+municao-balas-longa|Munição|Balas|Balas longa|3|||Munição|As balas atiram pequenas esferas de metal que pode ser fatal para todas as pessoas no mundo ao comprar as balas tem 10 balas
+municao-balas-de-fogo|Munição|Balas|Balas de fogo|2|||Munição|As balas de fogo são ótimas balas contra zumbis e inimigos que estejam sem armadura e ótima arma para machucá todos os inimigos que querem te matar essa bala causa 1d8 de dano de fogo extra
+municao-balas-de-gelo|Munição|Balas|Balas de gelo|2|||Munição|As balas de gelo são muito úteis para fazer um inimigo se locomover muito mais devagar. Causando 1d8 de dano de gelo e reduz o deslocamento pela metade
+municao-balas-de-raio|Munição|Balas|Balas de raio|2|||Munição|Essas balas podem ser muito úteis para causar dano elétrico no alvo causando 1d8 de dano elas não deixam o alvo atordoado por ser uma descarga muito fraca mas caso você tire críticas você atordoa o alvo e desarmado ele.
+municao-balas-de-cura|Munição|Balas|Balas de cura|2|||Munição|As balas de cura são ótimas balas para causa dano em demônios e criaturas sombrias e caso você atire em um aliado que esteja machucado ele irá recuperar 1d8 de vida
+municao-balas-de-veneno|Munição|Balas|Balas de veneno|2|||Munição|Essas balas são mortais a quem é acertado por elas a pessoa pode até morrer causando 1d6 de veneno e caso você tira crítico no dado o alvo sofre 1d4 de veneno todo turno. Balas híbridas Balas híbridas são uma nova leva de balas mágicas como isso funciona caso você tenha duas pistola você pode atirar com as duas e se estiver com duas balas de fogo no meio do caminho elas irão se juntar e formar uma bola de fogo. Bom veja abaixo algumas combinação
+municao-bala-de-sombras|Munição|Balas|Bala de sombras|2|||Munição|Balas de sombra são balas ótimas para deixar o alvo com a visão turva e causando 1d8 de dano da sombra;
+municao-virotes|Munição|Flechas e virotes|Virotes|1.5|||Munição|
+item-binoculos|Itens gerais||Binóculos|1|||+2 em Percepção|
+item-corda-15m|Itens gerais||Corda (15m)|2|||Usada em escaladas, capturas e resgates|
+item-kit-de-ferramentas-simples|Itens gerais||Kit de ferramentas simples|3|||Necessário para Ofício e Criação de Item|
+item-kit-de-primeiro-socorros|Itens gerais||Kit de primeiro socorros|3|||Permite testes de Medicina sem penalidade|
+item-mascara-de-filtro|Itens gerais||Máscara de filtro|1|||+2 contra gases e venenos inaláveis|
+item-mochila-pequena|Itens gerais||Mochila pequena|||3|+3kg em carga|
+item-mochila-reforcada|Itens gerais||Mochila reforçada|||6|+6kg em carga|
+item-mochila-militar|Itens gerais||Mochila militar|||10|+10kg em carga|
+item-pederneira|Itens gerais||Pederneira|0.005|||Acende fogo|
+item-saco-de-dormir|Itens gerais||Saco de dormir|5|||Remove penalidades de descanso ruim|
+item-tocha|Itens gerais||Tocha|2|||Ilumina 6m|
+magico-anel-da-concentracao|Itens mágicos||Anel da concentração|0.5|||+1 na Dt para inimigos resistência a suas magias|
+magico-amuleto-vital|Itens mágicos||Amuleto vital|0.75|||+5 de PV máximo|
+magico-amuleto-cristal|Itens mágicos||Amuleto cristal|0.75|||+5 de PM máximo|
+magico-botas-etereas|Itens mágicos||Botas etéreas|1|||+1 em deslocamento|
+maldito-anel-de-sacrificios|Itens amaldiçoados||Anel de sacrifícios|0.3|||+2 em dano de magias e mágicos · Maldição: Porém a cada magia utilizado perde 1 PV|
+maldito-anel-de-sangue|Itens amaldiçoados||Anel de sangue|0.3|||+2 de dano em CaC ou atirando · Maldição: Perde 1 de PV por turno|
+maldito-colar-da-vida-falsa|Itens amaldiçoados||Colar da vida falsa|0.2|||Ganha 10 PV temporário · Maldição: Diminuiu em -2 a constituição|
+maldito-mascara-dos-sussurros|Itens amaldiçoados||Máscara dos sussurros|1|||+2 em intuição e se passar no teste pode receber +1 em outro perícias a sua escolha · Maldição: -3 de sanidade por cena|
+maldito-medalhao-da-dor|Itens amaldiçoados||Medalhão da dor|1|||Recebe resistência a dano +2CR · Maldição: Não pode ser removido sem ter feito um ritual antes|
+tec-scanner-portatil|Itens tecnológicos||Scanner portátil|2|||+2 em investigação e +2 em percepção · Carga: Bateria|
+tec-oculos-taticos|Itens tecnológicos||Óculos táticos|1|||+2 em pontaria · Carga: Energia|
+tec-luva-de-assistencia|Itens tecnológicos||Luva de assistência|1|||+2 em luta · Carga: Energia|
+tec-escudo-energetico|Itens tecnológicos||Escudo energético|3|||Reduz 1d8 de dano por ataque · Carga: Energia|
+tec-nucleo-portatil|Itens tecnológicos||Núcleo portátil|2|||Alimentação de de dispositivos eletrônicos · Carga: Célula|
+tec-comunicador-de-curto-alcance|Itens tecnológicos||Comunicador de curto alcance|1|||Comunicação até 1km · Carga: Bateria|
+tec-lanterna-eletrica|Itens tecnológicos||Lanterna elétrica|1|||Ilumina 12m por 4h · Carga: Energia|
+tec-carregador-de-bateria|Itens tecnológicos||Carregador de bateria||||Carregar um 1 item de bateria · Carga: energia|
+consumivel-energetico|Consumíveis|Básicos|Energético|1|||+1 Iniciativa por 1 combate|
+consumivel-cantil|Consumíveis|Básicos|Cantil|1|||Água por 1 dia|
+consumivel-racao-de-viagem|Consumíveis|Básicos|Ração de viagem|1|||Sustento por 1 dia|
+consumivel-racao-reforcada|Consumíveis|Básicos|Ração reforçada|2|||Sustenta 2 dias, +1 Fortitude por 1 cena|
+consumivel-bandagem-simples|Consumíveis|Cura (PV)|Bandagem simples|1|||Cura 1d6 de Pv (cura média 3)|
+consumivel-pocao-de-cura-menor|Consumíveis|Cura (PV)|Poção de cura menor|3|||Cura 2d8 de Pv (Cura média 8)|
+consumivel-pocao-de-cura-media|Consumíveis|Cura (PV)|Poção de cura média|6|||Cura 4d6 de PV (Cura média 12)|
+consumivel-pocao-de-cura-grande|Consumíveis|Cura (PV)|Poção de cura grande|8|||Cura 4d12 de PV (Cura média 24)|
+consumivel-soro-regenerativo|Consumíveis|Cura (PV)|Soro regenerativo|5|||Cura 2d10 PV por 3 turnos (Cura média por turno 10)|
+consumivel-cristal-de-mana-fraco|Consumíveis|Mana (PM)|Cristal de mana fraco|1|||Recupera 1d6 de PM (PM médio 3)|
+consumivel-pocao-de-mana-menor|Consumíveis|Mana (PM)|Poção de mana menor|3|||Recupera 2d6 de PM (PM médio 6)|
+consumivel-pocao-de-mana-media|Consumíveis|Mana (PM)|Poção de mana média|6|||Recupera 4d6 de PM (PM médio 12)|
+consumivel-pocao-de-mana-grande|Consumíveis|Mana (PM)|Poção de mana grande|8|||Recupera 3d12 de PM (PM médio 18)|
+consumivel-fragmento-etereo|Consumíveis|Mana (PM)|Fragmento etéreo|4|||Recupera por 5 turnos 4 PM|
+consumivel-cha-calmante|Consumíveis|Sanidade|Chá calmante||||Recupera 1d6 de sanidade|
+consumivel-incenso-ritualistico|Consumíveis|Sanidade|Incenso ritualístico||||Recupera 2d6 de sanidade|
+consumivel-pilula-estabilizador|Consumíveis|Sanidade|Pílula estabilizador||||Remove 1 condição mental leve|
+consumivel-elixir-da-lucidez|Consumíveis|Sanidade|Elixir da lucidez||||+2 em vontade por 1 cena|
+consumivel-acido-fraco|Consumíveis|Alquímicos|Ácido fraco||||2d6 de dano ácido|
+consumivel-fogo-alquimico|Consumíveis|Alquímicos|Fogo alquímico||||2d6 de fogo + 1d6 por 2 turno|
+consumivel-bomba-de-gelo|Consumíveis|Alquímicos|Bomba de gelo||||Deslocamento -3m|
+consumivel-frasco-de-veneno|Consumíveis|Alquímicos|Frasco de veneno||||Envenena por 2 turno|
+consumivel-catalisador-arcano|Consumíveis|Alquímicos|Catalisador arcano||||+1 dados de magia (1 uso)|
+consumivel-antidoto-comum|Consumíveis|Alquímicos|Antídoto comum||||Remove veneno simples|
+montaria-chocobo-amarelo|Montarias||Chocobo Amarelo||2000||Deslocamento 15m · Carga 120 kg · PV 40 · Terreno: Planícies/estradas|Não provoca ataque oportunidades enquanto tive montado.
+montaria-chocobo-azul-aquatico|Montarias||Chocobo azul (aquático)||3500||Deslocamento 15m/nada 12m · Carga 100 kg · PV 40 · Terreno: Planícies/águas|Conseguiu correr sobre a água.
+montaria-chocobo-preto|Montarias||Chocobo preto||5000||Deslocamento 18m · Carga 140 kg · PV 50 · Terreno: Montanhas, planícies e estradas|Conseguiu escalar, terrenos difíceis e íngremes.
+montaria-lagarto-gigante|Montarias||Lagarto gigante||5000||Deslocamento 12m · Carga 130 kg · PV 55 · Terreno: Regiões quentes e desertos|Recebe 4 de resistência a dano caso esteja montado (caso não seja no seus terrenos vira 2 de Resistência).
+montaria-cavalo-de-guerra|Montarias||Cavalo de guerra||6000||Deslocamento 14m · Carga 160 kg · PV 60 · Terreno: Planícies/ estradas|Se se mover pelo menos 6m em linha reta, o próximo ataque do cavaleiro causa +1d8 de dano.
+montaria-besouro-mecanico|Montarias||Besouro mecânico||10000||Deslocamento 8m · Carga 220 kg · PV 90 · Terreno: Qualquer terreno sólido|Reduz todo dano físico recebido em 4.
+montaria-serpente-de-areia|Montarias||Serpente de areia||9000||Deslocamento 10m/escavação 12m · Carga 110 kg · PV 50 · Terreno: Deserto e Areia|Pode emergir e permitir vantagem no primeiro ataque do cavaleiro.
+montaria-tartaruga-gigante|Montarias||Tartaruga gigante||6500||Deslocamento 6m/nada 15m · Carga 180 kg · PV 80 · Terreno: Oceanos/Lagos|Passageiros recebem +2 em testes contra ataques à distância com teste de reflexo.
+montaria-crocodilo-gigante|Montarias||Crocodilo gigante||5800||Deslocamento 8m/nada 12+1m · Carga 140 kg · PV 65 · Terreno: Rios/pântanos|1x por combate pode causar +1d10 de dano se atacar após nadar.
+montaria-grifo-jovem|Montarias||Grifo jovem||12000||Deslocamento 10m/voo 16m · Carga 120 kg · PV 70 · Terreno: Céus/montanhas|Vantagem no primeiro ataque ao descer voando.
+montaria-draco-alado|Montarias||Draco alado||20000||Deslocamento 12m/18voo · Carga 150 kg · PV 85 · Terreno: Céus/regiões vulcânicas|Inimigos adjacentes sofrem desvantagem em testes de Vontade.
+montaria-manticora-alada|Montarias||Manticora alada||15500||Deslocamento 11m/17voo · Carga 100 kg · PV 75 · Terreno: Céus/ ruinas|Ataques à distância contra ela sofrem desvantagem.
+mod-atroz|Modificações|Armas|Atroz|4|||Modificação de arma · +4 kg na arma|A arma é brutal, cheia de ganchos e lâminas secundárias. Extremamente letal, mas difícil de manejar. +3 de dano
+mod-banhado-com-ouro|Modificações|Armas|Banhado com ouro|5|||Modificação de arma · +5 kg na arma|Ostentação pura. Impressiona nobres, mas chama atenção indesejada. +2 em Diplomacia OU Enganação (escolha ao colocar na arma)
+mod-certeira|Modificações|Armas|Certeira|2|||Modificação de arma · +2 kg na arma|Forjada para ser mais precisa e balanceada, a arma fornece um bônus de +2 nos testes de ataque.
+mod-cravejado-de-gemas|Modificações|Armas|Cravejado de gemas|4.5|||Modificação de arma · +4,5 kg na arma|É fácil ser persuadido por alguém opulento e orgulhoso o bastante para ostentar um item cravejado de gemas. Concede um bônus de +2 em testes de enganação. Assim como um item banhado a ouro, um item cravejado de gemas pode atrair a cobiça de ladrões.
+mod-cruel|Modificações|Armas|Cruel|2|||Modificação de arma · +2 kg na arma|Rebarbas, espinhos e até mesmo lâminas adicionais podem compor uma arma cruel. Ela fornece um bônus de +2 nas rolagens de dano.
+mod-equilibrada|Modificações|Armas|Equilibrada|1|||Modificação de arma · +1 kg na arma|Uma arma equilibrada é forjada com o balanço perfeito, o que facilita movimentos complexos. Ela fornece um bônus de +2 em testes de manobras (desarmar, quebrar etc.).
+mod-harmonizada|Modificações|Armas|Harmonizada|2.5|||Modificação de arma · +2,5 kg na arma|A arma foi banhada em óleos alquímicos que a deixaram sintonizada com a aura de seu usuário. Escolha uma habilidade ativada ao se fazer um ataque. Esta habilidade tem seu custo em PM reduzido em –1 se utilizada com esta arma.
+mod-macabro|Modificações|Armas|Macabro|2|||Modificação de arma · +2 kg na arma|Um item macabro é pintado com sangue seco, esculpido na forma de uma caveira ou decorado com pedaços de orelhas, dedos e olhos. Essa aparência assustadora fornece um bônus de +2 em testes de Intimidação, mas impõe uma penalidade de –2 em testes de Diplomacia.
+mod-macica|Modificações|Armas|Maciça|3|||Modificação de arma · +3 kg na arma|A arma é feita com material denso, fazendo com que seus golpes tenham impacto terrível. O multiplicador de crítico da arma aumenta em 1 ponto. Uma arma não pode ser maciça e precisa.
+mod-material-especial|Modificações|Armas|Material especial|3|||Modificação de arma · +3 kg na arma|A arma, armadura ou escudo é feito ou banhado (não ambos) com um material especial. Veja a seção a seguir para a descrição dos materiais especiais. Cada um fornece um benefício específico, cumulativo com outros benefícios de modificações, mas possui um custo adicional que deve ser pago além do custo da modificação. Fabricar um item de material especial é uma modificação porque materiais especiais exigem um trabalho mais complexo do que materiais comuns.
+mod-mira-telescopica|Modificações|Armas|Mira telescópica|2|||Modificação de arma · +2 kg na arma|Aumenta o alcance da arma em uma categoria (de curto para médio, de médio para longo) e o alcance da habilidade Ataque Furtivo para médio. Esta modificação só pode ser aplicada em armas de disparo (exceto fundas).
+mod-precisa|Modificações|Armas|Precisa||||Modificação de arma|Cuidado especial foi tomado ao temperar o aço desta arma, para que seu fio se mantenha sempre como uma navalha. A margem de ameaça aumenta em 1 ponto. Uma arma não pode ser precisa e maciça.
+mod-pungente|Modificações|Armas|Pungente|4|||Modificação de arma · +4 kg na arma|Temperada diversas vezes para adquirir o fio perfeito — ou o equilíbrio perfeito, no caso de uma arma sem fio —, a arma fornece um bônus de +3 nos testes de ataque. Pré-requisito: Certeira.
+mod-empunhadura-curvada|Modificações|Sabre de luz|Empunhadura curvada||||Modificação de sabre de luz|Outra pequena variação do clássico sabre de luz de uma lâmina é o sabre de luz de punho curvo usado por personagens como o Conde Dooku, Darth Bane e Tott Doneeta. A forma curva do punhotorna a construção do sabre de luz mais difícil durante o processo de alinhamento do cristal. Entretanto, um sabre de luz curvo dá ao manejador uma melhor aderência e permite movimentos mais precisos durante um combate com sabre de luz. +2 em teste de ataque e +1 em teste de acrobacia
+mod-empunhadura-dupla|Modificações|Sabre de luz|Empunhadura dupla||||Modificação de sabre de luz|O sabre de luz duplo também conhecido como sabre de luz duplo foi visto pela primeira vez pelo público em geral nas mãos de Darth Maul no Phantom Menace. Foi o sabre de luz de duas lâminas de Maul que matou Qui-Gon Jinn e quase derrotou Obi-Wan Kenobi. +1 em teste de ataque e +1d6 no dano
+mod-empunhadura-giratoria|Modificações|Sabre de luz|Empunhadura giratória||||Modificação de sabre de luz|Se você achava que o sabre de Darth Maul era o melhor, cuidado, há um sabre de luz rotativo de duas lâminas! Projetado e fabricado especificamente para os Inquisidores, um grupo de seguidores do lado obscuro que tem aplicado a vontade do Império Galáctico. Sua operação é simples: o cabo é preso a um disco que contém os 2 emissores laser. +1 em teste de ataque e +2 em teste de fortitude
+mod-empunhadura-grande|Modificações|Sabre de luz|Empunhadura grande||||Modificação de sabre de luz|O Grande sabre de luz é o oposto completo de um Shoto: é um sabre de luz padrão de lâmina única, com uma lâmina muito mais longa e um punho estendido. Projetada para pessoas e criaturas maiores do que a média, a lâmina do Grande Sabre de Luz pode ter até 3 metros de comprimento. +4 no dano e +1 no crítico ( Duas mãos para usar )
+mod-empunhadura-de-katana|Modificações|Sabre de luz|Empunhadura de katana||||Modificação de sabre de luz|O sabre de luz negro é uma arma verdadeiramente lendária. Ao contrário das outras, tem uma lâmina obsidiana rodeada por uma aura branca cintilante. É muito mais como uma espada do que um sabre de luz. Seu cabo angular é único, assim como o efeito sonoro que emite, que é completamente diferente do de outros sabres de luz. Este sabre preto foi criado por Tarre Vizsla, o primeiro mandaloriano a se tornar um Jedi. + 3 em dano e +1 aumento no crítico ( +500g )
+mod-empunhadura-de-lanca|Modificações|Sabre de luz|Empunhadura de lança||||Modificação de sabre de luz|O espigão sabre de luz é o primeiro tipo de saber a ter uma lâmina amarela. Estas armas têm um cabo muito mais longo que o habitual e o punho é feito de um material chamado liga phrik. Isto é o que o torna tão resistente a outros sabres de luz. A lâmina também é muito mais curta e ligeiramente mais grossa do que as lâminas padrão. Os detentores mais comuns desses sabres de luz são os guardas do templo Jedi, que juraram proteger o local de qualquer ameaça. + 2 em dano e - 1 na margem de ameaça
+mod-empunhadura-cana|Modificações|Sabre de luz|Empunhadura cana||||Modificação de sabre de luz|O sabre de luz cana é uma variante simples do modelo padrão, é um sabre de luz escondido na forma de uma cabeça de cana. Isto a torna uma das armas mais discretas do universo da Guerra das Estrelas. + 3 em teste de crime ( serve só para o sabre ) +2 de dano
+mod-empunhadura-de-tonfa|Modificações|Sabre de luz|Empunhadura de tonfa||||Modificação de sabre de luz|O Laser Tonfa é uma variante bastante especial do Shoto (o pequeno sabre de luz). Este sabre de luz tem um cabo estendido e um cabo secundário que inclina 90 graus, assim como uma tonfa clássica usada pelas forças da lei. +3 em teste de reflexo e - 1 na marge se ameaça
+mod-empunhadura-de-tres-boca|Modificações|Sabre de luz|Empunhadura de três boca||||Modificação de sabre de luz|O famoso sabre de luz com quillons é um modelo antigo de sabre que já foi muito comum entre os lutadores. Seu desenho em três lâminas protege as mãos do proprietário durante um duelo, dando-lhe uma vantagem significativa sobre seu oponente. +2 na sua C.a e +3 de redução de dano
+mod-lamina-brutal|Modificações|Lâmina oculta|Lâmina brutal|2|||Modificação de lâmina oculta · +2 kg na arma|A lâmina bruta e modificada não mais para ser uma arma para assasinta e sim uma arma para combate deixado a exposto para todos verem e recebe -3 em teste de crime e o dano base da arma vira 2d8 de dano
+mod-lamina-dupla|Modificações|Lâmina oculta|Lâmina dupla|2|||Modificação de lâmina oculta · +2 kg na arma|A lâmina dupla e uma lâmina mais mortal com as modificações certa ela tem duas lâminas a deixando mais mortal após acertar o alvo a arma causa 1d de dano a mais quando ataca
+mod-lamina-fina|Modificações|Lâmina oculta|Lâmina fina||||Modificação de lâmina oculta|A sua lâmina oculta e refeita na forja e moldado para uma lâmina mais fina e com isso ele fica mais fácil de acertar pontos vulneráveis que você não conseguir antes você diminui -) na margem de ameaça. ( não aumenta o crítico )
+mod-lamina-serrilhada|Modificações|Lâmina oculta|Lâmina serrilhada|4|||Modificação de lâmina oculta · +4 kg na arma|A lâmina e serrilhada a deixa mais dolorosa e quando for assassina o alvo você causa mais dor ao alvo o deixando quase morto e causar sangramento 1d6 de dano de sangramento (não cumulativo) por 1d8 turno e caso cause dano crítico você causa 2d6 de sangre e vira 2d6 turnos.
+mod-injecao-alquimica|Modificações|Lâmina oculta|Injeção alquímica|1|||Modificação de lâmina oculta · +1 kg na arma|Um minúsculo frasco de cerâmica ou vidro é inserido ao longo da arma, junto com um mecanismo injetor ativado por impacto. Um ataque que acerte causa seu dano normal e libera uma carga de ácido, fogo alquímico ou água benta, que atinge o alvo automaticamente. A modificação tem espaço para 2 cargas. Recarregá-la exige uma ação completa e o gasto dos itens alquímicos que você quiser inserir. Carregar uma arma com 2 cargas de ácido, por exemplo.
+runa-macht|Runas|Passivas|Macht||3000||Runa passiva|Amplia o atributo força do usuário em +2.
+runa-prazision|Runas|Passivas|Präzision||4000||Runa passiva|Amplia o atributo destreza do usuário em +2.
+runa-verfassung|Runas|Passivas|Verfassung||4000||Runa passiva|Amplia o atributo Constituição do usuário em +2.
+runa-intelligenz|Runas|Passivas|Intelligenz||4000||Runa passiva|Amplia o atributo inteligência do usuário em +2.
+runa-charisma|Runas|Passivas|Charisma||4000||Runa passiva|Amplia o atributo Carisma do usuário em +2.
+runa-schlag|Runas|Passivas|Schlag||3000||Runa passiva|Amplia em +1 o acerto de golpes corpo a corpo.
+runa-distanz|Runas|Passivas|Distanz||3000||Runa passiva|Amplia em +1 o acerto de golpes a distância.
+runa-vitalitat|Runas|Passivas|Vitalität||3000||Runa passiva|Amplia em +1 a quantidade de Pontos de Vida obtidas por nível.
+runa-kraft|Runas|Passivas|Kraft||3000||Runa passiva|Amplia em +1 em testes de resistência fortitude.
+runa-reflex|Runas|Passivas|Reflex||3000||Runa passiva|Amplia em +1 em testes de resistência reflexo.
+runa-wille|Runas|Passivas|Wille||3000||Runa passiva|Amplia em +1 em testes de resistência à vontade.
+runa-leben|Runas|Passivas|Leben||3000||Runa passiva|Concede ao usuário +10 de Pontos de Vida, estes pontos de vida não se juntam ao seus pontos de vida base, porém são os primeiros a serem perdido.
+runa-flammen|Runas|Ativas|Flammen||6000||Runa ativa|Concede dano de 1d6 de dano extra de chamas para o equipamento ativa 1 vez por turno.
+runa-eis|Runas|Ativas|Eis||6000||Runa ativa|Concede dano de 1d6 de dano extra de gelo para o equipamento. ativa 1 vez por turno.
+runa-blitz|Runas|Ativas|Blitz||6000||Runa ativa|Concede dano de 1d6 de dano extra de raio para o equipamento.ativa 1 vez por turno.
+runa-wasser|Runas|Ativas|Wasser||6000||Runa ativa|Concede dano de 1d6 de dano extra de água para o equipamento. ativa 1 vez por turno.
+runa-wind|Runas|Ativas|Wind||6000||Runa ativa|Concede dano de 1d6 de dano extra de vento para o equipamento. ativa 1 vez por turno.
+runa-gift|Runas|Ativas|Gift||8000||Runa ativa|Concede dano de 1d4 de dano extra veneno para o equipamento. ativa 1 vez por turno. Alvo deve fazer testes de fortitude ou fica envenenado.
+runa-gottlich|Runas|Ativas|Göttlich||10000||Runa ativa|Concede dano de 1d4 de dano extra divino para o equipamento.
+runa-dunkelheit|Runas|Ativas|Dunkelheit||10000||Runa ativa|Concede dano de 1d4 de dano extra necrótico para o equipamento.
+runa-vampir|Runas|Ativas|Vampir||3000||Runa ativa|Concede dano de 1d6 de dano extra vampírico para o equipamento cura metade do dano extra.
+runa-die-schwache|Runas|Ativas|Die schwäche||5000||Runa ativa|Causa redução de 2 pontos de RD ao alvo sempre que acerta o alvo até o fim do turno (não se acumula).
+runa-vitalitat-aprimorada|Runas|Aprimoradas, passivas|Vitalität (aprimorada)||10000||Runa passiva aprimorada|Amplia em +5 a quantidade de Pontos de Vida obtidas por nível(pode ser aplicada mais de uma vez no mesmo equipamento.).
+runa-kraft-aprimorada|Runas|Aprimoradas, passivas|Kraft (aprimorada)||9000||Runa passiva aprimorada|Amplia em +3 em testes de resistência fortitude(pode ser aplicada mais de uma vez no mesmo equipamento.).
+runa-reflex-aprimorada|Runas|Aprimoradas, passivas|Reflex (aprimorada)||9000||Runa passiva aprimorada|Amplia em +3 em testes de resistência reflexo(pode ser aplicada mais de uma vez no mesmo equipamento.).
+runa-wille-aprimorada|Runas|Aprimoradas, passivas|Wille (aprimorada)||9000||Runa passiva aprimorada|Amplia em +3 e em testes de resistência à vontade(pode ser aplicada mais de uma vez no mesmo equipamento.).
+runa-leben-aprimorada|Runas|Aprimoradas, passivas|Leben (aprimorada)||15000||Runa passiva aprimorada|Concede ao usuário +50 de Pontos de Vida, estes pontos de vida não se juntam ao seus pontos de vida base, porém são os primeiros a serem perdidos(pode ser aplicada mais de uma vez no mesmo equipamento.).
+runa-flammen-aprimorada|Runas|Aprimoradas, ativas|Flammen (aprimorada)||12000||Runa ativa aprimorada|Concede dano de 2d6 de dano extra de chamas para o equipamento.
+runa-eis-aprimorada|Runas|Aprimoradas, ativas|Eis (aprimorada)||12000||Runa ativa aprimorada|Concede dano de 2d6 de dano extra de gelo para o equipamento.
+runa-blitz-aprimorada|Runas|Aprimoradas, ativas|Blitz (aprimorada)||12000||Runa ativa aprimorada|Concede dano de 2d6 de dano extra de raio para o equipamento.
+runa-wasser-aprimorada|Runas|Aprimoradas, ativas|Wasser (aprimorada)||12000||Runa ativa aprimorada|Concede dano de 2d6 de dano extra de água para o equipamento.
+runa-wind-aprimorada|Runas|Aprimoradas, ativas|Wind (aprimorada)||12000||Runa ativa aprimorada|Concede dano de 2d6 de dano extra de vento para o equipamento.
+runa-gift-aprimorada|Runas|Aprimoradas, ativas|Gift (aprimorada)||15000||Runa ativa aprimorada|Concede dano de 2d4 de dano extra veneno para o equipamento.
+runa-gottlich-aprimorada|Runas|Aprimoradas, ativas|Göttlich (aprimorada)||20000||Runa ativa aprimorada|Concede dano de 1d6 de dano extra divino para o equipamento.
+runa-dunkelheit-aprimorada|Runas|Aprimoradas, ativas|Dunkelheit (aprimorada)||20000||Runa ativa aprimorada|Concede dano de 1d6 de dano extra necrótico para o equipamento.
+runa-vampir-aprimorada|Runas|Aprimoradas, ativas|Vampir (aprimorada)||18000||Runa ativa aprimorada|Concede dano de 2d6 de dano extra vampírico para o equipamento.
+runa-die-schwache-aprimorada|Runas|Aprimoradas, ativas|Die schwäche (aprimorada)||18000||Runa ativa aprimorada|Causa redução de 4 pontos de RD ao alvo sempre que acertar o mesmo.
+implante-braco-de-gorila|Implantes|Dano|Braço de gorila||||Implante · Custa 8% de sanidade|Com essa modificação seus ataques corpo a corpo com essa arma causa+1d6 a mais de dano.
+implante-gerador-de-micro-vibracao|Implantes|Dano|Gerador de micro-vibração||||Implante · Custa 3% de sanidade|Essa modificação que afeta os tendões do seu braço ela te dará +1d4.
+implante-estimulador-do-sistema-limbico|Implantes|Dano|Estimulador do sistema límbico||||Implante · Custa 6% de sanidade|Com essa modificação ela permite que a margem de ameaça da sua arma baixe em + 1.
+implante-tendoes-reforcados|Implantes|Dano|Tendões reforçados||||Implante · Custa 6% de sanidade|Com essa modificação você conseguir saltar mais alto que o comum e seu deslocamento aumenta de acordo com sua raça.
+implante-olhos-de-aguia|Implantes|Dano|Olhos de águia||||Implante · Custa 5% de sanidade|Essa modificação permite que seu usuário na hora de usar sua arma a distância ganha 1d6 de dano extra.
+implante-braco-monstruoso|Implantes|Dano (raro)|Braço monstruoso||||Implante · Custa 18% de sanidade|Diferente da modificação anterior essa é diferente pois ele aumenta em 1 passo a categoria de dano.
+implante-medula-ossea|Implantes|Dano (raro)|Medula óssea||||Implante · Custa 12% de sanidade|Com essa modificação que vai nos ossos do seu braço aumenta +2d6 de dano de dano porém cada ataque agora só pode ser feito empunhando com as duas mãos caso não seja você perde tudo que ganharam com ela.
+implante-olhos-perfeitos|Implantes|Dano (raro)|Olhos perfeitos||||Implante · Custa 18% de sanidade|Com essa atualização você você ganha 2d10 de dano extra com armas a distância.
+implante-armadura-hipodermica|Implantes|Saúde|Armadura hipodérmica||||Implante · Custa 5% de sanidade|Esse implante e o menos doloroso e um pequena pano transparente que gruda na sua pele e Essa modificação não te dará nem um tipo de C.a e você ganhará 3 de resistência a todo tipo de dano não mágico.
+implante-nano-cirurgioes|Implantes|Saúde|Nano-cirurgiões||||Implante · Custa 8% de sanidade|São pequenos nanos robôs que irá para o seu ferimentos e trataram ele lembrando ele não cura ferimentos de morte ou membro arrancado, bom com eles você cura 2d8+ Mod de constituição.
+implante-vasos-bioplaticos|Implantes|Saúde|Vasos bioplaticos||||Implante · Custa 4% de sanidade|Os seus vasos sanguíneos são totalmente mente modificados e toda vez que você recebê cura você aumenta em +3.
+implante-segundo-coracao-pequeno|Implantes|Saúde|Segundo coração pequeno||||Implante · Custa 10% de sanidade|Ao lado do seu coração, outro pequeno coração é implantado e com ele quando você atingir 0 pontos de vida, você deve fazer um teste de vontade Dt 22 para volta com 10% da sua vida.
+implante-otimizador-do-corpo|Implantes|Saúde|Otimizador do corpo||||Implante · Custa 12% de sanidade|Você aumenta seu tempo de vida sua saúde fica melhor você ganha 15 pontos de vida permanente.
+implante-armadura-hipodermica-raro|Implantes|Saúde (raro)|Armadura hipodérmica (raro)||||Implante · Custa 15% de sanidade|A sua armadura sofrerá uma atualização para melhorar ela aumentando em 6 a resistência a dano e 2 de resistência a magia.
+implante-nano-cirurgioes-ger|Implantes|Saúde (raro)|Nano-cirurgiões ger||||Implante · Custa 20% de sanidade|São pequenos nanos robôs que irá para o seu ferimentos e trataram ele lembrando ele agora ele cura ferimentos que foram capaz de te mata e não cura membros arrancados cura 4d8 + Mod de constituição.
+implante-vasos-bioplaticos-reforcado|Implantes|Saúde (raro)|Vasos bioplaticos reforçado||||Implante · Custa 8% de sanidade|Os seus vasos sanguíneos são totalmente mente reforçados e toda vez que você recebê cura você aumenta em +6.
+implante-segundo-coracao-identico|Implantes|Saúde (raro)|Segundo coração idêntico||||Implante · Custa 25% de sanidade|Ao lado do seu coração, outro coração idêntico ao de verdade é implantado e com ele quando você atingir 0 pontos de vida, você deve fazer um teste de vontade Dt 28 para volta com 40% da sua vida.
+implante-otimizador-de-corpo-supremo|Implantes|Saúde (raro)|Otimizador de corpo supremo||||Implante · Custa 28% de sanidade|Você aumenta seu tempo de vida sua saúde fica melhor você ganha 30 pontos de vida permanente.
+implante-grab-stichel|Implantes|Combate|Grab Stichel||||Implante · Custa 8% de sanidade|São duas lâminas retráteis que sai das suas mãos e causa 1d8 de dano cada uma das lâminas.
+implante-laminas-de-louva-deus|Implantes|Combate|Lâminas de louva deus||||Implante · Custa 5% de sanidade|Essas lâminas que sai dos seus antebraços e não causa nem um tipo de dano a serve apenas para escalar.
+implante-monostringe|Implantes|Combate|Monostringe||||Implante · Custa 8% de sanidade|Da palma da sua mão sai um fio de fibra que causa 2d6 de electricidade.
+implante-sistema-de-laser|Implantes|Combate (raro)|Sistema de laser||||Implante · Custa 12% de sanidade|Você pode solta um tiro de laser da sua mão que causa 2d6 de electricidade e 2d6 de dano de fogo.
+implante-sistema-de-vibro-lamina|Implantes|Combate (raro)|Sistema de vibro lâmina||||Implante · Custa 12% de sanidade|Com essa modificação você pode transformar o seu braço que sai uma lâmina retráteis que causa 1d10 de dano de energia.
+</script>
+
+<script type="text/plain" id="d-quals">
+q|Acrobata|1|+2 em Acrobacia.
+q|Aura Carismática|2|A menos de 4 m de um aliado, ambos recebem +2 em testes de Carisma.
+q|Aura Inspiradora|3|3 vezes por dia, aliados a até 4 m ganham 1d8 em qualquer teste por um turno.
+q|Audição Aguçada|3|+2 em Percepção baseada em audição.
+q|Afinidade com a Morte|4|Ao abater, teste de História (CD 17) para uma prece: +2 PV permanentes.
+q|Comando Rápido|1|Antes da iniciativa, Tática (DT 15): você e aliados ganham +2 em Iniciativa.
+q|Concentração Anormal|1|+2 para resistir à quebra de concentração (meditar, vontade).
+q|Coragem Descomunal|1|+2 em testes de resistência a intimidação.
+q|Corpo Poderoso|3|A cada dois turnos recupera 1d8 + mod. Constituição de PV.
+q|Defensor Implacável|3|Ação bônus: um aliado a até 9 m ganha +2 de C.A. por 1d6 turnos.
+q|Determinação Inumana|2|Ignora os efeitos de Sangrando e Fatigado por 2 turnos.
+q|Dom de Líder|2|Aliados a até 6 m ganham +1 em ataque enquanto ouvirem sua voz.
+q|Empatia Sobrenatural|2|Vantagem em Intuição e detecta mentiras após observar por 1 turno.
+q|Escudo de Carne|4|Reação: toma o ataque no lugar de um aliado; 2 PM dão 1d10 de redução de dano (máx. 10).
+q|Especialista em Venenos|4|Sobrevivência (CD 18) para descobrir venenos e suas curas.
+q|Espírito Indomável|3|Uma vez por descanso longo, refaz um teste de Vontade que falhou.
+q|Esquiva|3|+2 em Reflexo.
+q|Faro Aguçado|2|+2 em Percepção baseada em cheiro.
+q|Foco na Fama|3|+1 em testes quando estiver sendo visto por outras criaturas (requer Carisma 13).
+q|Foco Inabalável|3|Uma vez por cena, ignora distração, medo ou dor por 1 turno.
+q|Fonte de Poder|3|+3 PM por nível (a ficha soma sozinha).
+q|Força Descomunal|2|Capacidade de carga +20 kg.
+q|Frenesi Berserker|3|Uma vez por dia: 1d10 de redução de dano e +1d8 de dano corpo a corpo por 1d6 turnos.
+q|Fúria Incontrolável|4|Uma vez por dia: +2 em ataque e +1d8 de dano, mas -2 nas defesas até o fim do combate.
+q|Lábia Persuasiva|2|+2 em Persuasão.
+q|Memória Eidética|1|Vantagem para lembrar informações, símbolos, rostos e trajetos.
+q|Vontade Inabalável|3|Uma vez por dia, reação para se livrar de um efeito mental ou físico.
+q|Instintos Naturais|3|Ao chegar a um lugar novo, Intuição para ser avisado de perigos.
+q|Instinto de Sobrevivência|2|Abaixo de 25% dos PV: +2 em Reflexo e Fortitude até o fim do combate.
+q|Melhor Amigo|2|Com seu melhor amigo à vista, ambos ganham +1 em qualquer teste.
+q|Mente Focada|2|+2 em Vontade contra efeitos mentais.
+q|Mestre Marcial|3|O dano desarmado sobe uma categoria.
+q|Mãos Leves|3|Vantagem em Furtividade para pegar itens sem ser notado.
+q|Não Tema a Morte|4|A 0 PV, uma vez por dia: Vontade (DT 20) para levantar com Constituição + 2d10 de vida.
+q|Poder Sobrenatural|2|+2 para resistir a efeitos de magias.
+q|Poder da Amizade|3|Uma vez por dia, criaturas iguais ao seu bônus de proficiência ganham resistência a qualquer dano por 1 turno.
+q|Presença Intimidadora|2|Intimidação contra a Vontade dos alvos: inimigos sofrem -2 no primeiro turno.
+q|Sangue Antigo|4|Resistência 5 a um tipo de dano (fogo, gelo, veneno ou necrótico).
+q|Sorte de Ferro|3|Uma vez por dia, transforma uma falha em sucesso simples (não vale para falha crítica).
+q|Ocultação|4|+2 em Furtividade e ataques furtivos causam +1d de dano.
+q|Olhos de Falcão|2|+2 em Percepção baseada em visão.
+q|Resistência Física|4|2 de redução de dano e vantagem em Fortitude contra Sangramento, Atordoamento e Envenenamento.
+q|Social|1|+2 em Persuasão e Diplomacia.
+q|Sorte Anormal|4|Uma vez por dia, refaz um teste que falhou.
+q|Sobrevida|3|+3 PV por nível (a ficha soma sozinha).
+q|Superando Limites|3|Abaixo da metade dos PV: +2 em todos os testes e vantagem em ataques por 1d4 turnos.
+q|Voz Hipnotizante|2|Três vezes por dia, Persuasão deixa o alvo Fascinado por 1 turno.
+d|Amnésia|1|Perda de memória: não lembra do próprio passado.
+d|Amoroso|2|Vontade (CD 18) ao ver alguém belo: fica Apaixonado e protege essa pessoa.
+d|Azarado|3|Três vezes por dia o mestre transforma um sucesso seu ou de um aliado a 9 m em falha crítica.
+d|Cabeça a Prêmio|2|Uma vez por sessão, 1d100 acima de 50 faz um inimigo aparecer para te matar.
+d|Cego|3|Condição Cego permanente, com +2 em testes de audição.
+d|Culpado|3|Vontade ao ver o mal ser feito: -5 em testes até o fim da cena se falhar.
+d|Código de Honra|1 a 3|Quebrar o código dá desvantagem em todas as jogadas até o fim do dia.
+d|Coração de Gelo|3|-4 em Diplomacia e Religião.
+d|Desatento|1|Desvantagem em Percepção passiva e 25% mais chance de ser surpreendido.
+d|Debochado|1|No primeiro turno do combate os inimigos focam em você.
+d|Dependente|3|Três horas sem o vício: -4 em todos os testes até saciar.
+d|Desconfiado|1|Desvantagem em Diplomacia com quem você conhece há menos de 1 mês.
+d|Desleixado|2|Ao fim da sessão, 1d100 abaixo de 40 faz você perder um item aleatório.
+d|Desprezo|2|Despreza humanos: Vontade (DT 25) ao interagir, com efeitos negativos se falhar.
+d|Explosivo|2|Falha sozinho em Vontade contra intimidação ou provocação e fica Enfurecido.
+d|Ferimento Permanente|2|Ao ser atingido no local da ferida, recebe +1d de dano.
+d|Fobia|1 a 3|Medo de algo combinado com o mestre, com penalidades próprias.
+d|Ganancioso|2|Vontade (DT 20) para não tentar roubar ouro ou itens raros.
+d|Hemofilia|2|Falha sozinho em testes de Sangramento e recebe 1d a mais de dano de sangramento.
+d|Impopular|1|Recebe metade dos pontos de popularidade.
+d|Impulsividade|2|Vontade (DT 20) para não agir por impulso em situações delicadas.
+d|Ingênuo|1|-3 em Intuição.
+d|Ingenuidade Extrema|2|Falha sozinho em Intuição contra Enganação.
+d|Insônia|2|Ao descansar, Fortitude (DT 23) ou recebe só metade dos benefícios.
+d|Má Reputação|2|Metade dos pontos de popularidade e -2 em interação social.
+d|Medo de Escuro|1|Em local pouco iluminado, Vontade (DT 18) ou -2 em todos os testes até sair.
+d|Mudo|3|Incapaz de se comunicar falando.
+d|Perda de Memória recente|?|Vontade (DT do mestre) toda vez que quiser lembrar algo recente. O livro não informa os pontos.
+d|Pessimista|3|Ao tirar 20 natural, role 1d10: de 1 a 5 vira falha crítica.
+d|Sede de Poder|2|Desvantagem em Vontade contra tentações de poder e prestígio.
+d|Sem Braço ou Mão|3|Desvantagem em Atletismo, -2 em acerto e não segura nada com o membro que falta.
+d|Sem Perna ou Pé|3|Desvantagem em Acrobacia e Reflexo para se mover e deslocamento cortado pela metade.
+d|Senso de direção ruim|2|Uma vez por cena, 1d100 abaixo de 51 faz você andar para uma direção aleatória.
+d|Sincero ao Extremo|2|Não guarda segredos nem aceita mentiras na sua frente.
+d|Síndrome de Riley-Day|3|Não sente dor: não sabe quanta vida perdeu nem se está envenenado.
+d|Sonolento|2|No início de cada cena, Fortitude (DT 15) para não ficar Sonolento.
+d|Supersticioso|1|Ao ver um mau agouro, -2 em testes até o fim da cena.
+d|Surdo|3|Condição Surdo permanente.
+d|Teimosia|1|Insiste em uma ação até ter sucesso, sem pensar nas consequências.
+d|Timidez Excessiva|2|-2 em qualquer teste enquanto estiver sendo visto.
+d|Trauma|1 a 3|Trauma de passado combinado com o mestre, com penalidade própria.
+d|Visão Ruim|2|Desvantagem em Percepção ligada à visão.
+</script>
+
+<script>
+(function () {
+'use strict';
+
+/* ================= utilidades ================= */
+var $ = function (s, r) { return (r || document).querySelector(s); };
+var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+var cl = function (n, a, b) { return Math.max(a, Math.min(b, n)); };
+var num = function (v) { var n = parseFloat(String(v === undefined || v === null ? '' : v).replace(',', '.')); return isFinite(n) ? n : 0; };
+var has = function (v) { return v !== undefined && v !== null && String(v).trim() !== ''; };
+var fmt = function (n) { return n >= 0 ? '+' + n : '-' + Math.abs(n); };
+var norm = function (s) { return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim(); };
+var uid = function () { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); };
+function setT(id, t) { var e = document.getElementById(id); t = String(t); if (e && e.textContent !== t) e.textContent = t; }
+function setMsg(id, kind, t) { var e = document.getElementById(id); if (!e) return; e.className = 'msg' + (t ? ' ' + kind : ''); e.textContent = t || ''; }
+function getPath(o, p) { return p.split('.').reduce(function (a, k) { return a == null ? a : a[k]; }, o); }
+function setPath(o, p, v) { var k = p.split('.'), t = o; for (var i = 0; i < k.length - 1; i++) { if (t[k[i]] == null || typeof t[k[i]] !== 'object') t[k[i]] = {}; t = t[k[i]]; } t[k[k.length - 1]] = v; }
+function unsetPath(o, p) { var k = p.split('.'), t = o; for (var i = 0; i < k.length - 1; i++) { t = t[k[i]]; if (t == null || typeof t !== 'object') return; } delete t[k[k.length - 1]]; }
+
+/* ================= regras do livro ================= */
+var ATTRS = [['car', 'Carisma'], ['con', 'Constituição'], ['des', 'Destreza'], ['for', 'Força'], ['int', 'Intelecto'], ['pre', 'Presença']];
+var ASI = [4, 8, 11, 14, 18, 20];
+var XP = [0, 1000, 4000, 9000, 15000, 21000, 28000, 38000, 48000, 59000, 80000, 105000, 130000, 160000, 190000, 230000, 290000, 360000, 500000, 700000];
+var LCM = [8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 46, 50];
+var BONUS = [-1, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 4];
+function aBonus(v) { return BONUS[cl(Math.round(v), 0, 12)]; }
+function aDice(v) { v = cl(Math.round(v), 0, 12); return v === 0 ? 2 : v <= 5 ? 1 : v <= 9 ? 2 : 3; }
+function prof(l) { return l <= 5 ? 1 : l <= 10 ? 2 : l <= 15 ? 3 : l <= 18 ? 4 : 5; }
+function xpLevel(x) { var l = 1; for (var i = 0; i < 20; i++) if (x >= XP[i]) l = i + 1; return l; }
+var GRAU = ['Sem grau', 'Treinado', 'Veterano', 'Gênio'];
+var GB = [0, 2, 3, 4];
+
+var SKILLS = [
+  ['Acrobacia', 'des', 0, 1, 0, 'Equilíbrio, saltos, rolamentos e reduzir dano de queda.'],
+  ['Atletismo', 'for', 0, 1, 0, 'Escalar, nadar, correr, empurrar, levantar e resistir à exaustão.'],
+  ['Atuação', 'car', 0, 0, 0, 'Cantar, dançar, atuar e impressionar plateias.'],
+  ['Conhecimento arcano', 'int', 1, 0, 0, 'Identificar magias, itens e rituais e entender a mana.'],
+  ['Criação de item', 'int', 1, 0, 1, 'Fabricar, encantar, reparar e modificar itens.'],
+  ['Crime', 'des', 1, 1, 1, 'Arrombar, roubar bolsos, falsificar e sabotar armadilhas simples.'],
+  ['Diplomacia', 'car', 0, 0, 0, 'Convencer sem mentir, negociar e acalmar conflitos.'],
+  ['Enganação', 'car', 0, 0, 0, 'Mentir, blefar e disfarçar intenções.'],
+  ['Fortitude', 'con', 0, 0, 0, 'Resistir a venenos, doenças, fadiga e dor.'],
+  ['Furtividade', 'des', 0, 1, 0, 'Esconder-se, mover-se em silêncio e emboscar.'],
+  ['História', 'int', 0, 0, 0, 'Eventos, reinos, símbolos e ruínas antigas.'],
+  ['Iniciativa', 'des', 0, 0, 0, 'Agir primeiro e reagir a ameaças.'],
+  ['Intimidação', 'pre', 0, 0, 0, 'Amedrontar, forçar confissões e impor respeito.'],
+  ['Investigação', 'int', 0, 0, 0, 'Achar pistas, reconstruir cenas e detectar inconsistências.'],
+  ['Intuição', 'pre', 0, 0, 0, 'Sentir mentiras, intenções e perigos sociais.'],
+  ['Lidar com animais', 'pre', 1, 0, 0, 'Acalmar, assustar e treinar animais.'],
+  ['Luta', 'for', 0, 0, 0, 'Combate corpo a corpo técnico e artes marciais.'],
+  ['Medicina', 'int', 1, 0, 1, 'Estabilizar feridos, tratar doenças e fazer cirurgias simples.'],
+  ['Meditação', 'int', 0, 0, 0, 'Recuperar mana ou sanidade e resistir a efeitos mentais.'],
+  ['Ofício', 'int', 0, 0, 0, 'Profissão manual comum, como ferreiro ou cozinheiro.'],
+  ['Percepção', 'pre', 0, 0, 0, 'Notar inimigos, sons e detalhes.'],
+  ['Pilotagem', 'des', 1, 0, 0, 'Conduzir veículos e montarias mecânicas.'],
+  ['Pontaria', 'des', 1, 0, 0, 'Ataques à distância e disparos precisos.'],
+  ['Reflexo', 'des', 0, 0, 0, 'Desviar de ataques, explosões e armadilhas.'],
+  ['Religião', 'car', 1, 0, 0, 'Deuses, cultos, rituais e dogmas.'],
+  ['Sobrevivência', 'int', 0, 0, 0, 'Caçar, rastrear, acampar e resistir ao clima.'],
+  ['Tática', 'int', 1, 0, 0, 'Planejar batalhas e coordenar aliados.'],
+  ['Tecnologia', 'int', 1, 0, 1, 'Operar, reparar e hackear máquinas e sistemas.'],
+  ['Vontade', 'car', 0, 0, 0, 'Resistir a controle mental, medo e magia mental.']
+].map(function (r) { return { k: norm(r[0]), n: r[0], a: r[1], so: !!r[2], carga: !!r[3], kit: !!r[4], d: r[5] }; });
+var ATTRNAME = {}; ATTRS.forEach(function (a) { ATTRNAME[a[0]] = a[1]; });
+
+/* ================= dados: classes, raças, qualidades ================= */
+function parseClasses(txt) {
+  var out = [], cur = null;
+  txt.split('\n').forEach(function (line) {
+    line = line.trim(); if (!line) return;
+    if (line[0] === '@') { cur = { n: line.slice(1).trim(), pv: null, pvd: '', pm: null, pmn: null, tr: null, per: [], prof: '', nota: '', pmRot: 'PM', lv: {} }; out.push(cur); return; }
+    var m = /^(\d+)\|(.*)$/.exec(line);
+    if (m) { cur.lv[+m[1]] = m[2]; return; }
+    var i = line.indexOf('='); if (i < 0) return;
+    var k = line.slice(0, i), v = line.slice(i + 1).trim();
+    if (k === 'pv') cur.pv = +v; else if (k === 'dado') cur.pvd = v; else if (k === 'pm') cur.pm = +v; else if (k === 'pmn') cur.pmn = +v;
+    else if (k === 'tr') cur.tr = +v; else if (k === 'per') cur.per = v.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+    else if (k === 'prof') cur.prof = v; else if (k === 'nota') cur.nota = v; else if (k === 'pmrot') cur.pmRot = v;
+  });
+  return out;
+}
+var CLASSES = parseClasses($('#d-classes').textContent);
+var CBYN = {}; CLASSES.forEach(function (c) { CBYN[c.n] = c; c.perSet = {}; c.per.forEach(function (p) { c.perSet[norm(p)] = 1; }); c.hasLv = Object.keys(c.lv).length > 0; });
+
+var RACES = [
+  { n: 'Anões', tam: '-', desl: '-', inc: 1, t: 'O livro ainda não tem texto para esta raça.' },
+  { n: 'Demon Weapon', tam: '-', desl: '-', t: 'Uma arma fundida com uma criatura. Foco em alma: quando é empunhada, dá 4 pontos de ação ao portador e +1 em um atributo à sua escolha (o portador recebe o mesmo bônus). Ganha mais pontos de ação nos níveis 5, 10, 15 e 20, e no 10 ganha Ações evoluídas. Preço da assinatura: dreno de energia ou mana, risco de possessão e mutação.' },
+  { n: 'Espírito vagante', tam: '1,30 a 3,00 m', desl: '8 m no corpo físico, 12 m no espectral', t: 'Duas formas. Casca vazia: +1 Destreza, interage com o mundo físico e não conjura. Espectral: atravessa criaturas e obstáculos finos, conjura magias e tem resistência a dano físico, mas não interage com objetos e sofre o dobro de dano mágico na alma. É ligado a um Objeto Âncora: se ele for danificado, roubado ou destruído, você sofre.' },
+  { n: 'Facebreaker', tam: '1,90 a 3,00 m', desl: '5 m', t: 'Quatro braços: até dois ataques desarmados extras por turno, cada um com -3 no ataque. Soco 1d6 (1d8 com manopla), +1 Força e +2 Fortitude. Não usa armadura média nem pesada, rola Furtividade com desvantagem e não soma proficiência em testes de Carisma. Pontos de Fúria (PF) máximos: 5 + mod. Constituição. Ataque poderoso custa 3 PF e Explosão de mana custa 12 PF.' },
+  { n: 'Frankenstein', tam: 'variável', desl: 'variável', t: '+1 Constituição e uma perícia adicional (Versatilidade costurada). Resistência a dano elétrico e recupera 1 PM ao sofrer dano elétrico (máx. 3 por rodada). Reserva de Energia (RE) igual ao PM máximo, usada em Inflar (+1 dado de dano em ataque desarmado a cada 3 RE, máx. +2). Evolui nos níveis 5, 10, 15 e 20. Fraqueza grave a fogo.' },
+  { n: 'Humano', tam: '1,60 a 2,00 m', desl: '9 m', t: 'Escolha um traço. Humanos dos céus: +1 Inteligência e 2d20×500 de Gil inicial. Humanos plebeus: +1 em um atributo, +2 em uma perícia, 580 de Gil e peixeira. Humanos do deserto: ainda sem texto. Vantagem: Grito de Karton (o próximo ataque no mesmo alvo causa +1 dado da arma, 1 + mod. Força usos por descanso longo). Evolução: nível 5 uma perícia vira Veterano; 10 +1 atributo; 15 habilidade racial extra; 20 qualquer talento sem pré-requisito.' },
+  { n: 'Homem-sapo', tam: '1,20 a 1,50 m', desl: '6 m (pulo de 12 m)', t: 'Visão no escuro (9 m). Pulo anuro fixo em 12 m. Traços: Sapos-verdes (+1 Força ou Constituição, +2 de C.A. contra criaturas Grandes ou maiores), Sapos-azuis (+1 Constituição, Borrifada tóxica) e Sapos-vermelhos (+1 Inteligência, uma magia extra de Rank F).' },
+  { n: 'Goblin', tam: '1,50 a 2,00 m', desl: '9 m', t: 'Visão no escuro (9 m). Traços: Goblin-comum (+1 Destreza, +2 Furtividade, +2 na C.A. base, armas de arremesso +1d6), Goblin-grande (+1 Força ou Constituição, +3 Fortitude contra doenças e venenos, Armadura Óssea) e Goblin-inteligente (+1 Inteligência, +2 Criação de item, +2 contra efeitos mentais).' },
+  { n: 'Iglesia', tam: '1,30 a 3,00 m', desl: '9 m', t: 'Hollow artificial. Desvantagem em testes para intimidar ou controlar sua mente e +1 ponto de atributo ligado à habilidade própria. Evolui por pontos: Habilidade própria (nível 1), Sonido (5), Cero (7), Inex (10), Sonido aprimorado (14), Gran Rey cero (16), Habilidade própria aprimorada (17) e Devas (20). Natureza volátil de Hollow.' },
+  { n: 'Lobisomem', tam: '-', desl: '10, 12, 15 ou 18 m conforme a forma', t: 'Faro aguçado (+4 em Percepção por cheiro) e visão na penumbra. Vulnerável a prata e acônito. Na Lua Cheia o mestre rola 1d4 para a forma: Glabro (+1 For, +1 Int, -2 Car), Crinos (+1 For, +1 Con, -2 Int), Hispos (+1 Des, +1 Pre, -2 Con) ou Lúpus (+2 Int, -2 For). Ganha PV temporários e Frenesi Carniceiro, e perde Sanidade se matar inocentes.' },
+  { n: 'Meio-anjo', tam: '1,60 a 2,00 m', desl: '9 m, voo de 12 m', t: '+1 em um atributo à escolha. Bênção celestial (proteção de 30 C.R. por 1 rodada), Graça angelical (cura gastando 6 PV seus) e Golpe de luz. Desvantagem: -4 em Intuição e Iniciativa e desvantagem em Intimidação, mas vantagem em Diplomacia.' },
+  { n: 'Meio-orc', tam: '1,80 a 2,00 m', desl: '9 m', t: 'Desvantagem em Diplomacia e Enganação. Traços: Orc talentoso (+1 Constituição, exoesqueleto +4 em C.A. e C.R.), Orc de guerra (+1 Força, +2 Intimidação, ataque extra com -3) e Orc ancestral (+2 Conhecimento arcano e +1 atributo à escolha). Ganha pontos de evolução ao derrotar inimigos.' },
+  { n: 'Meio-elfo', tam: '1,80 a 2,20 m', desl: '9 m', t: 'Arma Nyss (obra-prima, mágica +1 e +1 a cada 4 níveis). Traços: Elfo-negro (+2 Conhecimento arcano, +1 atributo, Criar chamas, -4 em Diplomacia e Intimidação com outros elfos), Elfo-luminoso (+2 Conhecimento arcano, +1 ponto de atributo, Chamado da mana) e Elfo do reino (+1 Destreza e uma perícia extra).' },
+  { n: 'Meio-demônio', tam: '1,70 m ou mais', desl: '9 m', t: '+1 em dois atributos e um talento de combate. Habilidades Hakai (nível 1), Setsu (3), Kyō (5) e Kasai (6). +2 em Intimidação e não pode ter a perícia Religião. Desvantagem: ao chegar a um lugar novo, 1d100 acima de 45 atrai alguém para te matar.' },
+  { n: 'Meio Dragão', tam: 'Médio ou Grande', desl: '9 m', t: 'RD 2 contra o elemento da linhagem. Sopro dracônico: 2 + mod. Constituição usos por descanso longo. Linhagens: Vermelho (+1 For, +1 Int, -1 Car), Branco (+1 Des, +1 Int, -1 Car), Negro (+1 Con, +1 Des, -1 Car), Azul (+1 Con, +1 Car, -1 Int), Verde (+1 For, +1 Car, -1 Des) e Marinho (+1 For, +1 Con, -1 Des).' },
+  { n: 'Nephalem', tam: '1,80 a 2,80 m', desl: '9 m', t: 'Filho de demônio e anjo. Convergência: com ação bônus e 5 PM divide o tipo de dano. Desvantagem de -2 em todos os testes de Inteligência e fome dobrada. C.R. sobe para 10 no nível 10 e para 15 no nível 15.' },
+  { n: 'Preticita', tam: '-', desl: '-', t: 'Ser de mana rúnica. Dieta rúnica: a cada 5 níveis ganha uma Marca Rúnica (+1 em uma perícia e +1d4 de dano mágico). Sifão de mana: reação para reduzir dano de magia em um valor igual ao mod. Inteligência e recuperar PM. Começa com uma runa e +1 de atributo à escolha. Sensível a zonas de antimagia.' },
+  { n: 'Vampiro', tam: '1,80 a 2,80 m', desl: '9 m', inc: 1, t: 'Quatro tipos, entre eles Cristal, Psíquico e Biomecânico. Vantagens variam por tipo, como Memória celular (+1 Inteligência) e Mordida (1d6 + Força). Vulnerável a fogo e luz, precisa de sangue a cada 24 h. Parte das tabelas de evolução ainda está vazia no livro.' },
+  { n: 'SliMax', tam: '1,30 a 2,30 m', desl: '9 m', t: 'Corpo amorfo: passa por frestas, tem vantagem em testes de Força e Destreza contra ser agarrado e ganha +1 Constituição. Não usa armadura comum. Dorme mais da metade do dia.' },
+  { n: 'Henge-Youkais', tam: '-', desl: '-', t: 'Animais místicos em forma humanoide. Transformação animal (ação completa, custo 1 + mod. Presença; ação bônus no nível 10). Variantes: Lhotlan (+1 Carisma, +2 Diplomacia, Tempestade de plumas), Neko (+2 Furtividade, Gato tem sete vidas) e Raposa de nove caudas (+1 em Conhecimento arcano ou Vontade por cauda).' }
+];
+var RBYN = {}; RACES.forEach(function (r) { RBYN[r.n] = r; });
+
+var QUALS = $('#d-quals').textContent.trim().split('\n').map(function (l) { var p = l.split('|'); return { t: p[0], n: p[1], c: p[2], d: p[3] }; });
+function qCost(q) { var s = q.t === 'q' ? '-' : '+'; return q.c === '?' ? '?' : s + q.c.replace(' a ', ' a ' + s); }
+function qPts(q) { var n = parseInt(q.c, 10); return isFinite(n) ? n : 0; }
+
+/* ================= estado e armazenamento ================= */
+var KEY = 'wz-ficha-v1', S = { fichas: [], atual: null }, memStore = null;
+function blank() {
+  var z = function () { return { car: '', con: '', des: '', 'for': '', int: '', pre: '' }; };
+  return { id: uid(), nome: '', jogador: '', race: '', cls: '', nivel: '1', xp: '', base: { car: '0', con: '1', des: '2', 'for': '3', int: '4', pre: '5' }, rb: z(), up: z(),
+    pvAtual: '', pmAtual: '', sanAtual: '', extra: { pv: '', pm: '', ca: '', cr: '', carga: '' }, over: { pv: '', pvd: '', pm: '', pmn: '', tr: '' }, pvMode: 'media', pvRolls: '',
+    dtAttr: 'int', dado: 'd20', form: 'pg', per: {}, tal: [], q: {}, pontosIni: '', inv: '', gil: '', notas: '', itens: {}, caixa: {} };
+}
+function fix(f) {
+  var b = blank();
+  Object.keys(b).forEach(function (k) {
+    if (f[k] === undefined || f[k] === null) f[k] = b[k];
+    else if (b[k] && typeof b[k] === 'object' && !Array.isArray(b[k])) f[k] = Object.assign({}, b[k], f[k]);
+  });
+  if (!Array.isArray(f.tal)) f.tal = [];
+  return fixInv(f);
+}
+function exemplo() {
+  var f = blank();
+  Object.assign(f, { nome: 'Personagem de exemplo', jogador: '', race: 'Humano', cls: 'Guerreiro espadachim', nivel: '5', xp: '15000',
+    notas: 'Esta é uma ficha de exemplo para você ver as contas funcionando. Toque em Nova para criar a sua.' });
+  f.base = { car: '2', con: '3', des: '4', 'for': '5', int: '1', pre: '0' };
+  f.rb.con = '1'; f.up['for'] = '1';
+  f.per = { luta: 1, atletismo: 1 };
+  f.gil = '580';
+  var t = Date.now();
+  [['arma-espada-longa', 1], ['armadura-couro-leve', 1], ['consumivel-pocao-de-cura-menor', 2], ['item-mochila-pequena', 1]].forEach(function (p, i) { var it = invFromCat(p[0], t + i); if (it) { it.q = p[1]; f.itens['ex' + i] = it; } });
+  f.caixa.ex0 = { v: -120, m: 'Hospedagem e comida na taverna', t: t + 10, a: '' };
+  f.caixa.ex1 = { v: 300, m: 'Recompensa por limpar o porão do ferreiro', t: t + 20, a: '' };
+  return f;
+}
+function load() {
+  var raw = null;
+  try { raw = window.localStorage.getItem(KEY); } catch (e) { raw = memStore; }
+  if (raw) { try { var o = JSON.parse(raw); if (o && Array.isArray(o.fichas) && o.fichas.length) { S = o; } } catch (e) { } }
+  S.fichas = S.fichas.map(fix);
+  if (!S.fichas.length) { S.fichas = [exemplo()]; }
+  if (!S.fichas.some(function (x) { return x.id === S.atual; })) S.atual = S.fichas[0].id;
+}
+function save() {
+  var s = JSON.stringify(S);
+  try { window.localStorage.setItem(KEY, s); } catch (e) { memStore = s; }
+}
+function cur() { for (var i = 0; i < S.fichas.length; i++) if (S.fichas[i].id === S.atual) return S.fichas[i]; return S.fichas[0]; }
+
+/* ================= regras: validar atributos ================= */
+var VALID = (function () {
+  var s = {}, base = [0, 1, 2, 3, 4, 5]; s[base.join()] = 'puro';
+  for (var i = 0; i < 6; i++) for (var j = 0; j < 6; j++) if (i !== j) {
+    var a = base.slice(); a[i]--; a[j]++;
+    if (a[i] >= 0 && a[j] <= 6) { var k = a.slice().sort(function (x, y) { return x - y; }).join(); if (!s[k]) s[k] = 'transf'; }
+  }
+  return s;
+})();
+
+/* ================= cálculo ================= */
+function compute(f) {
+  var cls = CBYN[f.cls] || null, race = RBYN[f.race] || null;
+  var L = cl(parseInt(f.nivel, 10) || 1, 1, 20);
+  var tot = {}, bn = {}, baseSum = 0, upSum = 0;
+  ATTRS.forEach(function (a) {
+    var k = a[0]; tot[k] = num(f.base[k]) + num(f.rb[k]) + num(f.up[k]); bn[k] = aBonus(tot[k]);
+    baseSum += num(f.base[k]); upSum += num(f.up[k]);
+  });
+  var o = f.over || {};
+  var pvBase = has(o.pv) ? num(o.pv) : (cls && cls.pv != null ? cls.pv : null);
+  var dado = has(o.pvd) ? String(o.pvd) : (cls ? cls.pvd : '');
+  var dm = /(\d+)\s*d\s*(\d+)/i.exec(dado);
+  // O livro chama de "vida média" metade do máximo do dado (2d6 = 6, 2d8 = 8), não a média estatística.
+  var avg = dm ? Math.floor(+dm[1] * +dm[2] / 2) : null;
+  var pmBase = has(o.pm) ? num(o.pm) : (cls && cls.pm != null ? cls.pm : null);
+  var pmn = has(o.pmn) ? num(o.pmn) : (cls && cls.pmn != null ? cls.pmn : null);
+  var tr = has(o.tr) ? num(o.tr) : (cls && cls.tr != null ? cls.tr : null);
+  var q = f.q || {};
+  var bPV = q['Sobrevida'] ? 3 * L : 0, bPM = q['Fonte de Poder'] ? 3 * L : 0;
+  var pv = null;
+  if (pvBase != null) {
+    if (f.pvMode === 'manual') pv = pvBase + bn.con + num(f.pvRolls) + (L - 1) * bn.con;
+    else if (avg != null) pv = pvBase + bn.con + (L - 1) * (avg + bn.con);
+    else pv = pvBase + bn.con;
+    pv += num(f.extra.pv) + bPV;
+  }
+  var pm = null;
+  if (pmBase != null) pm = pmBase + bn.int + (L - 1) * ((pmn || 0) + bn.int) + num(f.extra.pm) + bPM;
+  else if (num(f.extra.pm) || bPM) pm = num(f.extra.pm) + bPM;
+  var P = prof(L);
+  var dtA = f.dtAttr && bn[f.dtAttr] !== undefined ? f.dtAttr : 'int';
+  var c = {
+    cls: cls, race: race, L: L, tot: tot, bn: bn, baseSum: baseSum, upSum: upSum, pvBase: pvBase, dado: dado, avg: avg, pmBase: pmBase, pmn: pmn, tr: tr, pv: pv, pm: pm,
+    P: P, dtA: dtA, bPV: bPV, bPM: bPM,
+    ca: 10 + bn.des + num(f.extra.ca),
+    lcm: LCM[L - 1] + bn.pre,
+    dt: 12 + Math.floor(L / 2) + P + bn[dtA],
+    asiAvail: ASI.filter(function (l) { return l <= L; }).length
+  };
+  c.cr = bn.con + (pv != null ? Math.floor(pv / 20) : 0) + num(f.extra.cr);
+  var B = Math.max(0, bn.int);
+  c.budget = tr == null ? null : Math.max(0, tr + bn.int) + (L >= 4 ? B : 0) + (L >= 12 ? B : 0);
+  c.B = B;
+  return c;
+}
+function skillTotal(f, c, s) {
+  var g = num(f.per[s.k]) | 0, mod = c.bn[s.a];
+  if (g <= 0) return s.so ? null : mod;
+  if (f.form === 'p') return mod + c.P;
+  if (f.form === 'g') return mod + GB[g];
+  return mod + c.P + GB[g];
+}
+function rollText(v, base) {
+  var n = aDice(v), b = aBonus(v), s = n + base;
+  if (Math.round(v) === 0) s += ' (pega o pior)';
+  else if (n > 1 && base === 'd10') s += ' (soma)';
+  else if (n > 1 && base === 'd12') s += ' (melhor)';
+  return s + ' ' + fmt(b);
+}
+
+/* ================= construção da ficha ================= */
+var skRows = {}, talCount = -1, habKey = '', showAll = false, lastC = null;
+
+function buildSelects() {
+  $('#sel-race').innerHTML = '<option value="">Escolha a raça</option>' + RACES.map(function (r) { return '<option value="' + esc(r.n) + '">' + esc(r.n) + '</option>'; }).join('');
+  $('#sel-cls').innerHTML = '<option value="">Escolha a classe</option>' + CLASSES.map(function (c) { return '<option value="' + esc(c.n) + '">' + esc(c.n) + '</option>'; }).join('');
+  var h = ''; for (var i = 1; i <= 20; i++) h += '<option value="' + i + '">Nível ' + i + '</option>';
+  $('#sel-lv').innerHTML = h;
+  $('#sel-dt').innerHTML = ATTRS.map(function (a) { return '<option value="' + a[0] + '">' + a[1] + '</option>'; }).join('');
+}
+function buildAttrs() {
+  $('#attrs').innerHTML = ATTRS.map(function (a) {
+    var k = a[0];
+    return '<div class="attr"><div class="head"><span class="nm">' + a[1] + '</span><span class="tot" id="a-t-' + k + '">0</span></div>' +
+      '<div class="roll" id="a-r-' + k + '"></div>' +
+      '<div class="ins">' +
+      '<label class="f">Base<input type="number" inputmode="numeric" data-bind="base.' + k + '" aria-label="' + a[1] + ' base"></label>' +
+      '<label class="f">Raça<input type="number" inputmode="numeric" data-bind="rb.' + k + '" aria-label="' + a[1] + ' raça e outros" placeholder="0"></label>' +
+      '<label class="f">Nível<input type="number" inputmode="numeric" min="0" data-bind="up.' + k + '" aria-label="' + a[1] + ' aumentos de nível" placeholder="0"></label>' +
+      '</div></div>';
+  }).join('');
+}
+function buildSkills() {
+  var box = $('#skills'); box.innerHTML = '';
+  SKILLS.forEach(function (s) {
+    var row = document.createElement('div'); row.className = 'sk';
+    row.innerHTML = '<div class="nm">' + esc(s.n) + '<span class="chip" hidden>classe</span>' + (s.so ? '<span class="chip mut">só treinada</span>' : '') +
+      '<span class="at">' + ATTRNAME[s.a] + '</span></div>' +
+      '<select data-sk="' + s.k + '" aria-label="Grau de ' + esc(s.n) + '">' + GRAU.map(function (g, i) { return '<option value="' + i + '">' + g + '</option>'; }).join('') + '</select>' +
+      '<div class="t">0</div>';
+    box.appendChild(row);
+    skRows[s.k] = { row: row, sel: $('select', row), t: $('.t', row), chip: $('.chip', row) };
+  });
+}
+function buildQuals() {
+  ['q', 'd'].forEach(function (t) {
+    var list = QUALS.filter(function (x) { return x.t === t; });
+    $('#l-' + t).innerHTML = list.map(function (x) {
+      return '<label class="qrow"><input type="checkbox" data-q="' + esc(x.n) + '"><span><b>' + esc(x.n) + '</b><span class="c">' + esc(qCost(x)) + '</span><small>' + esc(x.d) + '</small></span></label>';
+    }).join('');
+    setT('n-' + t, '(' + list.length + ')');
+  });
+}
+function buildChooser() {
+  var sel = $('#sel-ficha');
+  sel.innerHTML = S.fichas.map(function (f) { return '<option value="' + f.id + '">' + esc(f.nome || 'Sem nome') + '</option>'; }).join('');
+  sel.value = S.atual;
+}
+function loadForm() {
+  var f = cur();
+  $$('[data-bind]').forEach(function (el) {
+    var v = getPath(f, el.dataset.bind);
+    if (el.type === 'checkbox') el.checked = !!v; else el.value = v == null ? '' : String(v);
+  });
+  $$('[data-q]').forEach(function (el) { el.checked = !!f.q[el.dataset.q]; });
+  talCount = -1; habKey = '';
+  $('#out-json').value = '';
+}
+
+/* ================= atualização ================= */
+function recalc() {
+  var f = cur(), c = compute(f); lastC = c;
+  var cls = c.cls, race = c.race;
+  setT('o-pv', c.pv == null ? '?' : c.pv);
+  setT('o-pm', c.pm == null ? '-' : c.pm);
+  setT('o-ca', c.ca); setT('o-cr', c.cr); setT('o-dt', c.dt); setT('o-lcm', c.lcm); setT('o-prof', fmt(c.P));
+  setT('o-desl', race ? race.desl : '-');
+  var pvs = c.pvBase == null ? 'sem dados da classe, veja Ajustes' : 'base ' + c.pvBase + ', ' + (c.dado || 'sem dado') + (c.avg != null ? ' (vida média ' + c.avg + ')' : '') + (c.bPV ? ', Sobrevida +' + c.bPV : '');
+  setT('s-pv', pvs);
+  setT('s-pm', c.pmBase == null ? (c.pm == null ? 'sem PM no livro' : 'só extras') : 'base ' + c.pmBase + ', +' + (c.pmn || 0) + ' por nível' + (c.bPM ? ', Fonte de Poder +' + c.bPM : ''));
+  setT('s-ca', '10 + Des ' + fmt(c.bn.des) + (num(f.extra.ca) ? ' + equip. ' + num(f.extra.ca) : ''));
+  setT('s-cr', 'Con ' + fmt(c.bn.con) + ' + ' + (c.pv != null ? Math.floor(c.pv / 20) : 0) + ' (1 por 20 PV)');
+  setT('s-dt', '12 + ' + Math.floor(c.L / 2) + ' + prof. ' + c.P + ' + ' + ATTRNAME[c.dtA].slice(0, 3) + ' ' + fmt(c.bn[c.dtA]));
+  setT('s-lcm', LCM[c.L - 1] + ' + Presença ' + fmt(c.bn.pre));
+  setT('s-prof', 'nível ' + c.L);
+  $('#i-pva').placeholder = c.pv == null ? 'atual' : 'atual (' + c.pv + ')';
+  $('#i-pma').placeholder = c.pm == null ? 'atual' : 'atual (' + c.pm + ')';
+  // placeholders de ajustes
+  $('#ph-pv').placeholder = cls && cls.pv != null ? String(cls.pv) : 'sem dado';
+  $('#ph-pvd').placeholder = cls && cls.pvd ? cls.pvd : 'ex: 2d8';
+  $('#ph-pm').placeholder = cls && cls.pm != null ? String(cls.pm) : 'sem dado';
+  $('#ph-pmn').placeholder = cls && cls.pmn != null ? String(cls.pmn) : 'sem dado';
+  $('#ph-tr').placeholder = cls && cls.tr != null ? String(cls.tr) : 'sem dado';
+
+  // xp
+  var xp = f.xp;
+  if (has(xp)) {
+    var lx = xpLevel(num(xp)), nx = lx < 20 ? XP[lx] : null;
+    setT('o-xp', 'Pelo XP, o nível é ' + lx + (nx ? '. Próximo nível com ' + nx.toLocaleString('pt-BR') + ' XP (faltam ' + Math.max(0, nx - num(xp)).toLocaleString('pt-BR') + ').' : '. Nível máximo.') + (lx !== c.L ? ' O nível escolhido acima é ' + c.L + '.' : ''));
+  } else {
+    setT('o-xp', 'XP para o nível ' + c.L + ': ' + XP[c.L - 1].toLocaleString('pt-BR') + (c.L < 20 ? '. Para o ' + (c.L + 1) + ': ' + XP[c.L].toLocaleString('pt-BR') + '.' : '.'));
+  }
+  setMsg('o-clsnote', 'info', cls && cls.nota ? cls.nota : '');
+
+  // atributos
+  ATTRS.forEach(function (a) { var k = a[0]; setT('a-t-' + k, c.tot[k]); setT('a-r-' + k, rollText(c.tot[k], f.dado)); });
+  var key = ATTRS.map(function (a) { return Math.round(num(f.base[a[0]])); }).sort(function (x, y) { return x - y; }).join();
+  if (c.baseSum !== 15) setMsg('msg-base', 'bad', 'Os valores base devem somar 15 (0+1+2+3+4+5). Agora somam ' + c.baseSum + '.');
+  else if (!VALID[key]) setMsg('msg-base', 'bad', 'Base fora das regras: use 0 a 5 sem repetir e, se quiser, uma única transferência de 1 ponto (máximo 6).');
+  else setMsg('msg-base', 'ok', VALID[key] === 'puro' ? 'Distribuição inicial válida.' : 'Distribuição válida, com a transferência de 1 ponto.');
+  if (c.upSum > c.asiAvail) setMsg('msg-up', 'bad', 'Você usou ' + c.upSum + ' aumentos de nível, mas no nível ' + c.L + ' tem direito a ' + c.asiAvail + '.');
+  else if (c.upSum < c.asiAvail) setMsg('msg-up', 'warn', 'Aumentos de nível: faltam distribuir ' + (c.asiAvail - c.upSum) + ' de ' + c.asiAvail + ' (+1 nos níveis 4, 8, 11, 14, 18 e 20).');
+  else setMsg('msg-up', '', '');
+  var over = ATTRS.filter(function (a) { return c.tot[a[0]] > 12; });
+  if (over.length && c.upSum === c.asiAvail) setMsg('msg-up', 'warn', 'A tabela do livro vai só até 12 pontos. Acima disso a ficha usa o valor de 12.');
+
+  // perícias
+  var nTr = 0;
+  SKILLS.forEach(function (s) {
+    var r = skRows[s.k], g = num(f.per[s.k]) | 0, t = skillTotal(f, c, s);
+    if (String(g) !== r.sel.value) r.sel.value = String(g);
+    if (g > 0) nTr++;
+    var isCls = cls && cls.perSet[s.k];
+    r.chip.hidden = !isCls;
+    var txt = t == null ? '-' : fmt(t);
+    if (r.t.textContent !== txt) r.t.textContent = txt;
+    r.t.className = 't' + (t == null ? ' off' : '');
+    r.t.title = t == null ? 'Só pode ser usada se for treinada' : '';
+  });
+  if (c.budget == null) setMsg('msg-sk', 'info', 'Perícias com grau: ' + nTr + '. A classe não tem número de perícias treinadas no livro (veja Ajustes).');
+  else if (nTr > c.budget) setMsg('msg-sk', 'bad', 'Perícias com grau: ' + nTr + ' de ' + c.budget + ' possíveis (base da classe + bônus de Intelecto' + (c.L >= 4 ? ' + evoluções' : '') + ').');
+  else setMsg('msg-sk', 'ok', 'Perícias com grau: ' + nTr + ' de ' + c.budget + ' possíveis (base da classe + bônus de Intelecto' + (c.L >= 4 ? ' + evoluções' : '') + ').');
+  var evo = [];
+  if (c.L >= 4) evo.push('Nível 4: aprende ' + c.B + ' perícia(s) nova(s).');
+  if (c.L >= 8) evo.push('Nível 8: evolui ' + (2 + c.B) + ' perícia(s) de Treinado para Veterano.');
+  if (c.L >= 12) evo.push('Nível 12: aprende ' + c.B + ' perícia(s) já como Veterano.');
+  if (c.L >= 18) evo.push('Nível 18: evolui ' + c.B + ' perícia(s) de Veterano para Gênio.');
+  setT('o-evo', evo.join(' '));
+
+  renderHab(c);
+  renderRace(c);
+  renderTal(c, f);
+
+  // personalização
+  var gain = 0, spend = 0, nq = 0, nd = 0;
+  QUALS.forEach(function (x) { if (f.q[x.n]) { if (x.t === 'q') { spend += qPts(x); nq++; } else { gain += qPts(x); nd++; } } });
+  var saldo = num(f.pontosIni) + gain - spend;
+  setT('o-saldo', saldo);
+  setT('o-qinfo', nq + ' qualidade(s) custam ' + spend + ' ponto(s); ' + nd + ' defeito(s) dão ' + gain + '. Intervalos contam o mínimo. É uma leitura do livro: o texto não explica a regra por completo.');
+  var ap = [];
+  if (c.bPV) ap.push('Sobrevida: +' + c.bPV + ' PV'); if (c.bPM) ap.push('Fonte de Poder: +' + c.bPM + ' PM');
+  if (ap.length) $('#o-qinfo').textContent += ' Aplicado na ficha: ' + ap.join(', ') + '.';
+
+  renderInv(c, f);
+}
+
+function renderHab(c) {
+  var cls = c.cls, key = (cls ? cls.n : '') + '|' + c.L + '|' + showAll;
+  $('#b-allhab').textContent = showAll ? 'Mostrar só até o meu nível' : 'Mostrar todos os níveis';
+  if (key === habKey) return; habKey = key;
+  var info = $('#o-clsinfo'), box = $('#o-hab');
+  if (!cls) { info.textContent = 'Escolha uma classe para ver as habilidades.'; box.innerHTML = ''; return; }
+  var bits = [];
+  if (cls.prof) bits.push('<b>Proficiências:</b> ' + esc(cls.prof));
+  if (cls.per.length) bits.push('<b>Perícias da classe:</b> ' + esc(cls.per.join(', ')));
+  info.innerHTML = bits.join('<br>') || 'Sem proficiências ou perícias de classe no livro.';
+  if (!cls.hasLv) { box.innerHTML = '<p class="small" style="margin:0">Esta classe não tem tabela de habilidades por nível no livro.</p>'; return; }
+  var h = '';
+  for (var l = 1; l <= 20; l++) {
+    if (!cls.lv[l]) continue;
+    if (l > c.L && !showAll) continue;
+    h += '<div class="lv' + (l > c.L ? ' fut' : '') + '"><b>Nv ' + l + '</b><span>' + esc(cls.lv[l]) + '</span></div>';
+  }
+  box.innerHTML = h || '<p class="small" style="margin:0">Nenhuma habilidade listada até o nível ' + c.L + '.</p>';
+}
+function renderRace(c) {
+  var r = c.race, box = $('#o-race'), k = r ? r.n : '';
+  if (box.dataset.k === k) return; box.dataset.k = k;
+  if (!r) { box.innerHTML = '<p class="small" style="margin:0">Escolha uma raça para ver o resumo.</p>'; return; }
+  box.innerHTML = '<p style="margin:0 0 6px"><span class="chip mut" style="margin:0 6px 0 0">Tamanho</span>' + esc(r.tam) + ' <span class="chip mut" style="margin:0 6px 0 12px">Deslocamento</span>' + esc(r.desl) + '</p>' +
+    '<p style="margin:6px 0 0;max-width:68ch">' + esc(r.t) + '</p>' +
+    '<p class="small" style="margin:8px 0 0">Resumo do livro. Os bônus de atributo da raça você soma no campo Raça de cada atributo.</p>';
+}
+function renderTal(c, f) {
+  var n = Math.floor((c.L + 1) / 2);
+  setT('o-talinfo', n + ' talento(s) no nível ' + c.L + ': um em cada nível ímpar, de 1 a 19. Classe e raça podem dar extras.');
+  if (n === talCount) return; talCount = n;
+  var h = '';
+  for (var i = 0; i < n; i++) h += '<label class="f">' + (i * 2 + 1) + 'º nível<input data-tal="' + i + '" value="' + esc(f.tal[i] || '') + '" placeholder="Nome do talento" autocomplete="off"></label>';
+  $('#tal').innerHTML = h;
+}
+
+/* ================= inventário e dinheiro =================
+   Itens e lançamentos ficam em mapas com id (f.itens.<id>, f.caixa.<id>), não em listas: na Mesa cada mudança
+   vira um caminho de campo próprio e duas pessoas mexendo ao mesmo tempo não se atropelam. Apagar = gravar null.
+   As funções invCan (pode editar?), invSet (grava) e invWho (quem está mexendo) mudam entre a ficha e a Mesa. */
+var CATS = ['Armas', 'Armaduras', 'Munição', 'Consumíveis', 'Itens gerais', 'Itens mágicos', 'Itens amaldiçoados', 'Itens tecnológicos', 'Modificações', 'Runas', 'Implantes', 'Montarias', 'Outros'];
+var ITENS = $('#d-itens').textContent.split('\n').filter(function (l) { return l.trim() && l[0] !== '#'; }).map(function (l) {
+  var p = l.split('|');
+  return { ref: p[0], c: p[1], g: p[2], n: p[3], kg: p[4] === '' ? '' : +p[4], gil: p[5] === '' ? 0 : +p[5], cap: p[6] === '' ? 0 : +p[6], s: p[7] || '', d: p[8] || '',
+    k: norm([p[3], p[1], p[2], p[7], p[8]].join(' ')) };
+});
+var IBYREF = {}; ITENS.forEach(function (x) { IBYREF[x.ref] = x; });
+var fview = 'ficha', iview = 'itens', invPanel = '', invFor = null, invOpen = {}, itArmed = '', cxArmed = '', armTimer = null, catQ = '', catC = '', cxHTML = '';
+try { if (window.localStorage.getItem('wz-fview') === 'inv') fview = 'inv'; if (window.localStorage.getItem('wz-iview') === 'gil') iview = 'gil'; } catch (e) { }
+
+function fixInv(f) {
+  ['itens', 'caixa'].forEach(function (k) {
+    var o = f[k];
+    if (!o || typeof o !== 'object' || Array.isArray(o)) { f[k] = {}; return; }
+    Object.keys(o).forEach(function (i) { if (!o[i] || typeof o[i] !== 'object') delete o[i]; });
+  });
+  return f;
+}
+function invFromCat(ref, t) {
+  var x = IBYREF[ref]; if (!x) return null;
+  return { n: x.n, q: 1, kg: x.kg, s: x.s, d: '', c: x.c, ref: x.ref, t: t || Date.now(), a: '' };
+}
+function catIdx(c) { var i = CATS.indexOf(c); return i < 0 ? CATS.length - 1 : i; }
+function itemList(f) {
+  var o = f.itens || {};
+  return Object.keys(o).filter(function (k) { return o[k] && typeof o[k] === 'object'; }).map(function (k) { return { id: k, it: o[k] }; })
+    .sort(function (a, b) { return catIdx(a.it.c) - catIdx(b.it.c) || num(a.it.t) - num(b.it.t) || (a.id < b.id ? -1 : 1); });
+}
+function cxList(f) {
+  var o = f.caixa || {};
+  return Object.keys(o).filter(function (k) { return o[k] && typeof o[k] === 'object'; }).map(function (k) { var e = o[k]; return { id: k, v: num(e.v), m: e.m || '', t: num(e.t), a: e.a || '' }; })
+    .sort(function (a, b) { return a.t - b.t || (a.id < b.id ? -1 : 1); });
+}
+function saldoGil(f) { var s = num(f.gil); cxList(f).forEach(function (e) { s += e.v; }); return s; }
+function invTotals(f, c) {
+  var peso = 0, cap = 0, n = 0;
+  itemList(f).forEach(function (x) {
+    var q = Math.max(0, num(x.it.q)), r = x.it.ref ? IBYREF[x.it.ref] : null;
+    peso += q * Math.max(0, num(x.it.kg)); n += q;
+    if (r && r.cap) cap += r.cap * q;
+  });
+  var fo = Math.max(0, c.tot['for']), ext = num(f.extra && f.extra.carga) + cap;
+  return { peso: peso, n: n, cap: cap, normal: 3 * fo + ext, max: 10 * fo + ext };
+}
+function fGil(n) { return Math.round(n).toLocaleString('pt-BR'); }
+function fKg(n) { return (Math.round(n * 100) / 100).toLocaleString('pt-BR', { maximumFractionDigits: 2 }); }
+function fData(t) {
+  if (!t) return '';
+  var d = new Date(t);
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+function shortS(s) {
+  if (!s) return '';
+  var m = /Dano [^·]+· Crítico [^·]+/.exec(s); if (m) return m[0].trim();
+  m = /C\.A\. \+\d+/.exec(s); if (m) return m[0];
+  return s.length <= 48 ? s : '';
+}
+function setTx(el, t) { t = String(t); if (el.textContent !== t) el.textContent = t; }
+function catOptions(all) { return (all ? '<option value="">Todas as categorias</option>' : '') + CATS.filter(function (c) { return all ? c !== 'Outros' : true; }).map(function (c) { return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join(''); }
+
+function renderInv(c, f) {
+  if (!f) return;
+  if (invFor !== f.id) {
+    invFor = f.id; invOpen = {}; invPanel = ''; itArmed = ''; cxArmed = ''; cxHTML = '';
+    ['nv-n', 'nv-q', 'nv-kg', 'nv-gil', 'nv-d', 'cx-v', 'cx-m'].forEach(function (id) { $('#' + id).value = ''; });
+    ['msg-nv', 'msg-cx', 'msg-cat'].forEach(function (id) { setMsg(id, '', ''); });
+  }
+  var ed = invCan(), pg = $('#p-ficha');
+  if (pg.dataset.v !== fview) pg.dataset.v = fview;
+  if (pg.dataset.iv !== iview) pg.dataset.iv = iview;
+  $$('[data-fv]').forEach(function (b) { if (b.closest('#seg-fi')) b.setAttribute('aria-pressed', b.dataset.fv === fview ? 'true' : 'false'); });
+  $$('#seg-iv button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.iv === iview ? 'true' : 'false'); });
+
+  var T = invTotals(f, c), sd = saldoGil(f), items = itemList(f);
+  setT('o-gil', fGil(sd)); $('#o-gil').classList.toggle('neg', sd < 0);
+  setT('o-peso', fKg(T.peso)); setT('s-peso', 'kg de ' + fKg(T.normal) + ' (máximo ' + fKg(T.max) + ')');
+  if (T.peso > T.max) setMsg('msg-peso', 'bad', 'Passou do peso máximo (10 × Força' + (T.cap || num(f.extra.carga) ? ' + extras' : '') + ' = ' + fKg(T.max) + ' kg). Converse com o mestre.');
+  else if (T.peso > T.normal) setMsg('msg-peso', 'warn', 'Acima da carga normal (' + fKg(T.normal) + ' kg): -5 em Acrobacia, Atletismo, Furtividade e Crime.');
+  else setMsg('msg-peso', '', '');
+  setT('n-itens', items.length ? '(' + items.length + ')' : '');
+  setT('o-invmini', 'Inventário: ' + items.length + (items.length === 1 ? ' item' : ' itens') + ', ' + fKg(T.peso) + ' kg. Dinheiro: ' + fGil(sd) + ' Gil.');
+
+  $('#inv-btns').hidden = !ed; $('#cx-form').hidden = !ed;
+  if (!ed) invPanel = '';
+  $('#inv-cat').hidden = invPanel !== 'cat'; $('#inv-novo').hidden = invPanel !== 'novo';
+  $$('#inv-btns [data-inv-panel]').forEach(function (b) { b.setAttribute('aria-expanded', b.dataset.invPanel === invPanel ? 'true' : 'false'); });
+
+  drawItems(items, ed);
+  drawCx(f, ed);
+}
+function itemNode(id) {
+  var el = document.createElement('div'); el.className = 'it'; el.dataset.id = id;
+  var b = function (p) { return 'itens.' + id + '.' + p; };
+  el.innerHTML = '<div class="it-top"><button type="button" class="it-nm" data-it-open aria-expanded="false"><b></b><small></small></button>' +
+    '<div class="qty"><button type="button" class="btn" data-it-q="-1" aria-label="Menos um">−</button><output aria-label="Quantidade"></output><button type="button" class="btn" data-it-q="1" aria-label="Mais um">+</button></div></div>' +
+    '<div class="it-more" hidden><p class="it-s small"></p><p class="it-d"></p>' +
+    '<div class="grid g3"><label class="f">Nome<input data-bind="' + b('n') + '" maxlength="80" autocomplete="off"></label>' +
+    '<label class="f">Quantidade<input type="number" inputmode="numeric" min="0" data-bind="' + b('q') + '"></label>' +
+    '<label class="f">Peso de cada (kg)<input type="number" inputmode="decimal" min="0" step="0.1" data-bind="' + b('kg') + '" placeholder="0"></label></div>' +
+    '<label class="f">Anotações<textarea data-bind="' + b('d') + '" placeholder="Encantamentos, de onde veio, quantas cargas restam"></textarea></label>' +
+    '<p class="small it-by"></p><div class="btns"><button type="button" class="btn bad" data-it-del>Remover item</button></div></div>';
+  return el;
+}
+function drawItems(items, ed) {
+  var box = $('#inv-list'), seen = {}, ae = document.activeElement;
+  items.forEach(function (x, i) {
+    var el = box.querySelector('.it[data-id="' + x.id + '"]') || itemNode(x.id), it = x.it, r = it.ref ? IBYREF[it.ref] : null;
+    seen[x.id] = 1;
+    var q = Math.max(0, num(it.q)), kg = num(it.kg), sub = [it.c || 'Outros'];
+    if (kg) sub.push(fKg(kg) + ' kg' + (q > 1 ? ' cada' : ''));
+    var sh = shortS(it.s || (r ? r.s : '')); if (sh) sub.push(sh);
+    el.classList.toggle('zero', q === 0);
+    setTx($('.it-nm b', el), it.n || 'Item sem nome');
+    setTx($('.it-nm small', el), sub.join(' · ') + (q === 0 ? ' · acabou' : ''));
+    setTx($('output', el), q);
+    var open = !!invOpen[x.id], more = $('.it-more', el), nm = $('.it-nm', el);
+    if (more.hidden === open) more.hidden = !open;
+    nm.setAttribute('aria-expanded', open ? 'true' : 'false');
+    setTx($('.it-s', el), it.s || (r ? r.s : ''));
+    var d = $('.it-d', el); setTx(d, r && r.d ? r.d : ''); d.hidden = !(r && r.d);
+    var by = [];
+    if (it.ref) by.push('Do livro'); else by.push('Criado na mão');
+    if (it.a) by.push('por ' + it.a);
+    if (it.t) by.push('em ' + fData(num(it.t)));
+    setTx($('.it-by', el), by.join(' '));
+    $$('[data-bind]', el).forEach(function (inp) {
+      if (inp !== ae) { var v = it[inp.dataset.bind.split('.').pop()]; v = v == null ? '' : String(v); if (inp.value !== v) inp.value = v; }
+      inp.disabled = !ed;
+    });
+    $$('.qty .btn', el).forEach(function (bt) { bt.hidden = !ed; });
+    var del = $('[data-it-del]', el); del.hidden = !ed;
+    var armed = itArmed === x.id; del.classList.toggle('armed', armed); setTx(del, armed ? 'Confirmar remoção' : 'Remover item');
+    if (box.children[i] !== el) box.insertBefore(el, box.children[i] || null);
+  });
+  $$('.it', box).forEach(function (el) { if (!seen[el.dataset.id]) el.remove(); });
+  setT('inv-empty', items.length ? '' : (ed ? 'Nenhum item ainda. Toque em "Adicionar do livro" ou "Criar item".' : 'Nenhum item.'));
+}
+function drawCx(f, ed) {
+  var list = cxList(f), run = num(f.gil), rows = [];
+  list.forEach(function (e) { run += e.v; rows.push({ e: e, after: run }); });
+  rows.reverse();
+  var h = rows.map(function (r) {
+    var e = r.e, armed = cxArmed === e.id, meta = [fData(e.t)];
+    if (e.a) meta.push(e.a);
+    meta.push('saldo ' + fGil(r.after));
+    return '<div class="lg"><div><b>' + esc(e.m || 'Sem motivo') + '</b><small>' + esc(meta.join(' · ')) + '</small></div><div class="lg-r"><span class="val ' + (e.v < 0 ? 'neg' : 'pos') + '">' + (e.v < 0 ? '−' : '+') + fGil(Math.abs(e.v)) + '</span>' +
+      (ed ? '<button type="button" class="btn bad' + (armed ? ' armed' : '') + '" data-cx-del="' + esc(e.id) + '" aria-label="Apagar lançamento: ' + esc(e.m) + '">' + (armed ? 'Apagar' : '×') + '</button>' : '') + '</div></div>';
+  }).join('');
+  h += '<div class="lg ini"><div><b>Saldo inicial</b><small>' + (list.length ? list.length + (list.length === 1 ? ' lançamento' : ' lançamentos') + ' acima' : 'Nenhum lançamento ainda') + '</small></div><div class="lg-r"><span class="val">' + fGil(num(f.gil)) + '</span></div></div>';
+  if (h !== cxHTML) { cxHTML = h; $('#cx-list').innerHTML = h; }
+}
+function drawCat() {
+  var f = cur(), t = norm(catQ), tot = 0, out = [], have = {};
+  if (f) itemList(f).forEach(function (x) { if (x.it.ref) have[x.it.ref] = (have[x.it.ref] || 0) + Math.max(0, num(x.it.q)); });
+  ITENS.forEach(function (x) { if ((!catC || x.c === catC) && (!t || x.k.indexOf(t) >= 0)) { tot++; if (out.length < 60) out.push(x); } });
+  $('#cat-res').innerHTML = out.map(function (x) {
+    var meta = [x.g, x.kg === '' ? '' : fKg(x.kg) + ' kg', x.gil ? fGil(x.gil) + ' Gil' : ''].filter(Boolean).join(' · ');
+    return '<div class="cr"><div><b>' + esc(x.n) + '</b><span class="chip mut">' + esc(x.c) + '</span>' + (have[x.ref] ? '<span class="chip">tem ' + have[x.ref] + '</span>' : '') +
+      '<small>' + esc(meta) + '</small>' + (x.s ? '<small>' + esc(x.s) + '</small>' : '') + '</div>' +
+      '<div class="cr-b"><button type="button" class="btn pri" data-cat-add="' + esc(x.ref) + '">Adicionar</button>' + (x.gil ? '<button type="button" class="btn" data-cat-buy="' + esc(x.ref) + '">Comprar</button>' : '') + '</div>' +
+      (x.d ? '<details><summary>Descrição do livro</summary><p>' + esc(x.d) + '</p></details>' : '') + '</div>';
+  }).join('') || '<p class="hint">Nada encontrado. Se o item não está no livro, use "Criar item".</p>';
+  setT('cat-info', tot > out.length ? 'Mostrando ' + out.length + ' de ' + tot + '. Busque pelo nome para achar mais rápido.' : tot + (tot === 1 ? ' item.' : ' itens.') + ' Só montarias e runas têm preço no livro: "Comprar" já desconta do dinheiro.');
+}
+function catAdd(ref, buy) {
+  var x = IBYREF[ref], f = cur(); if (!x || !f || !invCan()) return;
+  var ex = itemList(f).filter(function (y) { return y.it.ref === ref; })[0], who = invWho(), now = Date.now(), nq = 1;
+  if (ex) { nq = Math.max(0, num(ex.it.q)) + 1; invSet('itens.' + ex.id + '.q', nq); }
+  else { var it = invFromCat(ref, now); it.a = who; invSet('itens.' + uid(), it); }
+  var txt = x.n + (nq > 1 ? ': agora você tem ' + nq + '.' : ' adicionado.');
+  if (buy && x.gil) {
+    invSet('caixa.' + uid(), { v: -x.gil, m: 'Comprei ' + x.n, t: now, a: who });
+    var sd = saldoGil(f);
+    txt += ' Pagou ' + fGil(x.gil) + ' Gil. Saldo: ' + fGil(sd) + (sd < 0 ? ' (negativo: confira com o mestre).' : '.');
+    setMsg('msg-cat', sd < 0 ? 'warn' : 'ok', txt);
+  } else setMsg('msg-cat', 'ok', txt);
+  recalc(); drawCat();
+}
+function novoItem() {
+  var f = cur(); if (!f || !invCan()) return;
+  var n = $('#nv-n').value.trim(), q = Math.max(1, Math.round(num($('#nv-q').value) || 1)), kg = $('#nv-kg').value.trim(), pg = Math.round(Math.abs(num($('#nv-gil').value))), who = invWho(), now = Date.now();
+  if (!n) { setMsg('msg-nv', 'bad', 'Dê um nome para o item.'); $('#nv-n').focus(); return; }
+  var id = uid();
+  invSet('itens.' + id, { n: n.slice(0, 80), q: q, kg: kg === '' ? '' : Math.max(0, num(kg)), s: '', d: $('#nv-d').value.trim(), c: $('#nv-c').value || 'Outros', ref: '', t: now, a: who });
+  if (pg) invSet('caixa.' + uid(), { v: -pg, m: 'Comprei ' + n.slice(0, 80), t: now, a: who });
+  ['nv-n', 'nv-q', 'nv-kg', 'nv-gil', 'nv-d'].forEach(function (i) { $('#' + i).value = ''; });
+  $('#nv-c').value = 'Outros';
+  invPanel = ''; invOpen[id] = false;
+  setMsg('msg-nv', '', '');
+  recalc();
+  flashInv('"' + n + '" adicionado' + (pg ? ' e ' + fGil(pg) + ' Gil descontados.' : '.'));
+}
+function cxAdd(sign) {
+  var f = cur(); if (!f || !invCan()) return;
+  var v = Math.round(Math.abs(num($('#cx-v').value))), m = $('#cx-m').value.trim();
+  if (!v) { setMsg('msg-cx', 'bad', 'Coloque um valor maior que zero.'); $('#cx-v').focus(); return; }
+  if (!m) { setMsg('msg-cx', 'bad', 'Escreva o motivo. Ex: comprei uma espada, ganhei na missão.'); $('#cx-m').focus(); return; }
+  invSet('caixa.' + uid(), { v: sign * v, m: m.slice(0, 120), t: Date.now(), a: invWho() });
+  $('#cx-v').value = ''; $('#cx-m').value = '';
+  var sd = saldoGil(f);
+  setMsg('msg-cx', sd < 0 ? 'warn' : 'ok', (sign > 0 ? 'Entrou ' : 'Saiu ') + fGil(v) + ' Gil. Saldo: ' + fGil(sd) + (sd < 0 ? ' (negativo: confira com o mestre).' : '.'));
+  recalc();
+}
+function flashInv(t) { if (typeof flash === 'function') flash(t); else setMsg('msg-cat', 'ok', t); }
+function armReset() { clearTimeout(armTimer); armTimer = setTimeout(function () { itArmed = ''; cxArmed = ''; if (cur()) recalc(); }, 4000); }
+function goView(v) {
+  fview = v; try { window.localStorage.setItem('wz-fview', v); } catch (e) { }
+  if (cur()) recalc();
+  var seg = $('#seg-fi'); if (seg) { var r = seg.getBoundingClientRect(); if (r.top < 60 || r.top > window.innerHeight) window.scrollBy(0, r.top - 70); }
+}
+$('#cat-c').innerHTML = catOptions(true);
+$('#nv-c').innerHTML = catOptions(false); $('#nv-c').value = 'Outros';
+document.addEventListener('click', function (e) {
+  var t = e.target.closest('button'); if (!t || !t.closest('#p-ficha')) return;
+  var f = cur();
+  if (t.dataset.fv) { goView(t.dataset.fv); return; }
+  if (t.dataset.iv) { iview = t.dataset.iv; try { window.localStorage.setItem('wz-iview', iview); } catch (er) { } if (f) recalc(); return; }
+  if (!f) return;
+  if (t.dataset.invPanel !== undefined) {
+    invPanel = invPanel === t.dataset.invPanel ? '' : t.dataset.invPanel; setMsg('msg-cat', '', ''); setMsg('msg-nv', '', '');
+    recalc(); if (invPanel === 'cat') { drawCat(); } if (invPanel === 'novo') $('#nv-n').focus();
+    return;
+  }
+  if (t.dataset.catAdd) { catAdd(t.dataset.catAdd, false); return; }
+  if (t.dataset.catBuy) { catAdd(t.dataset.catBuy, true); return; }
+  if (t.id === 'nv-ok') { novoItem(); return; }
+  if (t.id === 'cx-mais' || t.id === 'cx-menos') { cxAdd(t.id === 'cx-mais' ? 1 : -1); return; }
+  if (t.dataset.cxDel) {
+    if (!invCan()) return;
+    if (cxArmed !== t.dataset.cxDel) { cxArmed = t.dataset.cxDel; armReset(); recalc(); return; }
+    cxArmed = ''; invSet('caixa.' + t.dataset.cxDel, null); recalc(); return;
+  }
+  var row = t.closest('.it'); if (!row) return;
+  var id = row.dataset.id, it = (f.itens || {})[id]; if (!it) return;
+  if (t.hasAttribute('data-it-open')) { invOpen[id] = !invOpen[id]; recalc(); return; }
+  if (!invCan()) return;
+  if (t.dataset.itQ) { invSet('itens.' + id + '.q', Math.max(0, Math.max(0, num(it.q)) + +t.dataset.itQ)); recalc(); return; }
+  if (t.hasAttribute('data-it-del')) {
+    if (itArmed !== id) { itArmed = id; armReset(); recalc(); return; }
+    itArmed = ''; delete invOpen[id]; invSet('itens.' + id, null); recalc(); flashInv('"' + (it.n || 'Item') + '" removido.');
+  }
+});
+document.addEventListener('input', function (e) {
+  if (e.target.id === 'cat-q') { catQ = e.target.value; drawCat(); }
+});
+document.addEventListener('change', function (e) {
+  if (e.target.id === 'cat-c') { catC = e.target.value; drawCat(); }
+});
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'Enter') return;
+  var id = e.target.id;
+  if (id === 'nv-n' || id === 'nv-q' || id === 'nv-kg' || id === 'nv-gil') { e.preventDefault(); novoItem(); }
+});
+
+/* ================= ações da ficha ================= */
+function invCan() { return true; }
+function invWho() { return ''; }
+function invSet(path, v) { var f = cur(); if (v === null) unsetPath(f, path); else setPath(f, path, v && typeof v === 'object' ? JSON.parse(JSON.stringify(v)) : v); save(); }
+function refresh() { buildChooser(); loadForm(); recalc(); }
+document.addEventListener('input', function (e) {
+  var t = e.target, f = cur();
+  if (t.matches('[data-bind]')) {
+    setPath(f, t.dataset.bind, t.type === 'checkbox' ? t.checked : t.value);
+    if (t.dataset.bind === 'nome') { var o = $('#sel-ficha option[value="' + f.id + '"]'); if (o) o.textContent = f.nome || 'Sem nome'; }
+    recalc(); save();
+  } else if (t.matches('[data-sk]')) { f.per[t.dataset.sk] = +t.value; recalc(); save(); }
+  else if (t.matches('[data-q]')) { f.q[t.dataset.q] = t.checked; recalc(); save(); }
+  else if (t.matches('[data-tal]')) { f.tal[+t.dataset.tal] = t.value; save(); }
+});
+$('#sel-ficha').addEventListener('change', function (e) { S.atual = e.target.value; save(); refresh(); });
+$('#b-nova').addEventListener('click', function () { var f = blank(); S.fichas.push(f); S.atual = f.id; save(); refresh(); window.scrollTo(0, 0); });
+$('#b-dup').addEventListener('click', function () { var f = JSON.parse(JSON.stringify(cur())); f.id = uid(); f.nome = (f.nome || 'Sem nome') + ' (cópia)'; S.fichas.push(f); S.atual = f.id; save(); refresh(); });
+var delTimer = null;
+$('#b-del').addEventListener('click', function (e) {
+  var b = e.currentTarget;
+  if (!b.classList.contains('armed')) { b.classList.add('armed'); b.textContent = 'Confirmar exclusão'; clearTimeout(delTimer); delTimer = setTimeout(function () { b.classList.remove('armed'); b.textContent = 'Excluir'; }, 4000); return; }
+  clearTimeout(delTimer); b.classList.remove('armed'); b.textContent = 'Excluir';
+  var id = S.atual; S.fichas = S.fichas.filter(function (x) { return x.id !== id; });
+  if (!S.fichas.length) S.fichas.push(blank());
+  S.atual = S.fichas[0].id; save(); refresh();
+});
+$('#b-allhab').addEventListener('click', function () { showAll = !showAll; recalc(); });
+$('#b-copy').addEventListener('click', function () {
+  var ta = $('#out-json'); ta.value = JSON.stringify({ v: 1, ficha: cur() });
+  var fallback = function () { ta.focus(); ta.select(); setMsg('msg-copy', 'info', 'Não consegui copiar sozinho. O texto está selecionado: copie manualmente.'); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(function () { setMsg('msg-copy', 'ok', 'Ficha copiada.'); }, fallback);
+  else fallback();
+});
+$('#b-imp').addEventListener('click', function () {
+  var txt = $('#in-json').value.trim();
+  if (!txt) { setMsg('msg-imp', 'bad', 'Cole o texto de uma ficha primeiro.'); return; }
+  try {
+    var o = JSON.parse(txt), g = o && o.ficha ? o.ficha : o;
+    if (!g || typeof g !== 'object' || (!g.base && !g.cls && !g.nome)) throw new Error('x');
+    g = fix(g); g.id = uid(); g.nome = g.nome || 'Ficha importada';
+    S.fichas.push(g); S.atual = g.id; save(); refresh(); $('#in-json').value = '';
+    setMsg('msg-imp', 'ok', 'Ficha "' + g.nome + '" importada.');
+  } catch (err) { setMsg('msg-imp', 'bad', 'Esse texto não parece uma ficha do World Zero.'); }
+});
+
+/* ================= páginas de consulta ================= */
+function table(head, rows) {
+  return '<div class="tw"><table><thead><tr>' + head.map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+    rows.map(function (r) { return '<tr>' + r.map(function (x) { return '<td>' + esc(x) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
+}
+function build_tabelas() {
+  var h = '<h1 class="title">Tabelas e regras</h1><p class="lede">Tudo o que a ficha usa para calcular, direto do livro 4.7.7.</p>';
+  h += '<div class="sec"><h2>Atributos</h2>' + table(['Pontos', 'Dados', 'Bônus'], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (v) { return [v, v === 0 ? '2 (pega o pior)' : aDice(v), fmt(aBonus(v))]; })) +
+    '<ul class="rules"><li>Criação: distribua 0, 1, 2, 3, 4 e 5 entre os seis atributos, sem repetir. Depois faça uma única transferência de 1 ponto de um atributo para outro. Máximo 6 na criação.</li>' +
+    '<li>Aumento de +1 em um atributo nos níveis 4, 8, 11, 14, 18 e 20.</li>' +
+    '<li>O livro não diz como combinar 2d20 ou 3d20. Para isso ele sugere trocar o dado: d10 somando os dados (opção 1) ou d12 pegando o melhor (opção 2). A ficha mostra qualquer um dos três em Ajustes.</li></ul></div>';
+  h += '<div class="sec"><h2>Proficiência e XP</h2><div class="grid g2"><div>' +
+    table(['Nível', 'Proficiência'], [['1 a 5', '+1'], ['6 a 10', '+2'], ['11 a 15', '+3'], ['16 a 18', '+4'], ['19 e 20', '+5']]) + '</div><div>' +
+    table(['Nível', 'XP'], XP.map(function (x, i) { return [i + 1, x.toLocaleString('pt-BR')]; })) + '</div></div></div>';
+  h += '<div class="sec"><h2>Limite de mana por turno (LCM)</h2>' + table(['Nível', 'Limite de PM por turno'], LCM.map(function (x, i) { return [i + 1, x + ' + Presença']; })) +
+    '<p class="hint">O livro escreve o limite como valor por nível mais o modificador do atributo mágico, e a tabela usa Presença. A ficha segue a tabela. Passar do limite causa estouro de mana: 1 nível de exaustão, perda de PV igual aos PM excedentes ou backlash, à escolha do mestre.</p></div>';
+  h += '<div class="sec"><h2>Perícias: graus</h2>' + table(['Grau', 'Bônus'], [['Treinado', '+2'], ['Veterano', '+3'], ['Gênio', '+4']]) +
+    '<ul class="rules"><li>Nível 4: aprende perícias iguais ao bônus de Intelecto.</li><li>Nível 8: evolui 2 + bônus de Intelecto perícias de Treinado para Veterano.</li><li>Nível 12: aprende perícias iguais ao bônus de Intelecto, já como Veterano.</li><li>Nível 18: evolui perícias iguais ao bônus de Intelecto de Veterano para Gênio.</li></ul></div>';
+  h += '<div class="sec"><h2>Contas rápidas</h2><ul class="rules">' +
+    '<li><b>C.A.</b> = 10 + bônus de Destreza + bônus de equipamento e magias.</li>' +
+    '<li><b>D.T.</b> (magias e habilidades) = 12 + metade do nível (para baixo) + bônus de proficiência + modificador do atributo-chave.</li>' +
+    '<li><b>C.R.</b> (classe de resistência) reduz o dano recebido. O livro diz bônus de Constituição e +1 a cada 20 pontos de vida. A ficha soma os dois.</li>' +
+    '<li><b>PV</b> = valor inicial da classe + bônus de Constituição, e a cada nível o dado da classe + bônus de Constituição. O livro indica "vida média" como metade do máximo do dado (2d6 = 6, 2d8 = 8), e é isso que a ficha usa. Se você rolar, troque para "Eu rolei" em Ajustes.</li>' +
+    '<li><b>PM</b> = valor inicial da classe + Intelecto, e a cada nível o valor da classe + Intelecto. A ficha usa o bônus da tabela de atributos onde o livro diz "inteligência" ou "mod".</li>' +
+    '<li><b>Sanidade</b>: todo personagem começa com 100%.</li>' +
+    '<li><b>Talentos</b>: um em cada nível ímpar (1, 3, 5 até 19), no máximo 10 no nível 20.</li></ul></div>';
+  return h;
+}
+function build_pericias() {
+  var h = '<h1 class="title">Perícias</h1><p class="lede">Treino, experiência e talento prático. Você soma o atributo da perícia, a proficiência e o grau quando ela é treinada.</p>';
+  h += '<div class="tw"><table><thead><tr><th>Perícia</th><th>Atributo</th><th>Só treinada</th><th>Carga</th><th>Kit</th><th>Serve para</th></tr></thead><tbody>' +
+    SKILLS.map(function (s) { return '<tr><td><b>' + esc(s.n) + '</b></td><td>' + ATTRNAME[s.a] + '</td><td>' + (s.so ? 'Sim' : 'Não') + '</td><td>' + (s.carga ? 'Sim' : 'Não') + '</td><td>' + (s.kit ? 'Sim' : 'Não') + '</td><td>' + esc(s.d) + '</td></tr>'; }).join('') +
+    '</tbody></table></div><p class="hint">Carga: sofre penalidade por carga. Kit: sofre penalidade se estiver sem o kit certo.</p>';
+  return h;
+}
+function build_racas() {
+  var h = '<h1 class="title">Raças</h1><p class="lede">Resumo de cada raça do livro. Para o texto completo, use o site do livro.</p>';
+  h += RACES.map(function (r) {
+    return '<details class="item"><summary>' + esc(r.n) + '<span class="meta">' + esc(r.tam) + ' · ' + esc(r.desl) + (r.inc ? ' · incompleta' : '') + '</span></summary><div class="in"><p>' + esc(r.t) + '</p>' +
+      '<p><button class="btn pri" type="button" data-use-race="' + esc(r.n) + '">Usar na ficha</button></p></div></details>';
+  }).join('');
+  return h;
+}
+function build_classes() {
+  var h = '<h1 class="title">Classes</h1><p class="lede">PV, PM, perícias e habilidades por nível de cada classe.</p>';
+  h += '<div class="search"><input type="search" id="q-cls" placeholder="Buscar classe" autocomplete="off" aria-label="Buscar classe"></div><div id="l-cls">';
+  h += CLASSES.map(function (c) {
+    var meta = [];
+    if (c.pv != null) meta.push('PV ' + c.pv + ' + ' + c.pvd); if (c.pm != null) meta.push(c.pmRot + ' ' + c.pm + ' + ' + c.pmn); if (c.pv == null) meta.push('sem números no livro');
+    var body = '';
+    if (c.nota) body += '<div class="msg info">' + esc(c.nota) + '</div>';
+    if (c.pv != null) body += '<p><b>Vida:</b> ' + c.pv + ' + Con no nível 1 e ' + esc(c.pvd) + ' + Con por nível.' + (c.pm != null ? ' <b>' + esc(c.pmRot) + ':</b> ' + c.pm + ' + Int no nível 1 e ' + c.pmn + ' + Int por nível.' : '') + '</p>';
+    if (c.tr != null) body += '<p><b>Perícias treinadas:</b> ' + c.tr + ' + Intelecto.</p>';
+    if (c.per.length) body += '<p><b>Perícias da classe:</b> ' + esc(c.per.join(', ')) + '.</p>';
+    if (c.prof) body += '<p><b>Proficiências:</b> ' + esc(c.prof) + '.</p>';
+    if (c.hasLv) {
+      body += '<div class="tw"><table><thead><tr><th>Nível</th><th>Habilidades</th></tr></thead><tbody>';
+      for (var l = 1; l <= 20; l++) if (c.lv[l]) body += '<tr><td>' + l + '</td><td>' + esc(c.lv[l]) + '</td></tr>';
+      body += '</tbody></table></div>';
+    }
+    body += '<p><button class="btn pri" type="button" data-use-cls="' + esc(c.n) + '">Usar na ficha</button></p>';
+    return '<details class="item" data-n="' + esc(norm(c.n)) + '"><summary>' + esc(c.n) + '<span class="meta">' + esc(meta.join(' · ')) + '</span></summary><div class="in">' + body + '</div></details>';
+  }).join('') + '</div>';
+  return h;
+}
+var qFilter = 'all', qText = '';
+function build_qualidades() {
+  var h = '<h1 class="title">Qualidades e defeitos</h1><p class="lede">Personalização do personagem. Qualidades gastam pontos, defeitos devolvem pontos.</p>';
+  h += '<div class="seg" id="seg-q"><button type="button" data-f="all" aria-pressed="true">Todos</button><button type="button" data-f="q" aria-pressed="false">Qualidades</button><button type="button" data-f="d" aria-pressed="false">Defeitos</button></div>';
+  h += '<div class="search"><input type="search" id="q-q" placeholder="Buscar" autocomplete="off" aria-label="Buscar qualidade ou defeito"></div><div id="l-qq"></div>';
+  return h;
+}
+function drawQuals() {
+  var t = norm(qText);
+  var list = QUALS.filter(function (x) { return (qFilter === 'all' || x.t === qFilter) && (!t || norm(x.n + ' ' + x.d).indexOf(t) >= 0); });
+  $('#l-qq').innerHTML = list.length ? '<div class="tw"><table><thead><tr><th>Nome</th><th>Pontos</th><th>Efeito</th></tr></thead><tbody>' +
+    list.map(function (x) { return '<tr><td><b>' + esc(x.n) + '</b><br><span class="small">' + (x.t === 'q' ? 'Qualidade' : 'Defeito') + '</span></td><td>' + esc(qCost(x)) + '</td><td>' + esc(x.d) + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<p class="hint">Nada encontrado.</p>';
+}
+var BUILD = { tabelas: build_tabelas, pericias: build_pericias, racas: build_racas, classes: build_classes, qualidades: build_qualidades }, built = {};
+document.addEventListener('click', function (e) {
+  var t = e.target.closest('button'); if (!t) return;
+  if (t.dataset.useCls !== undefined) { cur().cls = t.dataset.useCls; save(); refresh(); location.hash = '#ficha'; }
+  else if (t.dataset.useRace !== undefined) { cur().race = t.dataset.useRace; save(); refresh(); location.hash = '#ficha'; }
+  else if (t.closest('#seg-q') && t.dataset.f) { qFilter = t.dataset.f; $$('#seg-q button').forEach(function (b) { b.setAttribute('aria-pressed', b === t ? 'true' : 'false'); }); drawQuals(); }
+});
+document.addEventListener('input', function (e) {
+  if (e.target.id === 'q-cls') { var v = norm(e.target.value); $$('#l-cls details').forEach(function (d) { d.hidden = v && d.dataset.n.indexOf(v) < 0; }); }
+  else if (e.target.id === 'q-q') { qText = e.target.value; drawQuals(); }
+});
+
+/* ================= rotas e tema ================= */
+var PAGES = ['ficha', 'classes', 'racas', 'pericias', 'tabelas', 'qualidades'];
+function route() {
+  var h = (location.hash || '').replace('#', ''); if (PAGES.indexOf(h) < 0) h = 'ficha';
+  if (h !== 'ficha' && !built[h]) { $('#p-' + h).innerHTML = BUILD[h](); built[h] = 1; if (h === 'qualidades') drawQuals(); }
+  PAGES.forEach(function (p) { $('#p-' + p).hidden = p !== h; });
+  $$('.tabs a').forEach(function (a) { a.setAttribute('aria-current', a.dataset.p === h ? 'page' : 'false'); });
+  var act = $('.tabs a[aria-current="page"]'); if (act && act.scrollIntoView) { try { act.scrollIntoView({ block: 'nearest', inline: 'center' }); } catch (e) { } }
+  window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
+var tema = 'auto';
+try { var tt = window.localStorage.getItem('wz-tema'); if (tt === 'light' || tt === 'dark') tema = tt; } catch (e) { }
+function applyTema() {
+  var r = document.documentElement; r.removeAttribute('data-theme'); if (tema !== 'auto') r.setAttribute('data-theme', tema);
+  $('#btn-tema').textContent = 'Tema: ' + { auto: 'auto', light: 'claro', dark: 'escuro' }[tema];
+}
+$('#btn-tema').addEventListener('click', function () {
+  tema = tema === 'auto' ? 'light' : tema === 'light' ? 'dark' : 'auto'; applyTema();
+  try { window.localStorage.setItem('wz-tema', tema); } catch (e) { }
+});
+
+/* ================= início ================= */
+load(); buildSelects(); buildAttrs(); buildSkills(); buildQuals(); applyTema(); refresh(); route();
+window.__wz = { compute: compute, blank: blank, exemplo: exemplo, CLASSES: CLASSES, skillTotal: skillTotal, ITENS: ITENS, saldoGil: saldoGil, invTotals: invTotals, cur: cur };
+})();
+</script>

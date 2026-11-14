@@ -28,7 +28,7 @@ O resultado fica em `fonte/dist/index.html`. Copie esse arquivo para a raiz do r
 
 ## Ficha automática
 
-A pasta `ficha/` tem a ficha de personagem automática (também um arquivo só, `ficha/index.html`). Ela calcula PV, PM, C.A., C.R., D.T., LCM e perícias a partir da raça, classe, nível e atributos, e tem abas de consulta de classes, raças, perícias, tabelas e qualidades. As fichas ficam salvas no próprio navegador.
+A pasta `ficha/` tem a ficha de personagem automática (também um arquivo só, `ficha/index.html`). Ela calcula PV, PM, C.A., C.R., D.T., LCM e perícias a partir da raça, classe, nível e atributos, e tem abas de consulta de classes, raças, perícias, tabelas e qualidades. Cada ficha tem um **inventário**: itens do catálogo do livro (armas, armaduras, consumíveis, runas e mais), itens criados na mão, peso carregado e uma conta de **dinheiro** com motivo de cada entrada e saída. As fichas ficam salvas no próprio navegador.
 
 Endereço: https://marcos-mili.github.io/WORLD-ZERO/ficha/
 
@@ -37,3 +37,7 @@ Endereço: https://marcos-mili.github.io/WORLD-ZERO/ficha/
 A pasta `mesa/` tem a Mesa World Zero: o mestre vê e edita todas as fichas e NPCs e os jogadores (qualquer pessoa com conta Google) veem as fichas e editam as próprias, com tudo aparecendo na hora para todo mundo. Usa um banco gratuito do Firebase. Antes de funcionar compartilhada, precisa ligar o Firebase: o passo a passo está em `mesa/LEIA-ME.md`.
 
 Endereço: https://marcos-mili.github.io/WORLD-ZERO/mesa/
+
+## Ferramentas (para quem mexe no código)
+
+A pasta `ferramentas/ficha-mesa/` guarda as fontes que geram `ficha/index.html` e `mesa/index.html`, com testes automáticos. Esses dois arquivos são gerados: não edite à mão, rode `npm run build` dentro da pasta. O guia completo está em `CLAUDE.md` e a situação do projeto em `docs/ESTADO.md`.

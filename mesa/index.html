@@ -176,6 +176,51 @@ details.item p { margin: .5em 0; max-width: 68ch; }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); font-weight: 600; }
 .foot { border-top: 1px solid var(--rule); padding-block: 18px 40px; color: var(--muted); font: 400 .82rem/1.55 var(--display); }
 .foot p { margin: 0 auto; max-width: 980px; }
+/* ---------- inventário ---------- */
+.fseg { display: grid; grid-template-columns: 1fr 1fr; width: 100%; margin: 18px 0 0; }
+.fseg button { padding: 10px 12px; font-size: .95rem; }
+#p-ficha[data-v="inv"] .sec:not(.inv-sec) { display: none; }
+#p-ficha:not([data-v="inv"]) .inv-sec { display: none; }
+#p-ficha[data-iv="gil"] .iv-itens, #p-ficha:not([data-iv="gil"]) .iv-gil { display: none; }
+.stat .v.neg, .money.neg { color: var(--bad); }
+.ilist { display: grid; gap: 8px; margin-top: 12px; }
+.it { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; min-width: 0; }
+.it.zero .it-nm { opacity: .55; }
+.it-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px 8px 6px 12px; }
+.it-nm { border: 0; background: none; padding: 6px 0; text-align: left; cursor: pointer; min-width: 0; display: grid; gap: 2px; }
+.it-nm b { font: 600 .98rem/1.25 var(--display); overflow-wrap: anywhere; }
+.it-nm b::after { content: " ▸"; color: var(--muted); font-weight: 400; }
+.it-nm[aria-expanded="true"] b::after { content: " ▾"; }
+.it-nm small { font: 500 .76rem/1.4 var(--display); color: var(--muted); overflow-wrap: anywhere; }
+.qty { display: flex; align-items: center; gap: 4px; }
+.qty .btn { width: 38px; padding: 0; font-size: 1.1rem; }
+.qty output { min-width: 34px; text-align: center; font: 700 1.05rem var(--display); font-variant-numeric: tabular-nums; }
+.it-more { padding: 10px 12px 12px; display: grid; gap: 10px; border-top: 1px solid var(--rule); }
+.it-more p { margin: 0; max-width: 68ch; font-size: .94rem; overflow-wrap: anywhere; }
+.it-more textarea { min-height: 72px; }
+.cat-res { margin-top: 12px; max-height: 460px; overflow: auto; border-top: 1px solid var(--rule); }
+.cr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; padding: 10px 0; border-bottom: 1px solid var(--rule); align-items: start; }
+.cr b { font: 600 .95rem/1.25 var(--display); overflow-wrap: anywhere; }
+.cr .chip { margin-left: 4px; }
+.cr small { display: block; color: var(--muted); font: 500 .76rem/1.4 var(--display); margin-top: 2px; overflow-wrap: anywhere; }
+.cr details { grid-column: 1 / -1; font-size: .9rem; }
+.cr details summary { cursor: pointer; color: var(--accent); font: 600 .78rem var(--display); }
+.cr details p { margin: 6px 0 0; max-width: 68ch; }
+.cr-b { display: grid; gap: 6px; justify-items: stretch; }
+.cr-b .btn { height: 36px; padding: 0 12px; }
+.lgl { border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); margin-top: 10px; }
+.lg { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; padding: 9px 12px; border-top: 1px solid var(--rule); align-items: center; }
+.lg:first-child { border-top: 0; }
+.lg b { font: 600 .92rem/1.3 var(--display); overflow-wrap: anywhere; }
+.lg small { display: block; color: var(--muted); font: 500 .74rem/1.4 var(--display); margin-top: 1px; }
+.lg-r { display: flex; align-items: center; gap: 8px; }
+.lg .val { font: 700 1rem var(--display); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lg .val.pos { color: var(--ok); }
+.lg .val.neg { color: var(--bad); }
+.lg .btn { height: 32px; min-width: 32px; padding: 0 8px; }
+.lg.ini { background: var(--tint-2); }
+.inv-mini { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.inv-mini span { font: 600 .9rem/1.4 var(--display); }
 /* ---------- mesa ---------- */
 .bar-r { display: flex; align-items: center; gap: 8px; }
 .chip.role { margin: 0; font-size: .64rem; padding: 3px 8px; }
@@ -284,6 +329,8 @@ input[type="checkbox"]:disabled + span, .qrow:has(input:disabled) { cursor: defa
 
     <div id="ficha-body" hidden>
 
+    <div class="seg fseg" id="seg-fi" role="group" aria-label="Parte da ficha"><button type="button" data-fv="ficha" aria-pressed="true">Ficha</button><button type="button" data-fv="inv" aria-pressed="false">Inventário</button></div>
+
     <div class="sec">
       <h2>Personagem</h2>
       <div class="card">
@@ -368,12 +415,76 @@ input[type="checkbox"]:disabled + span, .qrow:has(input:disabled) { cursor: defa
     <div class="sec">
       <h2>Equipamento e anotações</h2>
       <div class="card grid">
-        <div class="grid g2">
-          <label class="f">Gil<input type="number" inputmode="numeric" data-bind="gil" placeholder="0"></label>
-          <label class="f">Bônus de equipamento na C.A.<input type="number" inputmode="numeric" data-bind="extra.ca" placeholder="0"></label>
-        </div>
-        <label class="f">Equipamento e inventário<textarea data-bind="inv" placeholder="Armas, armaduras, itens"></textarea></label>
+        <div class="inv-mini"><span id="o-invmini"></span><button class="btn" type="button" data-fv="inv">Abrir inventário</button></div>
+        <label class="f">Bônus de equipamento na C.A.<input type="number" inputmode="numeric" data-bind="extra.ca" placeholder="0"></label>
         <label class="f">História e anotações<textarea data-bind="notas" placeholder="Passado, objetivos, notas de sessão"></textarea></label>
+      </div>
+    </div>
+
+    <!-- ================= INVENTÁRIO ================= -->
+    <div class="sec inv-sec">
+      <h2>Inventário</h2>
+      <div class="stats">
+        <div class="stat"><span class="k">Dinheiro</span><span class="v" id="o-gil">0</span><span class="s">Gil</span></div>
+        <div class="stat"><span class="k">Peso</span><span class="v" id="o-peso">0</span><span class="s" id="s-peso"></span></div>
+      </div>
+      <div class="msg" id="msg-peso"></div>
+      <div class="seg fseg" id="seg-iv" role="group" aria-label="Parte do inventário"><button type="button" data-iv="itens" aria-pressed="true">Itens</button><button type="button" data-iv="gil" aria-pressed="false">Dinheiro</button></div>
+    </div>
+
+    <div class="sec inv-sec iv-itens">
+      <h2>Itens <span class="small" id="n-itens"></span></h2>
+      <div class="btns" id="inv-btns">
+        <button class="btn pri" type="button" data-inv-panel="cat" aria-expanded="false">Adicionar do livro</button>
+        <button class="btn" type="button" data-inv-panel="novo" aria-expanded="false">Criar item</button>
+      </div>
+      <div class="card" id="inv-cat" hidden style="margin-top:10px">
+        <div class="grid g2">
+          <label class="f">Buscar no livro<input type="search" id="cat-q" placeholder="Nome, dano ou efeito" autocomplete="off"></label>
+          <label class="f">Categoria<select id="cat-c"></select></label>
+        </div>
+        <div class="msg" id="msg-cat"></div>
+        <div class="cat-res" id="cat-res"></div>
+        <p class="hint" id="cat-info"></p>
+        <p style="margin:10px 0 0"><button class="btn" type="button" data-inv-panel="">Fechar</button></p>
+      </div>
+      <div class="card" id="inv-novo" hidden style="margin-top:10px">
+        <p class="small" style="margin:0 0 10px">Para itens que não estão no livro: um vinho raro, uma chave, um presente do mestre.</p>
+        <div class="grid g2">
+          <label class="f">Nome do item<input id="nv-n" maxlength="80" placeholder="ex: Vinho raro" autocomplete="off"></label>
+          <label class="f">Categoria<select id="nv-c"></select></label>
+          <label class="f">Quantidade<input id="nv-q" type="number" inputmode="numeric" min="1" placeholder="1"></label>
+          <label class="f">Peso de cada (kg)<input id="nv-kg" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0"></label>
+          <label class="f">Paguei (Gil, opcional)<input id="nv-gil" type="number" inputmode="numeric" min="0" placeholder="0"></label>
+        </div>
+        <label class="f" style="margin-top:12px">Descrição<textarea id="nv-d" placeholder="O que faz, de onde veio"></textarea></label>
+        <div class="btns" style="margin-top:12px"><button class="btn pri" type="button" id="nv-ok">Adicionar item</button><button class="btn" type="button" data-inv-panel="">Cancelar</button></div>
+        <div class="msg" id="msg-nv"></div>
+      </div>
+      <div class="ilist" id="inv-list"></div>
+      <p class="hint" id="inv-empty"></p>
+      <div class="card grid" style="margin-top:16px">
+        <label class="f">Anotações de equipamento<textarea data-bind="inv" placeholder="O que não for item: coisas guardadas em casa, dívidas, recompensas prometidas"></textarea></label>
+        <label class="f">Carga extra (kg)<input type="number" inputmode="decimal" data-bind="extra.carga" placeholder="0"></label>
+        <p class="hint" style="margin:0">Carga pelo livro: normal 3 × Força em kg, máximo 10 × Força. Mochilas do catálogo somam sozinhas. Use a carga extra para bônus de classe, raça ou do mestre.</p>
+      </div>
+    </div>
+
+    <div class="sec inv-sec iv-gil">
+      <h2>Dinheiro</h2>
+      <div class="card" id="cx-form">
+        <div class="grid g2">
+          <label class="f">Valor (Gil)<input id="cx-v" type="number" inputmode="numeric" min="0" placeholder="0"></label>
+          <label class="f">Motivo<input id="cx-m" maxlength="120" placeholder="ex: comprei uma espada curta" autocomplete="off"></label>
+        </div>
+        <div class="btns" style="margin-top:12px"><button class="btn pri" type="button" id="cx-mais">+ Ganhei</button><button class="btn" type="button" id="cx-menos">− Gastei</button></div>
+        <div class="msg" id="msg-cx"></div>
+      </div>
+      <div class="lgl" id="cx-list"></div>
+      <p class="hint">O saldo é o saldo inicial mais tudo o que entrou menos tudo o que saiu. Errou um lançamento? Apague no × e lance de novo.</p>
+      <div class="card" style="margin-top:12px">
+        <label class="f">Saldo inicial (Gil)<input type="number" inputmode="numeric" data-bind="gil" placeholder="0"></label>
+        <p class="hint">O Gil com que o personagem começou. Fichas antigas: é o valor que estava no campo Gil.</p>
       </div>
     </div>
 
@@ -439,7 +550,7 @@ input[type="checkbox"]:disabled + span, .qrow:has(input:disabled) { cursor: defa
 </main>
 
 <footer class="foot wrap">
-  <p>Mesa criada por Marcos. Sistema World Zero criado por J.Carvalho_20. Regras do livro World Zero 4.7.7. Onde o livro tem lacunas ou erros, a ficha segue o texto mais provável e avisa.</p>
+  <p><a href="../">Voltar ao livro de regras</a>. Mesa criada por Marcos. Sistema World Zero criado por J.Carvalho_20. Regras do livro World Zero 4.7.7. Onde o livro tem lacunas ou erros, a ficha segue o texto mais provável e avisa.</p>
 </footer>
 
 <script src="firebase-config.js"></script>
@@ -1171,6 +1282,263 @@ nota=Classe em branco no livro (só existe o Pincel no nível 1). Preencha em Aj
 1|Pincel
 </script>
 
+<script type="text/plain" id="d-itens">
+# Gerado por ferramentas/ficha-mesa/gerar-itens.js a partir de fonte/livro.txt. Não edite à mão: rode o script.
+arma-adaga|Armas|Básicas, corpo a corpo|Adaga|1|||Alcance corpo a corpo · Perfuração · Dano 1d4 · Crítico 19-20|Essa faca afiada é muito usada por ladrões e assassinos, por ser facilmente escondida. Você recebe um bônus de +4 tem teste de crime para escondê-la. adaga também pode ser arremessado
+arma-bastao|Armas|Básicas, corpo a corpo|Bastão|2|||Alcance corpo a corpo · Esmagamento · Dano 1d6 · Crítico x2|
+arma-bota-com-lamina|Armas|Básicas, corpo a corpo|Bota com lâmina|1|||Alcance corpo a corpo · Perfuração · Dano 1d8 · Crítico 19-20|Esta bota possui um solado grosso, que esconde uma adaga com mola. Estender ou retrair a lâmina é uma ação de movimento. Quando a lâmina está retraída seu deslocamento não é afetado; quando está estendida, você não pode correr ou fazer investidas. Se você estender a lâmina e, na mesma rodada, atacar um oponente com ela, o oponente fica desprevenido contra esse ataque. Isto funciona apenas uma vez por combate.
+arma-cajado|Armas|Básicas, corpo a corpo|Cajado|2|||Alcance corpo a corpo · Esmagamento · Dano 1d6 · Crítico x2|
+arma-clava|Armas|Básicas, corpo a corpo|Clava|2|||Alcance corpo a corpo · Esmagamento · Dano 1d6 · Crítico x2|
+arma-espada-curta|Armas|Básicas, corpo a corpo|Espada curta|2|||Alcance corpo a corpo · Corte · Dano 1d6 · Crítico 19-20|É o mais comum tipo de espada, muito usada por milicianos e soldados rasos - ou ainda como arma secundária. Possui entre 40 a 50 cm de comprimento
+arma-manopla|Armas|Básicas, corpo a corpo|Manopla|1|||Alcance corpo a corpo · Esmagamento · Dano 1d6 · Crítico x2|Uma luva metálica que protege a mão e também permite socos mais fortes. Uma armadura completa inclui um par de manoplas. Você não pode ser desarmado quando usa esta arma.
+arma-maca|Armas|Básicas, corpo a corpo|Maça|1|||Alcance corpo a corpo · Esmagamento · Dano 1d8 · Crítico x2|Composta por um bastão metálico com um peso cheio de protuberâncias na extremidade, a maçã é muito usada por clérigos que fazem votos de não derramar sangue. De fato, um golpe de maçã nem sempre derrama sangue, mas pode esmagar alguns ossos.
+arma-lanca|Armas|Básicas, corpo a corpo|Lança|2|||Alcance corpo a corpo · Perfuração · Dano 1d8/1d6 · Crítico x2|É qualquer arma feita com uma haste de madeira e ponta afiada, natural ou metálica. Por sua facilidade de fabricação, é muito comum entre diversas raças menos civilizadas. Uma lança também pode ser arremessada.
+arma-peixeira|Armas|Básicas, corpo a corpo|Peixeira|2|||Alcance corpo a corpo · Corte · Dano 1d8 · Crítico 19-20|
+arma-arco-curto|Armas|Básicas, a distância|Arco curto|1|||Alcance Curto · Perfuração · Dano 1d6 · Crítico x3|Este arco bastante comum é próprio para caçadas, muito usado por povos selvagens ou caçadores — o tamanho pequeno é apropriado para manuseio em florestas e outros ambientes fechados. Exige as duas mãos.
+arma-azagaia|Armas|Básicas, a distância|Azagaia|1|||Alcance Curto · Perfuração · Dano 1d6 · Crítico x2|
+arma-besta-leve|Armas|Básicas, a distância|Besta leve|1|||Alcance Curto · Perfuração · Dano 1d8 · Crítico 19-20|Um arco montado sobre uma coronha de madeira com um gatinlho, a besta leve é uma arma que dispara virotes com grande potência. Recarregar uma besta leve é uma ação de movimento. Exige as duas mãos.
+arma-pistola-de-polvora|Armas|Básicas, a distância|Pistola de pólvora|1|||Alcance Curto · Balístico · Dano 1d6 · Crítico 18-20|
+arma-chicote|Armas|Marciais, corpo a corpo, leves|Chicote|2|||Alcance 6 m · Esmagamento · Dano 1d4 · Crítico x2|Você pode atacar um inimigo a até 4,5m com um chicote. Esta arma pode se enroscar nas mãos, pernas ou armas do adversário; você recebe +4 em jogadas de ataque para derrubar ou desarmar. O talento Acuidade com Arma se aplica ao chicote.
+arma-machadinha|Armas|Marciais, corpo a corpo, leves|Machadinha|1|||Alcance corpo a corpo · Corte · Dano 1d6 · Crítico x3|Uma ferramenta bem útil para cortar madeira, e também inimigos. Uma machadinha pode ser arremessada.
+arma-martelo|Armas|Marciais, corpo a corpo, leves|Martelo|1|||Alcance corpo a corpo · Esmagamento · Dano 1d6 · Crítico x2|Em sua essência é uma ferramenta para bater pregos, em caso de problemas uma arma para bater em inimigos.
+arma-cimitarra|Armas|Marciais, corpo a corpo, uma mão|Cimitarra|2|||Alcance corpo a corpo · Corte · Dano 1d6 · Crítico 18-20|Uma espada com a lâmina curva, leve e muito afiada. O talento Acuidade com Arma se aplica à cimitarra.
+arma-espada-longa|Armas|Marciais, corpo a corpo, uma mão|Espada longa|2.5|||Alcance 1,5 m · Corte · Dano 1d8 · Crítico x2|Em geral, são chamadas de "espadas longas" espadas com 85 cm a 1,15 m de comprimento total e peso entre 0,9 kg e 1,5 kg. Não existe uma convenção precisa sobre os limites entre espadas curtas e longas, mas a diferença entre espadas longas e bastardas é marcada pelo tamanho da empunhadura - as bastardas têm uma empunhadura bem mais longa, que permite serem seguradas com as duas mãos. A maioria das espadas longas tinha dois gumes e uma ponta rombuda, servindo apenas para cortar. Espadas de ponta perfurante, mais comuns no sul do continente, popularizaram-se pouco tempo depois.
+arma-florete|Armas|Marciais, corpo a corpo, uma mão|Florete|2|||Alcance corpo a corpo · Perfuração · Dano 1d6 · Crítico 19-20|Com uma lâmina fina e afiada, esta espada se torna muito precisa. O talento Acuidade com arma se aplica ao florete.
+arma-machado|Armas|Marciais, corpo a corpo, uma mão|Machado|3|||Alcance corpo a corpo · Corte · Dano 1d8 · Crítico x3|
+arma-mangual|Armas|Marciais, corpo a corpo, uma mão|Mangual|3|||Alcance 1,5 m · Esmagamento · Dano 1d8 · Crítico 20|Arma composta por uma haste metálica ligada a uma corrente que por sua vez é ligada a uma esfera de aço. O mangual pode se enroscar na arma do adversário; você recebe +4 em jogadas de ataque para desarmar.
+arma-martelo-medio|Armas|Marciais, corpo a corpo, uma mão|Martelo médio|3.5|||Alcance corpo a corpo · Esmagamento · Dano 1d8 · Crítico 19/x2|
+arma-picareta|Armas|Marciais, corpo a corpo, uma mão|Picareta|3|||Alcance corpo a corpo · Perfuração · Dano 1d6 · Crítico x4|É uma ferramenta análoga ao martelo que consiste em uma cabeça de metal pontiaguda fixada na ponta de um cabo comprido feito usualmente de madeira. Seu principal uso é quebrar pedras e rochas, sendo muito utilizada em minas e obras para escavação de túneis, onde o trabalho para quebrar as pedras é manual. Alpinistas também fazem uso de picaretas especiais, principalmente quando realizam escalada no gelo. A função da picareta neste caso é prover um ponto de fixação no gelo ou simplesmente para quebrá-lo para abrir caminho.
+arma-alabarda|Armas|Marciais, corpo a corpo, duas mãos|Alabarda|4|||Alcance corpo a corpo · Corte · Dano 1d10 · Crítico x3|É uma arma composta por uma longa haste. A haste é rematada por uma peça pontiaguda, de metal, que por sua vez é atravessada por uma lâmina em forma de meia-lua (similar à de um machado). É considerada a arma de infantaria mais eficaz contra invasores em fortificações e muralhas. É por excelência a arma usada pelos guardas de castelos e palácios e ainda hoje aparece como padrão em unidades militares. Muitos nobres a mantém em suas paredes para fins decorativos, tratadas como peças de arte.
+arma-espada-grande|Armas|Marciais, corpo a corpo, duas mãos|Espada grande|4|||Alcance corpo a corpo · Corte · Dano 2d6 · Crítico 19-20|Uma arma enorme e muito pesada, esta espada tem cerca de 1,5m de comprimento. É uma das armas mais poderosas que uma criatura Média consegue empunhar.
+arma-foice|Armas|Marciais, corpo a corpo, duas mãos|Foice|2|||Alcance corpo a corpo · Corte · Dano 2d4 · Crítico x4|Diferente da ferramenta usada por fazendeiros, uma foice de combate é bem mais forte e balanceada. Capaz de infligir ferimentos precisos e letais.
+arma-lanca-montada|Armas|Marciais, corpo a corpo, duas mãos|Lança montada|3|||Alcance 1,5 m · Perfuração · Dano 1d8 · Crítico x3|Quando montado, você pode utilizar essa arma com apenas uma mão. A lança montada é uma arma de haste, e causa dano dobrado se usada durante uma investida montada
+arma-machado-grande|Armas|Marciais, corpo a corpo, duas mãos|Machado grande|4|||Alcance corpo a corpo · Corte · Dano 1d12 · Crítico x3|Diferente de uma machadinha, este não é um simples instrumento para cortes de árvores, mas sim uma poderosa arma capaz de causar ferimentos terríveis.
+arma-mangual-pesado|Armas|Marciais, corpo a corpo, duas mãos|Mangual pesado|4.5|||Alcance corpo a corpo · Esmagamento · Dano 1d12 · Crítico x3|Uma versão mais pesada do mangual, feita para ser usada com duas mãos. Assim como um mangual comum, fornece +4 nas jogadas de ataque para desarmar.
+arma-martelo-de-guerra|Armas|Marciais, corpo a corpo, duas mãos|Martelo de guerra|4|||Alcance corpo a corpo · Esmagamento · Dano 1d10 · Crítico x3|Mais uma ferramenta modificada para combate. É muito eficiente contra alguns tipos de mortos-vivos, por exemplo esqueletos. Também é a arma preferida de quase todos os anões que recusam os machados.
+arma-marreta|Armas|Marciais, corpo a corpo, duas mãos|Marreta|2.5|||Alcance corpo a corpo · Esmagamento · Dano 3d4 · Crítico x2|Este martelo tem o cabo comprido e a cabeça chata e pesada. É uma arma desajeitada, mas poderosa.
+arma-arco-composto|Armas|Marciais, a distância|Arco composto|2|||Alcance Médio · Perfuração · Dano 1d10 · Crítico x3|Este arco é feito de chifres, madeira ou ossos laminados, e recurvado de forma a continuar estirado mesmo quando desarmado. Devido a isso, o arco composto dispara com mais força que um arco comum. Ao contrário de outros arcos, você aplica seu modificador de Força nas jogadas de dano com um arco composto. Usar um arco composto exige as duas mãos.
+arma-arco-longo|Armas|Marciais, a distância|Arco longo|3|||Alcance Longo · Perfuração · Dano 1d8 · Crítico x3|Este arco reforçado tem a altura de uma pessoa. Diferente do arco curto, é próprio para campos de batalha e outras áreas abertas — seu longo alcance permite atingir o inimigo a grandes distâncias. Exige as duas mãos.
+arma-besta-pesada|Armas|Marciais, a distância|Besta pesada|4|||Alcance Longo · Perfuração · Dano 1d10 · Crítico 19-20|Versão maior e mais potente da besta leve. Recarregar uma besta pesada é uma ação padrão. Usar esta besta também exige as duas mãos.
+arma-chicote-espino|Armas|Exóticas, corpo a corpo, uma mão|Chicote espino|1|||Alcance 1,5 m · Corte · Dano 1d8 · Crítico x2|
+arma-espada-bastarda|Armas|Exóticas, corpo a corpo, uma mão|Espada bastarda|3|||Alcance corpo a corpo · Corte · Dano 1d10 · Crítico 19-20|Maior e mais pesada que a espada longa, esta poderosa arma é usada por cavaleiros para vencer a proteção de uma armadura completa. Uma espada bastarda é muito grande para ser usada com só uma mão sem treinamento especial; por isso é uma arma exótica. Ela pode ser usada como uma arma marcial de duas mãos.
+arma-katana|Armas|Exóticas, corpo a corpo, uma mão|Katana|3|||Alcance corpo a corpo · Corte · Dano 1d10 · Crítico 19-20|A Katana é a espada tradicional dos samurais. Sua lâmina delgada é levemente preservada, e possui apenas um único fio. É muito longa para ser usada com uma só mão sem treinamento especial; por isso, é uma arma exótica.Ela pode ser usada com duas mãos como uma arma marcial. Por seu desenho elegante, também recebe os benefícios do talento Acuidade com Arma. Cada Katana é uma peça de arte única,com entalhes na bainha e lamina, e cabo decorado com fios de seda e metais preciosos, e o metal de sua lâmina é temperado de maneira especial. Por essas características, uma Katana é sempre considerada uma arma Obra Prima, e oferece um bônus de +1 no ataque.
+arma-kusari-gama|Armas|Exóticas, corpo a corpo, uma mão|Kusari-gama|2|||Alcance corpo a corpo · Corte ou esmagamento · Dano 1d8 · Crítico 19-20|Uma foice pequena com uma corrente. Na ponta da corrente há uma bola de metal. A Kusarigama é uma arma dupla — é possível atacar tanto com a foice quanto com a bola de metal. Por causa da corrente, também é uma arma de haste, permitindo atacar inimigos a até 3m — mas, ao contrário de outras armas de haste, pode ser usada para atacar alvos adjacentes. Como a Kusarigama pode se enroscar nas mãos ou nas pernas do adversário, você recebe +4 em jogadas de ataque para derrubar ou desarmar. Por fim, o talento Acuidade com Arma se aplica à Kusari-gama.
+arma-machado-anao|Armas|Exóticas, corpo a corpo, uma mão|Machado-anão|4|||Alcance corpo a corpo · Corte · Dano 1d10 · Crítico x3|Esse poderoso machado é a arma favorita dos anões, quase um símbolo da raça. O Machado Anão é pesado demais para ser usado com uma mão sem treinamento: Por isso é uma arma exótica. O machado anão pode ser usado como uma arma marcial de duas mãos
+arma-maca-de-guerra|Armas|Exóticas, corpo a corpo, uma mão|Maça de guerra|6|||Alcance corpo a corpo · Esmagamento · Dano 1d12 · Crítico x3|Uma versão mais perigosa da maçã comum, com uma cabeça formada por grandes placas de metal. O peso da maçã de guerra torna seu golpe poderoso, mas desajeitado. Um personagem usando uma maça de guerra sofre -1 nas jogadas de ataque.
+arma-hidden-blade|Armas|Exóticas, corpo a corpo, uma mão|Hidden blade|2.5|||Alcance corpo a corpo · Corte · Dano 1d8/1d10 · Crítico x3|Uma braçadeira de metal que fica fixada em seu braço por baixo do antebraço após levantar e sai uma lâmina. Bom se você usar duas hidden blade em ambos os braço ganha +1 na sua Ca e caso tenha o talento combater com duas arma o bônus aumenta para +2 essa arma não pode ser desarmada
+arma-nunchaku|Armas|Exóticas, corpo a corpo, uma mão|Nunchaku|1|||Alcance corpo a corpo · Esmagamento · Dano 1d6 · Crítico x3|Composto por dois bastões curtos de madeira ligados por uma corrente ou tira de couro. O nunchaku era utilizado por camponeses para separar o joio do trigo, sendo mais tarde adotado como arma. O nunchaku também é uma arma de monge (pode ser utilizado com algumas habilidades, como rajada de golpes).
+arma-sabre-serrilhado|Armas|Exóticas, corpo a corpo, uma mão|Sabre serrilhado|2|||Alcance corpo a corpo · Corte · Dano 1d8 · Crítico 19-20|Esta arma cruel possui uma lâmina parecida com um serrote. Ela causa grande estrago quando atinge a carne, rasgando e destruindo tudo. Devido a seus "dentes", é comum que fique profundamente entrelaçada nas costelas (ou órgãos equivalentes). Após um acerto crítico, em vez de causar dano multiplicado, o sabre fica preso - e requer uma ação de movimento para ser arrancado. Esse ato causa à vítima 1d6 pontos de dano adicional. Caso não seja removida, a arma causa 1d4 pontos de dano para cada ação completa ou padrão realizados pela vítima.
+arma-tonfa|Armas|Exóticas, corpo a corpo, uma mão|Tonfa|1|||Alcance corpo a corpo · Esmagamento · Dano 1d8 · Crítico x2|Bastão de madeira com uma guarda de um lado que serve para segurar e executar manobras. A Tonfa é usada pelos ninjas também como arma de defesa — você recebe um bônus de +1 na CA se usar o talento Bloqueio Ambidestro ou Especialização em Combate (não cumulativo).
+arma-corrente-com-cravos|Armas|Exóticas, duas mãos|Corrente com cravos|5|||Alcance corpo a corpo · Perfuração · Dano 3d4 · Crítico x4|Você pode atacar um inimigo a até 4,5m com uma corrente com cravos. Esta arma pode se enroscar nas mãos, pernas e armas do adversário; você recebe +4 em jogadas de ataque para derrubar ou desarmar. O talento Acuidade com Arma se aplica à corrente com cravos.
+arma-espada-de-lamina-dupla|Armas|Exóticas, duas mãos|Espada de lâmina dupla|5|||Alcance corpo a corpo · Corte · Dano 1d8 · Crítico 19-20|Duas espadas longas, presas em lados opostos de um mesmo cabo. É uma arma dupla.
+arma-espada-taurica|Armas|Exóticas, duas mãos|Espada táurica|7.5|||Alcance corpo a corpo · Corte · Dano 2d8 · Crítico x3|Esta espada gigantesca é usada pelos maiores campeões e gladiadores do Reino dos Minotauros. Além do talento Usar arma exótica, também exige Força 15 ou mais para ser utilizada.
+arma-machado-taurico|Armas|Exóticas, duas mãos|Machado táurico|12|||Alcance corpo a corpo · Corte · Dano 2d8 · Crítico x3|Uma haste de 2m de comprimento com uma lâmina extremamente grossa na ponta, o machado táurico é muito pesado, e impõe uma penalidade de -1 na CA de seu usuário. Além do talento Usar Arma Exótica, exige Força 15 ou mais para ser manuseado.
+arma-machado-ogro|Armas|Exóticas, duas mãos|Machado ogro|12|||Alcance corpo a corpo · Corte · Dano 2d8 · Crítico x3|Esta arma exageradamente grande consiste de um cabo longo com uma lâmina larga, grossa e pesada na ponta. É utilizada apenas pelos guerreiros mais brutais, como bárbaros das montanhas, por isso seu nome. O machado ogro é uma arma de haste. Por seu tamanho extremo, além do talento Usar Arma Exótica, exige Força 19 ou mais para ser manuseado e impõem uma penalidade de -1 na CA de seu usuário.
+arma-marreta-estilhacado|Armas|Exóticas, duas mãos|Marreta estilhaçado|7|||Alcance corpo a corpo · Esmagamento · Dano 1d10 · Crítico 20/especial|Este grande e desajeitado martelo de guerra é pouco eficaz em combate normal. Com o cabo longo e uma imensa cabeça de metal, a marreta estilhaçadora conta com uma superfície de impacto larga, incapaz de causar muito dano real. Sua verdadeira finalidade é despedaçar armaduras e carapaças de monstros - especialmente seres da realidade aberrante; com um sucesso decisivo, em vez de causar dano multiplicado, a marreta reduz em 2 o bônus de armadura natural da criatura atingida, ou o bônus de armadura da armadura que a criatura estiver usando.
+arma-balestra|Armas|Exóticas, a distância|Balestra|6|||Alcance Médio · Perfuração · Dano 1d12 · Crítico 19-20|Uma besta com mecanismo pesado, que permite que seu usuário use toda sua força ao engatilhar. Você aplica seu modificador de Força nas jogadas de dano com uma balestra. Recarregar esta arma é uma ação padrão. Exige duas mãos.
+arma-besta-de-mao|Armas|Exóticas, a distância|Besta de mão|1|||Alcance Curto · Perfuração · Dano 1d6 · Crítico 19-20|Uma besta em miniatura, ideal para ser escondida sob um casaco, e usada por nobres e jogadores. Se você sacar a besta de mão, e na mesma rodada, usá-la para atacar, o oponente fica desprevenido contra esse ataque (mas esse truque só funciona uma vez por combate). Recarregar esta arma é uma ação de movimento. Exige uma mão.
+arma-besta-leve-de-repeticao|Armas|Exóticas, a distância|Besta leve de repetição|4.5|||Alcance Curto · Perfuração · Dano 1d10 · Crítico 19-20|
+arma-besta-pesada-de-repeticao|Armas|Exóticas, a distância|Besta pesada de repetição|6|||Alcance Médio · Perfuração · Dano 1d12 · Crítico 19-20|
+arma-boleadeira|Armas|Exóticas, a distância|Boleadeira|1|||Alcance 3 m · Esmagamento · Dano 1d4 · Crítico x3|Uma boleadeira é um par de pesos metálicos ou de pedra, conectados por uma corda fina. Boleadeiras causam dano não letal e podem ser usadas na manobra derrubar, mesmo à distância. Halflings e nativos de Namalkah tratam a boleadeira como arma marcial em vez de arma exótica.
+arma-mosquete|Armas|Exóticas, a distância|Mosquete|5|||Alcance Longo · Balístico · Dano 2d8 · Crítico 19/x3|Uma arma de uso complicado, que é rejeitada pela maioria dos guerreiros, porém devastadora ao atingir seu alvo. Recarregar um mosquete é uma ação padrão. Exige as duas mãos.
+arma-pistola|Armas|Exóticas, a distância|Pistola|1.5|||Alcance Curto · Balístico · Dano 2d6 · Crítico 19/x3|Considerada a mais popular arma de fogo, tem capacidade para apenas um tiro. Requer apenas uma mão - mas se empunhada com duas mãos, oferece um bônus de +1 em jogadas de ataque devido a estabilidade extra. Devido ao tempo de recarga (uma ação padrão), alguns pistoleiros trazem consigo várias pistolas em diversos coldres. Até seis pistolas podem ser transportadas dessa forma.
+arma-shuriken|Armas|Exóticas, a distância|Shuriken|0.25|||Alcance 3 m · Perfuração · Dano 1d4 · Crítico x3|São pequenos projéteis metálicos em forma de estrelas ou dardos. Você pode gastar uma ação padrão para arremessar duas shurikens. Esta é uma arma de monge. (pode ser utilizada com determinadas habilidades)
+arma-espada-diapasao|Armas|Tecnológicas, corpo a corpo, uma mão|Espada diapasão|2.5|||Alcance corpo a corpo · Corte · Dano 1d8 · Crítico 19-20|Esta espada de aparência estranha tem duas lâminas separadas entre si por alguns milímetros. O personagem pode realizar uma manobra especial com uma ação de movimento, golpeando o chão (que deve ser duro como pedra ou metal). A espada então entra em ressonância, passando a vibrar e emitir um ruído muito incômodo. O próximo ataque com esta arma causa +2d6 pontos de dano sônico.
+arma-florete-agulha|Armas|Tecnológicas, corpo a corpo, uma mão|Florete agulha|1|||Alcance corpo a corpo · Perfuração · Dano 1d6 · Crítico 19-20|Este florete possui um minúsculo êmbolo interno, que carrega uma dose de líquido — geralmente veneno. Permite usar um veneno do tipo contato, além do tipo ferimento. Veneno de contato administrado desta forma recebe um bônus de +2 em sua CD.
+arma-lanca-foguete|Armas|Tecnológicas, corpo a corpo, uma mão|Lança foguete|4.5|||Alcance 6 m · Perfuração · Dano 1d10 · Crítico x2|Esta lança parece normal, mas há um “foguete” (um reservatório de pólvora) no meio de sua haste. Este foguete pode ser ativado por uma corda na haste (uma ação livre), fazendo com que o próximo arremesso da lança tenha o seu alcance dobrado (para um total de 12m) e receba um bônus de +2 nas jogadas de ataque e dano. Depois de arremessada com o foguete de acesso, a lança torna-se inútil.
+arma-lanca-mola|Armas|Tecnológicas, corpo a corpo, uma mão|Lança mola|2.5|||Alcance corpo a corpo · Perfuração · Dano 1d6 · Crítico x2|Esta lança retrátil de metal possui no meio de sua haste uma forte mola, que fica encolhida. O personagem pode realizar um ataque especial apertando um botão para soltar a mola (uma ação livre). Este ataque recebe um bônus de +2 na jogada de ataque e tem seu alcance aumentado para 3m. O personagem pode remontar a mola com uma ação completa.
+arma-maca-granada|Armas|Tecnológicas, corpo a corpo, uma mão|Maça-granada|6.5|||Alcance 3 m · Esmagamento · Dano 1d8 · Crítico x3 + 4d6|Esta maçã tem uma carga explosiva em sua cabeça. A granada é ativada quando submetida a uma grande pressão. Quando o personagem faz um acerto crítico, além de infligir dano dobrado, causa uma explosão, que faz 4d6 pontos de dano de fogo no alvo (e 2d6 pontos de dano no usuário). Esta explosão não dá direito a teste de resistência. Depois de explodir, a maçã fica inutilizada.
+arma-martelo-pistao|Armas|Tecnológicas, corpo a corpo, uma mão|Martelo pistão|3.5|||Alcance corpo a corpo · Esmagamento · Dano 1d8 · Crítico 20/especial|Este martelo tem um mecanismo avançado em seu interior. Com uma ação completa, você puxa o pistão e “carrega” uma carga de vapor na arma. Em qualquer momento até 1 hora depois de carregar a arma, você pode liberar a energia do pistão para a ponta do martelo com uma alavanca na haste. Quando fizer isso, o martelo move sua cabeça muito rapidamente e dá um impulso extra no ataque, concedendo um bônus de +4 na jogada de ataque.
+arma-marreta-pistao|Armas|Tecnológicas, duas mãos|Marreta pistão|9|||Alcance corpo a corpo · Esmagamento · Dano 1d10 · Crítico 20/especial|Semelhante ao martelo-pistão, mas maior, para ser usada com duas mãos. Funciona da mesma maneira — use uma ação completa para carregar uma carga de vapor. Ao liberar a carga, a marreta concede um bônus de +4 na jogada de ataque. Além disso, funciona como uma marreta estilhaçadora — com um acerto crítico, reduz o bônus de CA do alvo em 2 pontos.
+arma-bazuca|Armas|Tecnológicas, a distância|Bazuca|5|||Alcance Médio · Fogo · Dano 5d8 · Crítico 19-20|Uma das maiores criações dos mestres armeiros, esta arma tem potencial destrutivo comparável ao das mais avançadas magias. Uma bazuca é um cilindro de metal com um compartimento para pólvora e um grande pavio. A munição é um grande obus explosivo, capaz de obliterar a maior parte dos alvos. Para disparar a bazuca, o usuário deve antes acender o pavio (uma ação de movimento). Uma vez que o pavio seja aceso, a bazuca dispara em 1d2 rodadas — ou seja, dispara na rodada seguinte ou na rodada após a seguinte. O usuário pode acender o pavio de forma a que ela dispare na mesma rodada, mas deve ser bem-sucedido num teste de Ofícios (armeiro) contra CD 20. Em caso de falha, a bazuca explode e o usuário sofre o dano do tiro. O disparo tem um "coice" extremamente forte. Criaturas com Força menor que 15 sofrem -4 de penalidade na jogada de ataque e são arrastados 3 metros para trás no momento do disparo. Mesmo assim, esta arma é terrível. A explosão atinge um raio de 6m, causando 10d8 pontos de dano e deixando todas as criaturas atordoadas por uma rodada. Um teste de Reflexos (CD igual ao resultado da jogada de ataque) reduz o dano à metade e evita o atordoamento. Uma criatura atingida diretamente não tem direito ao teste de Reflexos. A bazuca ainda é mais destrutiva contra alvos não vivos. Qualquer armadura vestida por um alvo atingido deve ser bem-sucedida num teste de Fortitude (CD 15) ou ficar inutilizada, deixando de oferecer qualquer bônus. Itens normais tem bônus de resistência +0; itens mágicos tem bônus de resistência de acordo com sua aura: +2 para aura tênue, +5 para moderada e +10 para aura poderosa. Objetos atingidos por um tiro de bazuca aplicam apenas metade de sua redução de dano. Uma bazuca fica inutilizada após um disparo. É necessário um teste de Ofícios (armero) contra CD 20 e uma hora de trabalho para consertá-la.
+arma-canhao|Armas|Tecnológicas, a distância|Canhão|200|||Alcance Extremo · Esmagamento · Dano 5d12 · Crítico x3|Usados extensivamente nas naves-vivas que cruzam o vazio, canhões são pesados e lentos, mas oferecem grande poder de destruição. Assim como uma balista, um canhão só pode ser usado instalado em uma plataforma (em termos de regras, um canhão que possa ser carregado na verdade é um mosquetão Grande). Disparar um canhão é uma ação completa; recarregá-lo exige quatro ações completas, mas até duas pessoas podem carregá-lo ao mesmo tempo (de modo que duas pessoas gastando suas ações completas podem carregá-lo em duas rodadas). Se as duas pessoas carregando o canhão tiverem o talento Rapidez de Recarga, a recarga demora apenas uma ação completa.
+arma-canhao-portatil|Armas|Tecnológicas, a distância|Canhão portátil|20|||Alcance Médio · Esmagamento · Dano 3d12 · Crítico x3|Uma versão muito menor do seu primo Enorme, o canhão de mão é suficientemente pequeno para ser utilizado como uma arma de alcance de duas mãos. O canhão fica pendente do lado do corpo enquanto uma longa alça de couro serve de apoio. Também há dois cabos — um do lado e um embaixo — para auxiliar na mira. O canhão dispara uma bola de metal maciço e demora uma ação completa para ser recarregado. Criaturas com Força menor que 15 sofrem –4 de penalidade nas jogadas de ataque com o canhão e são arrastadas 3 metros para trás no momento do disparo.
+arma-catapulta-de-braco|Armas|Tecnológicas, a distância|Catapulta de braço|2|||Alcance Médio · Esmagamento · Dano 2d4 · Crítico x4|Um dos diversos engenhos criados por halflings, para praticar seus esportes de arremesso de pedras. A catapulta-de-braço é uma arma que presa ao braço com fivelas, arremessa pedras ao movimento correto do pulso, tão longe quanto os arcos lançam flechas. Recarregá-la é uma ação livre
+arma-revolver|Armas|Tecnológicas, a distância|Revolver|2|||Alcance Curto · Balístico · Dano 2d6 · Crítico 19/x3|Esta maravilha tecnológica conta com um tambor capaz de girar, alinhando cargas de pólvora e balas com o cano repetidas vezes. Depois de dar um tiro, o usuário pode usar uma ação de movimento para girar o tambor e realizar outro tiro com a mesma pistola, até um máximo de quatro tiros no total por pistola. Esta arma é quase desconhecida, provavelmente a mais rara das armas tecnológicas. Está disponível apenas com autorização do mestre.
+arma-shotgun|Armas|Tecnológicas, a distância|Shotgun|3|||Alcance Médio · Balístico · Dano 3d6 · Crítico x2|Uma arma de fogo com cano longo maior do que uma pistola e depois atira pode ser pego em área diferente do revólver essa arma é muito rara, essa talvez seja a maior arma de fogo criado pela tecnologia na história. Disponível apenas a critério do mestre
+armadura-roupa-reforcada|Armaduras|Leves|Roupa reforçada|1|||C.A. +1|Só uma armadura vale por vez. Sem proficiência: desvantagem em todos os testes físicos e não soma a C.A.
+armadura-couro-leve|Armaduras|Leves|Couro leve|2|||C.A. +2 · C.R. física +1|Só uma armadura vale por vez. Sem proficiência: desvantagem em todos os testes físicos e não soma a C.A.
+armadura-couro-batido|Armaduras|Leves|Couro batido|3|||C.A. +3 · C.R. física +2|Só uma armadura vale por vez. Sem proficiência: desvantagem em todos os testes físicos e não soma a C.A.
+armadura-tecelagem-arcana|Armaduras|Leves|Tecelagem arcana|4|||C.A. +4 · Penalidade: Vulnerabilidade a raio|Só uma armadura vale por vez. Sem proficiência: desvantagem em todos os testes físicos e não soma a C.A.
+armadura-gibao-reforcado|Armaduras|Médias|Gibão reforçado|5|||C.A. +4 · C.R. física +3 · C.R. elemental +1 · Penalidade: Furtividade -2|Só uma armadura vale por vez. Sem proficiência: desvantagem em todos os testes físicos e não soma a C.A.
+armadura-cota-de-escamas|Armaduras|Médias|Cota de escamas|7|||C.A. +5 · C.R. física +4 · C.R. elemental +1 · Penalidade: Furtividade -3 e -2m Deslocamento|Só uma armadura vale por vez. Sem proficiência: desvantagem em todos os testes físicos e não soma a C.A.
+armadura-armadura-hibrida|Armaduras|Médias|Armadura híbrida|8|||C.A. +6 · Penalidade: Deslocamento -3m|Só uma armadura vale por vez. Sem proficiência: desvantagem em todos os testes físicos e não soma a C.A.
+armadura-cota-de-malha|Armaduras|Pesadas|Cota de malha|10|||C.A. +7 · C.R. física +5 · C.R. elemental +2 · Penalidade: Deslocamento -2m|Só uma armadura vale por vez. Sem proficiência: desvantagem em todos os testes físicos e não soma a C.A.
+armadura-armadura-de-placas|Armaduras|Pesadas|Armadura de placas|12|||C.A. +8 · C.R. física +6 · C.R. elemental +3 · Penalidade: Deslocamento -3m e desvantagem em furtividade|Só uma armadura vale por vez. Sem proficiência: desvantagem em todos os testes físicos e não soma a C.A.
+armadura-armadura-de-cerco|Armaduras|Pesadas|Armadura de cerco|14|||C.A. +9 · C.R. física +8 · C.R. elemental +4 · Penalidade: Deslocamento -4 e teste de agilidade e força -2|Só uma armadura vale por vez. Sem proficiência: desvantagem em todos os testes físicos e não soma a C.A.
+municao-flecha|Munição|Flechas e virotes|Flecha|0.05|||Munição|São hastes de madeira geralmente com ponta metálica e penas para estabilizar seu voo, costumam ser vendidas em aljavas com 20 unidades. Carregar um arco com uma flecha é uma ação livre. Flechas possuem variações especiais que podem ser usadas em qualquer arma que as utilize como munição:
+municao-flecha-assobiadora|Munição|Flechas e virotes|Flecha assobiadora|1.5|||Munição|estas ﬂechas simulam o pio de um pássaro quando disparadas. Artesãos élficos criavam ﬂechas que faziam chamados específicos, reconhecidos pelos seus rangers. Por exemplo, o crocitar de um falcão indicava um ataque, enquanto que o chiado de uma coruja significava um avanço furtivo. Um teste de Sobrevivência (CD 20) permite indicar se o som vem de um animal ou de outra fonte. Os entalhes intrincados da haste da ﬂecha prejudicam seu voo, impondo uma penalidade de –2 em jogadas de ataque.
+municao-flecha-de-caca|Munição|Flechas e virotes|Flecha de caça|1.5|||Munição|estas ﬂechas têm cabeças chatas e pesadas, criadas para atordoar presas pequenas em vez de destruí-las completamente, como outros tipos de ﬂechas faria. Uma ﬂecha de caça causa dano não letal de esmagamento.
+municao-flecha-farpada|Munição|Flechas e virotes|Flecha farpada|1.5|||Munição|estas ﬂechas possuem ganchos cruéis (similares a anzóis) ao longo de suas cabeças. Por isso, possuem uma chance maior de causar ferimentos severos ao acertar. A margem de ameaça de um arco usando ﬂechas farpadas aumenta em +1 (o multiplicador de crítico permanece x3).
+municao-flecha-incendiaria|Munição|Flechas e virotes|Flecha incendiária|2|||Munição|cada uma destas ﬂechas carrega uma carga de fogo alquímico em sua haste oca. Quando a ﬂecha atinge seu alvo, a haste se parte, liberando o fogo alquímico. Além do dano normal, esta ﬂecha causa 1d6 pontos de dano de fogo.
+municao-flecha-metalica|Munição|Flechas e virotes|Flecha metálica|2|||Munição|com uma grande parte de sua haste feita de metal, estas ﬂechas são mais perigosas — mas também mais pesadas — que o normal. O dano de um arco usando ﬂechas metálicas aumenta em uma categoria de tamanho; entretanto, seu incremento de distância é reduzido à metade. Por exemplo, um arco longo (dano 1d8 e distância 24m) com ﬂechas metálicas fica com dano 1d10 e distância 12m.
+municao-flecha-perfurante|Munição|Flechas e virotes|Flecha perfurante|1.5|||Munição|Flecha Perfurante: estas ﬂechas têm pontas longas e finas. A área de impacto menor permite que ela atravesse armaduras com facilidade. Quando usa estas ﬂechas, você recebe um bônus de +2 nas jogadas de ataque contra alvos usando armaduras.
+municao-flecha-voadora|Munição|Flechas e virotes|Flecha voadora|1|||Munição|uma ﬂecha construída com madeira leve e penas selecionadas, de modo a atingir maiores distâncias. O incremento de distância de um arco usando ﬂechas voadoras aumenta em 50%, mas seu dano é reduzido em uma categoria.
+municao-balas-canhao|Munição|Balas|Balas canhão|5|||Munição|
+municao-balas-canhao-menor|Munição|Balas|Balas canhão menor|1.5|||Munição|
+municao-balas-curta|Munição|Balas|Balas curta|1|||Munição|As balas atiram pequenas esferas de metal que pode ser fatal para todas as pessoas no mundo ao comprar as balas tem 10 balas
+municao-bala-de-dose|Munição|Balas|Bala de Dose|2|||Munição|As balas de espingarda com várias minis bolinhas de metal presas dentro de cartucho vermelho uma caixa vem 8 Balas
+municao-balas-longa|Munição|Balas|Balas longa|3|||Munição|As balas atiram pequenas esferas de metal que pode ser fatal para todas as pessoas no mundo ao comprar as balas tem 10 balas
+municao-balas-de-fogo|Munição|Balas|Balas de fogo|2|||Munição|As balas de fogo são ótimas balas contra zumbis e inimigos que estejam sem armadura e ótima arma para machucá todos os inimigos que querem te matar essa bala causa 1d8 de dano de fogo extra
+municao-balas-de-gelo|Munição|Balas|Balas de gelo|2|||Munição|As balas de gelo são muito úteis para fazer um inimigo se locomover muito mais devagar. Causando 1d8 de dano de gelo e reduz o deslocamento pela metade
+municao-balas-de-raio|Munição|Balas|Balas de raio|2|||Munição|Essas balas podem ser muito úteis para causar dano elétrico no alvo causando 1d8 de dano elas não deixam o alvo atordoado por ser uma descarga muito fraca mas caso você tire críticas você atordoa o alvo e desarmado ele.
+municao-balas-de-cura|Munição|Balas|Balas de cura|2|||Munição|As balas de cura são ótimas balas para causa dano em demônios e criaturas sombrias e caso você atire em um aliado que esteja machucado ele irá recuperar 1d8 de vida
+municao-balas-de-veneno|Munição|Balas|Balas de veneno|2|||Munição|Essas balas são mortais a quem é acertado por elas a pessoa pode até morrer causando 1d6 de veneno e caso você tira crítico no dado o alvo sofre 1d4 de veneno todo turno. Balas híbridas Balas híbridas são uma nova leva de balas mágicas como isso funciona caso você tenha duas pistola você pode atirar com as duas e se estiver com duas balas de fogo no meio do caminho elas irão se juntar e formar uma bola de fogo. Bom veja abaixo algumas combinação
+municao-bala-de-sombras|Munição|Balas|Bala de sombras|2|||Munição|Balas de sombra são balas ótimas para deixar o alvo com a visão turva e causando 1d8 de dano da sombra;
+municao-virotes|Munição|Flechas e virotes|Virotes|1.5|||Munição|
+item-binoculos|Itens gerais||Binóculos|1|||+2 em Percepção|
+item-corda-15m|Itens gerais||Corda (15m)|2|||Usada em escaladas, capturas e resgates|
+item-kit-de-ferramentas-simples|Itens gerais||Kit de ferramentas simples|3|||Necessário para Ofício e Criação de Item|
+item-kit-de-primeiro-socorros|Itens gerais||Kit de primeiro socorros|3|||Permite testes de Medicina sem penalidade|
+item-mascara-de-filtro|Itens gerais||Máscara de filtro|1|||+2 contra gases e venenos inaláveis|
+item-mochila-pequena|Itens gerais||Mochila pequena|||3|+3kg em carga|
+item-mochila-reforcada|Itens gerais||Mochila reforçada|||6|+6kg em carga|
+item-mochila-militar|Itens gerais||Mochila militar|||10|+10kg em carga|
+item-pederneira|Itens gerais||Pederneira|0.005|||Acende fogo|
+item-saco-de-dormir|Itens gerais||Saco de dormir|5|||Remove penalidades de descanso ruim|
+item-tocha|Itens gerais||Tocha|2|||Ilumina 6m|
+magico-anel-da-concentracao|Itens mágicos||Anel da concentração|0.5|||+1 na Dt para inimigos resistência a suas magias|
+magico-amuleto-vital|Itens mágicos||Amuleto vital|0.75|||+5 de PV máximo|
+magico-amuleto-cristal|Itens mágicos||Amuleto cristal|0.75|||+5 de PM máximo|
+magico-botas-etereas|Itens mágicos||Botas etéreas|1|||+1 em deslocamento|
+maldito-anel-de-sacrificios|Itens amaldiçoados||Anel de sacrifícios|0.3|||+2 em dano de magias e mágicos · Maldição: Porém a cada magia utilizado perde 1 PV|
+maldito-anel-de-sangue|Itens amaldiçoados||Anel de sangue|0.3|||+2 de dano em CaC ou atirando · Maldição: Perde 1 de PV por turno|
+maldito-colar-da-vida-falsa|Itens amaldiçoados||Colar da vida falsa|0.2|||Ganha 10 PV temporário · Maldição: Diminuiu em -2 a constituição|
+maldito-mascara-dos-sussurros|Itens amaldiçoados||Máscara dos sussurros|1|||+2 em intuição e se passar no teste pode receber +1 em outro perícias a sua escolha · Maldição: -3 de sanidade por cena|
+maldito-medalhao-da-dor|Itens amaldiçoados||Medalhão da dor|1|||Recebe resistência a dano +2CR · Maldição: Não pode ser removido sem ter feito um ritual antes|
+tec-scanner-portatil|Itens tecnológicos||Scanner portátil|2|||+2 em investigação e +2 em percepção · Carga: Bateria|
+tec-oculos-taticos|Itens tecnológicos||Óculos táticos|1|||+2 em pontaria · Carga: Energia|
+tec-luva-de-assistencia|Itens tecnológicos||Luva de assistência|1|||+2 em luta · Carga: Energia|
+tec-escudo-energetico|Itens tecnológicos||Escudo energético|3|||Reduz 1d8 de dano por ataque · Carga: Energia|
+tec-nucleo-portatil|Itens tecnológicos||Núcleo portátil|2|||Alimentação de de dispositivos eletrônicos · Carga: Célula|
+tec-comunicador-de-curto-alcance|Itens tecnológicos||Comunicador de curto alcance|1|||Comunicação até 1km · Carga: Bateria|
+tec-lanterna-eletrica|Itens tecnológicos||Lanterna elétrica|1|||Ilumina 12m por 4h · Carga: Energia|
+tec-carregador-de-bateria|Itens tecnológicos||Carregador de bateria||||Carregar um 1 item de bateria · Carga: energia|
+consumivel-energetico|Consumíveis|Básicos|Energético|1|||+1 Iniciativa por 1 combate|
+consumivel-cantil|Consumíveis|Básicos|Cantil|1|||Água por 1 dia|
+consumivel-racao-de-viagem|Consumíveis|Básicos|Ração de viagem|1|||Sustento por 1 dia|
+consumivel-racao-reforcada|Consumíveis|Básicos|Ração reforçada|2|||Sustenta 2 dias, +1 Fortitude por 1 cena|
+consumivel-bandagem-simples|Consumíveis|Cura (PV)|Bandagem simples|1|||Cura 1d6 de Pv (cura média 3)|
+consumivel-pocao-de-cura-menor|Consumíveis|Cura (PV)|Poção de cura menor|3|||Cura 2d8 de Pv (Cura média 8)|
+consumivel-pocao-de-cura-media|Consumíveis|Cura (PV)|Poção de cura média|6|||Cura 4d6 de PV (Cura média 12)|
+consumivel-pocao-de-cura-grande|Consumíveis|Cura (PV)|Poção de cura grande|8|||Cura 4d12 de PV (Cura média 24)|
+consumivel-soro-regenerativo|Consumíveis|Cura (PV)|Soro regenerativo|5|||Cura 2d10 PV por 3 turnos (Cura média por turno 10)|
+consumivel-cristal-de-mana-fraco|Consumíveis|Mana (PM)|Cristal de mana fraco|1|||Recupera 1d6 de PM (PM médio 3)|
+consumivel-pocao-de-mana-menor|Consumíveis|Mana (PM)|Poção de mana menor|3|||Recupera 2d6 de PM (PM médio 6)|
+consumivel-pocao-de-mana-media|Consumíveis|Mana (PM)|Poção de mana média|6|||Recupera 4d6 de PM (PM médio 12)|
+consumivel-pocao-de-mana-grande|Consumíveis|Mana (PM)|Poção de mana grande|8|||Recupera 3d12 de PM (PM médio 18)|
+consumivel-fragmento-etereo|Consumíveis|Mana (PM)|Fragmento etéreo|4|||Recupera por 5 turnos 4 PM|
+consumivel-cha-calmante|Consumíveis|Sanidade|Chá calmante||||Recupera 1d6 de sanidade|
+consumivel-incenso-ritualistico|Consumíveis|Sanidade|Incenso ritualístico||||Recupera 2d6 de sanidade|
+consumivel-pilula-estabilizador|Consumíveis|Sanidade|Pílula estabilizador||||Remove 1 condição mental leve|
+consumivel-elixir-da-lucidez|Consumíveis|Sanidade|Elixir da lucidez||||+2 em vontade por 1 cena|
+consumivel-acido-fraco|Consumíveis|Alquímicos|Ácido fraco||||2d6 de dano ácido|
+consumivel-fogo-alquimico|Consumíveis|Alquímicos|Fogo alquímico||||2d6 de fogo + 1d6 por 2 turno|
+consumivel-bomba-de-gelo|Consumíveis|Alquímicos|Bomba de gelo||||Deslocamento -3m|
+consumivel-frasco-de-veneno|Consumíveis|Alquímicos|Frasco de veneno||||Envenena por 2 turno|
+consumivel-catalisador-arcano|Consumíveis|Alquímicos|Catalisador arcano||||+1 dados de magia (1 uso)|
+consumivel-antidoto-comum|Consumíveis|Alquímicos|Antídoto comum||||Remove veneno simples|
+montaria-chocobo-amarelo|Montarias||Chocobo Amarelo||2000||Deslocamento 15m · Carga 120 kg · PV 40 · Terreno: Planícies/estradas|Não provoca ataque oportunidades enquanto tive montado.
+montaria-chocobo-azul-aquatico|Montarias||Chocobo azul (aquático)||3500||Deslocamento 15m/nada 12m · Carga 100 kg · PV 40 · Terreno: Planícies/águas|Conseguiu correr sobre a água.
+montaria-chocobo-preto|Montarias||Chocobo preto||5000||Deslocamento 18m · Carga 140 kg · PV 50 · Terreno: Montanhas, planícies e estradas|Conseguiu escalar, terrenos difíceis e íngremes.
+montaria-lagarto-gigante|Montarias||Lagarto gigante||5000||Deslocamento 12m · Carga 130 kg · PV 55 · Terreno: Regiões quentes e desertos|Recebe 4 de resistência a dano caso esteja montado (caso não seja no seus terrenos vira 2 de Resistência).
+montaria-cavalo-de-guerra|Montarias||Cavalo de guerra||6000||Deslocamento 14m · Carga 160 kg · PV 60 · Terreno: Planícies/ estradas|Se se mover pelo menos 6m em linha reta, o próximo ataque do cavaleiro causa +1d8 de dano.
+montaria-besouro-mecanico|Montarias||Besouro mecânico||10000||Deslocamento 8m · Carga 220 kg · PV 90 · Terreno: Qualquer terreno sólido|Reduz todo dano físico recebido em 4.
+montaria-serpente-de-areia|Montarias||Serpente de areia||9000||Deslocamento 10m/escavação 12m · Carga 110 kg · PV 50 · Terreno: Deserto e Areia|Pode emergir e permitir vantagem no primeiro ataque do cavaleiro.
+montaria-tartaruga-gigante|Montarias||Tartaruga gigante||6500||Deslocamento 6m/nada 15m · Carga 180 kg · PV 80 · Terreno: Oceanos/Lagos|Passageiros recebem +2 em testes contra ataques à distância com teste de reflexo.
+montaria-crocodilo-gigante|Montarias||Crocodilo gigante||5800||Deslocamento 8m/nada 12+1m · Carga 140 kg · PV 65 · Terreno: Rios/pântanos|1x por combate pode causar +1d10 de dano se atacar após nadar.
+montaria-grifo-jovem|Montarias||Grifo jovem||12000||Deslocamento 10m/voo 16m · Carga 120 kg · PV 70 · Terreno: Céus/montanhas|Vantagem no primeiro ataque ao descer voando.
+montaria-draco-alado|Montarias||Draco alado||20000||Deslocamento 12m/18voo · Carga 150 kg · PV 85 · Terreno: Céus/regiões vulcânicas|Inimigos adjacentes sofrem desvantagem em testes de Vontade.
+montaria-manticora-alada|Montarias||Manticora alada||15500||Deslocamento 11m/17voo · Carga 100 kg · PV 75 · Terreno: Céus/ ruinas|Ataques à distância contra ela sofrem desvantagem.
+mod-atroz|Modificações|Armas|Atroz|4|||Modificação de arma · +4 kg na arma|A arma é brutal, cheia de ganchos e lâminas secundárias. Extremamente letal, mas difícil de manejar. +3 de dano
+mod-banhado-com-ouro|Modificações|Armas|Banhado com ouro|5|||Modificação de arma · +5 kg na arma|Ostentação pura. Impressiona nobres, mas chama atenção indesejada. +2 em Diplomacia OU Enganação (escolha ao colocar na arma)
+mod-certeira|Modificações|Armas|Certeira|2|||Modificação de arma · +2 kg na arma|Forjada para ser mais precisa e balanceada, a arma fornece um bônus de +2 nos testes de ataque.
+mod-cravejado-de-gemas|Modificações|Armas|Cravejado de gemas|4.5|||Modificação de arma · +4,5 kg na arma|É fácil ser persuadido por alguém opulento e orgulhoso o bastante para ostentar um item cravejado de gemas. Concede um bônus de +2 em testes de enganação. Assim como um item banhado a ouro, um item cravejado de gemas pode atrair a cobiça de ladrões.
+mod-cruel|Modificações|Armas|Cruel|2|||Modificação de arma · +2 kg na arma|Rebarbas, espinhos e até mesmo lâminas adicionais podem compor uma arma cruel. Ela fornece um bônus de +2 nas rolagens de dano.
+mod-equilibrada|Modificações|Armas|Equilibrada|1|||Modificação de arma · +1 kg na arma|Uma arma equilibrada é forjada com o balanço perfeito, o que facilita movimentos complexos. Ela fornece um bônus de +2 em testes de manobras (desarmar, quebrar etc.).
+mod-harmonizada|Modificações|Armas|Harmonizada|2.5|||Modificação de arma · +2,5 kg na arma|A arma foi banhada em óleos alquímicos que a deixaram sintonizada com a aura de seu usuário. Escolha uma habilidade ativada ao se fazer um ataque. Esta habilidade tem seu custo em PM reduzido em –1 se utilizada com esta arma.
+mod-macabro|Modificações|Armas|Macabro|2|||Modificação de arma · +2 kg na arma|Um item macabro é pintado com sangue seco, esculpido na forma de uma caveira ou decorado com pedaços de orelhas, dedos e olhos. Essa aparência assustadora fornece um bônus de +2 em testes de Intimidação, mas impõe uma penalidade de –2 em testes de Diplomacia.
+mod-macica|Modificações|Armas|Maciça|3|||Modificação de arma · +3 kg na arma|A arma é feita com material denso, fazendo com que seus golpes tenham impacto terrível. O multiplicador de crítico da arma aumenta em 1 ponto. Uma arma não pode ser maciça e precisa.
+mod-material-especial|Modificações|Armas|Material especial|3|||Modificação de arma · +3 kg na arma|A arma, armadura ou escudo é feito ou banhado (não ambos) com um material especial. Veja a seção a seguir para a descrição dos materiais especiais. Cada um fornece um benefício específico, cumulativo com outros benefícios de modificações, mas possui um custo adicional que deve ser pago além do custo da modificação. Fabricar um item de material especial é uma modificação porque materiais especiais exigem um trabalho mais complexo do que materiais comuns.
+mod-mira-telescopica|Modificações|Armas|Mira telescópica|2|||Modificação de arma · +2 kg na arma|Aumenta o alcance da arma em uma categoria (de curto para médio, de médio para longo) e o alcance da habilidade Ataque Furtivo para médio. Esta modificação só pode ser aplicada em armas de disparo (exceto fundas).
+mod-precisa|Modificações|Armas|Precisa||||Modificação de arma|Cuidado especial foi tomado ao temperar o aço desta arma, para que seu fio se mantenha sempre como uma navalha. A margem de ameaça aumenta em 1 ponto. Uma arma não pode ser precisa e maciça.
+mod-pungente|Modificações|Armas|Pungente|4|||Modificação de arma · +4 kg na arma|Temperada diversas vezes para adquirir o fio perfeito — ou o equilíbrio perfeito, no caso de uma arma sem fio —, a arma fornece um bônus de +3 nos testes de ataque. Pré-requisito: Certeira.
+mod-empunhadura-curvada|Modificações|Sabre de luz|Empunhadura curvada||||Modificação de sabre de luz|Outra pequena variação do clássico sabre de luz de uma lâmina é o sabre de luz de punho curvo usado por personagens como o Conde Dooku, Darth Bane e Tott Doneeta. A forma curva do punhotorna a construção do sabre de luz mais difícil durante o processo de alinhamento do cristal. Entretanto, um sabre de luz curvo dá ao manejador uma melhor aderência e permite movimentos mais precisos durante um combate com sabre de luz. +2 em teste de ataque e +1 em teste de acrobacia
+mod-empunhadura-dupla|Modificações|Sabre de luz|Empunhadura dupla||||Modificação de sabre de luz|O sabre de luz duplo também conhecido como sabre de luz duplo foi visto pela primeira vez pelo público em geral nas mãos de Darth Maul no Phantom Menace. Foi o sabre de luz de duas lâminas de Maul que matou Qui-Gon Jinn e quase derrotou Obi-Wan Kenobi. +1 em teste de ataque e +1d6 no dano
+mod-empunhadura-giratoria|Modificações|Sabre de luz|Empunhadura giratória||||Modificação de sabre de luz|Se você achava que o sabre de Darth Maul era o melhor, cuidado, há um sabre de luz rotativo de duas lâminas! Projetado e fabricado especificamente para os Inquisidores, um grupo de seguidores do lado obscuro que tem aplicado a vontade do Império Galáctico. Sua operação é simples: o cabo é preso a um disco que contém os 2 emissores laser. +1 em teste de ataque e +2 em teste de fortitude
+mod-empunhadura-grande|Modificações|Sabre de luz|Empunhadura grande||||Modificação de sabre de luz|O Grande sabre de luz é o oposto completo de um Shoto: é um sabre de luz padrão de lâmina única, com uma lâmina muito mais longa e um punho estendido. Projetada para pessoas e criaturas maiores do que a média, a lâmina do Grande Sabre de Luz pode ter até 3 metros de comprimento. +4 no dano e +1 no crítico ( Duas mãos para usar )
+mod-empunhadura-de-katana|Modificações|Sabre de luz|Empunhadura de katana||||Modificação de sabre de luz|O sabre de luz negro é uma arma verdadeiramente lendária. Ao contrário das outras, tem uma lâmina obsidiana rodeada por uma aura branca cintilante. É muito mais como uma espada do que um sabre de luz. Seu cabo angular é único, assim como o efeito sonoro que emite, que é completamente diferente do de outros sabres de luz. Este sabre preto foi criado por Tarre Vizsla, o primeiro mandaloriano a se tornar um Jedi. + 3 em dano e +1 aumento no crítico ( +500g )
+mod-empunhadura-de-lanca|Modificações|Sabre de luz|Empunhadura de lança||||Modificação de sabre de luz|O espigão sabre de luz é o primeiro tipo de saber a ter uma lâmina amarela. Estas armas têm um cabo muito mais longo que o habitual e o punho é feito de um material chamado liga phrik. Isto é o que o torna tão resistente a outros sabres de luz. A lâmina também é muito mais curta e ligeiramente mais grossa do que as lâminas padrão. Os detentores mais comuns desses sabres de luz são os guardas do templo Jedi, que juraram proteger o local de qualquer ameaça. + 2 em dano e - 1 na margem de ameaça
+mod-empunhadura-cana|Modificações|Sabre de luz|Empunhadura cana||||Modificação de sabre de luz|O sabre de luz cana é uma variante simples do modelo padrão, é um sabre de luz escondido na forma de uma cabeça de cana. Isto a torna uma das armas mais discretas do universo da Guerra das Estrelas. + 3 em teste de crime ( serve só para o sabre ) +2 de dano
+mod-empunhadura-de-tonfa|Modificações|Sabre de luz|Empunhadura de tonfa||||Modificação de sabre de luz|O Laser Tonfa é uma variante bastante especial do Shoto (o pequeno sabre de luz). Este sabre de luz tem um cabo estendido e um cabo secundário que inclina 90 graus, assim como uma tonfa clássica usada pelas forças da lei. +3 em teste de reflexo e - 1 na marge se ameaça
+mod-empunhadura-de-tres-boca|Modificações|Sabre de luz|Empunhadura de três boca||||Modificação de sabre de luz|O famoso sabre de luz com quillons é um modelo antigo de sabre que já foi muito comum entre os lutadores. Seu desenho em três lâminas protege as mãos do proprietário durante um duelo, dando-lhe uma vantagem significativa sobre seu oponente. +2 na sua C.a e +3 de redução de dano
+mod-lamina-brutal|Modificações|Lâmina oculta|Lâmina brutal|2|||Modificação de lâmina oculta · +2 kg na arma|A lâmina bruta e modificada não mais para ser uma arma para assasinta e sim uma arma para combate deixado a exposto para todos verem e recebe -3 em teste de crime e o dano base da arma vira 2d8 de dano
+mod-lamina-dupla|Modificações|Lâmina oculta|Lâmina dupla|2|||Modificação de lâmina oculta · +2 kg na arma|A lâmina dupla e uma lâmina mais mortal com as modificações certa ela tem duas lâminas a deixando mais mortal após acertar o alvo a arma causa 1d de dano a mais quando ataca
+mod-lamina-fina|Modificações|Lâmina oculta|Lâmina fina||||Modificação de lâmina oculta|A sua lâmina oculta e refeita na forja e moldado para uma lâmina mais fina e com isso ele fica mais fácil de acertar pontos vulneráveis que você não conseguir antes você diminui -) na margem de ameaça. ( não aumenta o crítico )
+mod-lamina-serrilhada|Modificações|Lâmina oculta|Lâmina serrilhada|4|||Modificação de lâmina oculta · +4 kg na arma|A lâmina e serrilhada a deixa mais dolorosa e quando for assassina o alvo você causa mais dor ao alvo o deixando quase morto e causar sangramento 1d6 de dano de sangramento (não cumulativo) por 1d8 turno e caso cause dano crítico você causa 2d6 de sangre e vira 2d6 turnos.
+mod-injecao-alquimica|Modificações|Lâmina oculta|Injeção alquímica|1|||Modificação de lâmina oculta · +1 kg na arma|Um minúsculo frasco de cerâmica ou vidro é inserido ao longo da arma, junto com um mecanismo injetor ativado por impacto. Um ataque que acerte causa seu dano normal e libera uma carga de ácido, fogo alquímico ou água benta, que atinge o alvo automaticamente. A modificação tem espaço para 2 cargas. Recarregá-la exige uma ação completa e o gasto dos itens alquímicos que você quiser inserir. Carregar uma arma com 2 cargas de ácido, por exemplo.
+runa-macht|Runas|Passivas|Macht||3000||Runa passiva|Amplia o atributo força do usuário em +2.
+runa-prazision|Runas|Passivas|Präzision||4000||Runa passiva|Amplia o atributo destreza do usuário em +2.
+runa-verfassung|Runas|Passivas|Verfassung||4000||Runa passiva|Amplia o atributo Constituição do usuário em +2.
+runa-intelligenz|Runas|Passivas|Intelligenz||4000||Runa passiva|Amplia o atributo inteligência do usuário em +2.
+runa-charisma|Runas|Passivas|Charisma||4000||Runa passiva|Amplia o atributo Carisma do usuário em +2.
+runa-schlag|Runas|Passivas|Schlag||3000||Runa passiva|Amplia em +1 o acerto de golpes corpo a corpo.
+runa-distanz|Runas|Passivas|Distanz||3000||Runa passiva|Amplia em +1 o acerto de golpes a distância.
+runa-vitalitat|Runas|Passivas|Vitalität||3000||Runa passiva|Amplia em +1 a quantidade de Pontos de Vida obtidas por nível.
+runa-kraft|Runas|Passivas|Kraft||3000||Runa passiva|Amplia em +1 em testes de resistência fortitude.
+runa-reflex|Runas|Passivas|Reflex||3000||Runa passiva|Amplia em +1 em testes de resistência reflexo.
+runa-wille|Runas|Passivas|Wille||3000||Runa passiva|Amplia em +1 em testes de resistência à vontade.
+runa-leben|Runas|Passivas|Leben||3000||Runa passiva|Concede ao usuário +10 de Pontos de Vida, estes pontos de vida não se juntam ao seus pontos de vida base, porém são os primeiros a serem perdido.
+runa-flammen|Runas|Ativas|Flammen||6000||Runa ativa|Concede dano de 1d6 de dano extra de chamas para o equipamento ativa 1 vez por turno.
+runa-eis|Runas|Ativas|Eis||6000||Runa ativa|Concede dano de 1d6 de dano extra de gelo para o equipamento. ativa 1 vez por turno.
+runa-blitz|Runas|Ativas|Blitz||6000||Runa ativa|Concede dano de 1d6 de dano extra de raio para o equipamento.ativa 1 vez por turno.
+runa-wasser|Runas|Ativas|Wasser||6000||Runa ativa|Concede dano de 1d6 de dano extra de água para o equipamento. ativa 1 vez por turno.
+runa-wind|Runas|Ativas|Wind||6000||Runa ativa|Concede dano de 1d6 de dano extra de vento para o equipamento. ativa 1 vez por turno.
+runa-gift|Runas|Ativas|Gift||8000||Runa ativa|Concede dano de 1d4 de dano extra veneno para o equipamento. ativa 1 vez por turno. Alvo deve fazer testes de fortitude ou fica envenenado.
+runa-gottlich|Runas|Ativas|Göttlich||10000||Runa ativa|Concede dano de 1d4 de dano extra divino para o equipamento.
+runa-dunkelheit|Runas|Ativas|Dunkelheit||10000||Runa ativa|Concede dano de 1d4 de dano extra necrótico para o equipamento.
+runa-vampir|Runas|Ativas|Vampir||3000||Runa ativa|Concede dano de 1d6 de dano extra vampírico para o equipamento cura metade do dano extra.
+runa-die-schwache|Runas|Ativas|Die schwäche||5000||Runa ativa|Causa redução de 2 pontos de RD ao alvo sempre que acerta o alvo até o fim do turno (não se acumula).
+runa-vitalitat-aprimorada|Runas|Aprimoradas, passivas|Vitalität (aprimorada)||10000||Runa passiva aprimorada|Amplia em +5 a quantidade de Pontos de Vida obtidas por nível(pode ser aplicada mais de uma vez no mesmo equipamento.).
+runa-kraft-aprimorada|Runas|Aprimoradas, passivas|Kraft (aprimorada)||9000||Runa passiva aprimorada|Amplia em +3 em testes de resistência fortitude(pode ser aplicada mais de uma vez no mesmo equipamento.).
+runa-reflex-aprimorada|Runas|Aprimoradas, passivas|Reflex (aprimorada)||9000||Runa passiva aprimorada|Amplia em +3 em testes de resistência reflexo(pode ser aplicada mais de uma vez no mesmo equipamento.).
+runa-wille-aprimorada|Runas|Aprimoradas, passivas|Wille (aprimorada)||9000||Runa passiva aprimorada|Amplia em +3 e em testes de resistência à vontade(pode ser aplicada mais de uma vez no mesmo equipamento.).
+runa-leben-aprimorada|Runas|Aprimoradas, passivas|Leben (aprimorada)||15000||Runa passiva aprimorada|Concede ao usuário +50 de Pontos de Vida, estes pontos de vida não se juntam ao seus pontos de vida base, porém são os primeiros a serem perdidos(pode ser aplicada mais de uma vez no mesmo equipamento.).
+runa-flammen-aprimorada|Runas|Aprimoradas, ativas|Flammen (aprimorada)||12000||Runa ativa aprimorada|Concede dano de 2d6 de dano extra de chamas para o equipamento.
+runa-eis-aprimorada|Runas|Aprimoradas, ativas|Eis (aprimorada)||12000||Runa ativa aprimorada|Concede dano de 2d6 de dano extra de gelo para o equipamento.
+runa-blitz-aprimorada|Runas|Aprimoradas, ativas|Blitz (aprimorada)||12000||Runa ativa aprimorada|Concede dano de 2d6 de dano extra de raio para o equipamento.
+runa-wasser-aprimorada|Runas|Aprimoradas, ativas|Wasser (aprimorada)||12000||Runa ativa aprimorada|Concede dano de 2d6 de dano extra de água para o equipamento.
+runa-wind-aprimorada|Runas|Aprimoradas, ativas|Wind (aprimorada)||12000||Runa ativa aprimorada|Concede dano de 2d6 de dano extra de vento para o equipamento.
+runa-gift-aprimorada|Runas|Aprimoradas, ativas|Gift (aprimorada)||15000||Runa ativa aprimorada|Concede dano de 2d4 de dano extra veneno para o equipamento.
+runa-gottlich-aprimorada|Runas|Aprimoradas, ativas|Göttlich (aprimorada)||20000||Runa ativa aprimorada|Concede dano de 1d6 de dano extra divino para o equipamento.
+runa-dunkelheit-aprimorada|Runas|Aprimoradas, ativas|Dunkelheit (aprimorada)||20000||Runa ativa aprimorada|Concede dano de 1d6 de dano extra necrótico para o equipamento.
+runa-vampir-aprimorada|Runas|Aprimoradas, ativas|Vampir (aprimorada)||18000||Runa ativa aprimorada|Concede dano de 2d6 de dano extra vampírico para o equipamento.
+runa-die-schwache-aprimorada|Runas|Aprimoradas, ativas|Die schwäche (aprimorada)||18000||Runa ativa aprimorada|Causa redução de 4 pontos de RD ao alvo sempre que acertar o mesmo.
+implante-braco-de-gorila|Implantes|Dano|Braço de gorila||||Implante · Custa 8% de sanidade|Com essa modificação seus ataques corpo a corpo com essa arma causa+1d6 a mais de dano.
+implante-gerador-de-micro-vibracao|Implantes|Dano|Gerador de micro-vibração||||Implante · Custa 3% de sanidade|Essa modificação que afeta os tendões do seu braço ela te dará +1d4.
+implante-estimulador-do-sistema-limbico|Implantes|Dano|Estimulador do sistema límbico||||Implante · Custa 6% de sanidade|Com essa modificação ela permite que a margem de ameaça da sua arma baixe em + 1.
+implante-tendoes-reforcados|Implantes|Dano|Tendões reforçados||||Implante · Custa 6% de sanidade|Com essa modificação você conseguir saltar mais alto que o comum e seu deslocamento aumenta de acordo com sua raça.
+implante-olhos-de-aguia|Implantes|Dano|Olhos de águia||||Implante · Custa 5% de sanidade|Essa modificação permite que seu usuário na hora de usar sua arma a distância ganha 1d6 de dano extra.
+implante-braco-monstruoso|Implantes|Dano (raro)|Braço monstruoso||||Implante · Custa 18% de sanidade|Diferente da modificação anterior essa é diferente pois ele aumenta em 1 passo a categoria de dano.
+implante-medula-ossea|Implantes|Dano (raro)|Medula óssea||||Implante · Custa 12% de sanidade|Com essa modificação que vai nos ossos do seu braço aumenta +2d6 de dano de dano porém cada ataque agora só pode ser feito empunhando com as duas mãos caso não seja você perde tudo que ganharam com ela.
+implante-olhos-perfeitos|Implantes|Dano (raro)|Olhos perfeitos||||Implante · Custa 18% de sanidade|Com essa atualização você você ganha 2d10 de dano extra com armas a distância.
+implante-armadura-hipodermica|Implantes|Saúde|Armadura hipodérmica||||Implante · Custa 5% de sanidade|Esse implante e o menos doloroso e um pequena pano transparente que gruda na sua pele e Essa modificação não te dará nem um tipo de C.a e você ganhará 3 de resistência a todo tipo de dano não mágico.
+implante-nano-cirurgioes|Implantes|Saúde|Nano-cirurgiões||||Implante · Custa 8% de sanidade|São pequenos nanos robôs que irá para o seu ferimentos e trataram ele lembrando ele não cura ferimentos de morte ou membro arrancado, bom com eles você cura 2d8+ Mod de constituição.
+implante-vasos-bioplaticos|Implantes|Saúde|Vasos bioplaticos||||Implante · Custa 4% de sanidade|Os seus vasos sanguíneos são totalmente mente modificados e toda vez que você recebê cura você aumenta em +3.
+implante-segundo-coracao-pequeno|Implantes|Saúde|Segundo coração pequeno||||Implante · Custa 10% de sanidade|Ao lado do seu coração, outro pequeno coração é implantado e com ele quando você atingir 0 pontos de vida, você deve fazer um teste de vontade Dt 22 para volta com 10% da sua vida.
+implante-otimizador-do-corpo|Implantes|Saúde|Otimizador do corpo||||Implante · Custa 12% de sanidade|Você aumenta seu tempo de vida sua saúde fica melhor você ganha 15 pontos de vida permanente.
+implante-armadura-hipodermica-raro|Implantes|Saúde (raro)|Armadura hipodérmica (raro)||||Implante · Custa 15% de sanidade|A sua armadura sofrerá uma atualização para melhorar ela aumentando em 6 a resistência a dano e 2 de resistência a magia.
+implante-nano-cirurgioes-ger|Implantes|Saúde (raro)|Nano-cirurgiões ger||||Implante · Custa 20% de sanidade|São pequenos nanos robôs que irá para o seu ferimentos e trataram ele lembrando ele agora ele cura ferimentos que foram capaz de te mata e não cura membros arrancados cura 4d8 + Mod de constituição.
+implante-vasos-bioplaticos-reforcado|Implantes|Saúde (raro)|Vasos bioplaticos reforçado||||Implante · Custa 8% de sanidade|Os seus vasos sanguíneos são totalmente mente reforçados e toda vez que você recebê cura você aumenta em +6.
+implante-segundo-coracao-identico|Implantes|Saúde (raro)|Segundo coração idêntico||||Implante · Custa 25% de sanidade|Ao lado do seu coração, outro coração idêntico ao de verdade é implantado e com ele quando você atingir 0 pontos de vida, você deve fazer um teste de vontade Dt 28 para volta com 40% da sua vida.
+implante-otimizador-de-corpo-supremo|Implantes|Saúde (raro)|Otimizador de corpo supremo||||Implante · Custa 28% de sanidade|Você aumenta seu tempo de vida sua saúde fica melhor você ganha 30 pontos de vida permanente.
+implante-grab-stichel|Implantes|Combate|Grab Stichel||||Implante · Custa 8% de sanidade|São duas lâminas retráteis que sai das suas mãos e causa 1d8 de dano cada uma das lâminas.
+implante-laminas-de-louva-deus|Implantes|Combate|Lâminas de louva deus||||Implante · Custa 5% de sanidade|Essas lâminas que sai dos seus antebraços e não causa nem um tipo de dano a serve apenas para escalar.
+implante-monostringe|Implantes|Combate|Monostringe||||Implante · Custa 8% de sanidade|Da palma da sua mão sai um fio de fibra que causa 2d6 de electricidade.
+implante-sistema-de-laser|Implantes|Combate (raro)|Sistema de laser||||Implante · Custa 12% de sanidade|Você pode solta um tiro de laser da sua mão que causa 2d6 de electricidade e 2d6 de dano de fogo.
+implante-sistema-de-vibro-lamina|Implantes|Combate (raro)|Sistema de vibro lâmina||||Implante · Custa 12% de sanidade|Com essa modificação você pode transformar o seu braço que sai uma lâmina retráteis que causa 1d10 de dano de energia.
+</script>
+
 <script type="text/plain" id="d-quals">
 q|Acrobata|1|+2 em Acrobacia.
 q|Aura Carismática|2|A menos de 4 m de um aliado, ambos recebem +2 em testes de Carisma.
@@ -1281,6 +1649,7 @@ function setT(id, t) { var e = document.getElementById(id); t = String(t); if (e
 function setMsg(id, kind, t) { var e = document.getElementById(id); if (!e) return; e.className = 'msg' + (t ? ' ' + kind : ''); e.textContent = t || ''; }
 function getPath(o, p) { return p.split('.').reduce(function (a, k) { return a == null ? a : a[k]; }, o); }
 function setPath(o, p, v) { var k = p.split('.'), t = o; for (var i = 0; i < k.length - 1; i++) { if (t[k[i]] == null || typeof t[k[i]] !== 'object') t[k[i]] = {}; t = t[k[i]]; } t[k[k.length - 1]] = v; }
+function unsetPath(o, p) { var k = p.split('.'), t = o; for (var i = 0; i < k.length - 1; i++) { t = t[k[i]]; if (t == null || typeof t !== 'object') return; } delete t[k[k.length - 1]]; }
 
 /* ================= regras do livro ================= */
 var ATTRS = [['car', 'Carisma'], ['con', 'Constituição'], ['des', 'Destreza'], ['for', 'Força'], ['int', 'Intelecto'], ['pre', 'Presença']];
@@ -1377,11 +1746,22 @@ function qPts(q) { var n = parseInt(q.c, 10); return isFinite(n) ? n : 0; }
 
 /* ================= estado e armazenamento ================= */
 function clone(o) { return JSON.parse(JSON.stringify(o)); }
+/* Aplica um patch: null apaga a chave (é assim que se remove item ou lançamento do inventário). */
 function deepMerge(a, b) {
   Object.keys(b).forEach(function (k) {
     var v = b[k];
-    if (v && typeof v === 'object' && !Array.isArray(v)) a[k] = deepMerge(a[k] && typeof a[k] === 'object' && !Array.isArray(a[k]) ? a[k] : {}, v);
+    if (v === null) delete a[k];
+    else if (v && typeof v === 'object' && !Array.isArray(v)) a[k] = deepMerge(a[k] && typeof a[k] === 'object' && !Array.isArray(a[k]) ? a[k] : {}, v);
     else a[k] = v;
+  });
+  return a;
+}
+/* Junta dois patches ainda não enviados, mantendo o null (marcador de apagar) para ir ao banco. */
+function mergePatch(a, b) {
+  Object.keys(b).forEach(function (k) {
+    var v = b[k];
+    if (v && typeof v === 'object' && !Array.isArray(v) && a[k] && typeof a[k] === 'object' && !Array.isArray(a[k])) mergePatch(a[k], v);
+    else a[k] = v && typeof v === 'object' ? clone(v) : v;
   });
   return a;
 }
@@ -1394,8 +1774,8 @@ function nest(path, val) {
 function blank() {
   var z = function () { return { car: '', con: '', des: '', 'for': '', int: '', pre: '' }; };
   return { id: '', tipo: 'pc', dono: '', criado: 0, nome: '', jogador: '', race: '', cls: '', nivel: '1', xp: '', base: { car: '0', con: '1', des: '2', 'for': '3', int: '4', pre: '5' }, rb: z(), up: z(),
-    pvAtual: '', pmAtual: '', sanAtual: '', extra: { pv: '', pm: '', ca: '', cr: '' }, over: { pv: '', pvd: '', pm: '', pmn: '', tr: '' }, pvMode: 'media', pvRolls: '',
-    dtAttr: 'int', dado: 'd20', form: 'pg', per: {}, tal: [], q: {}, pontosIni: '', inv: '', gil: '', notas: '' };
+    pvAtual: '', pmAtual: '', sanAtual: '', extra: { pv: '', pm: '', ca: '', cr: '', carga: '' }, over: { pv: '', pvd: '', pm: '', pmn: '', tr: '' }, pvMode: 'media', pvRolls: '',
+    dtAttr: 'int', dado: 'd20', form: 'pg', per: {}, tal: [], q: {}, pontosIni: '', inv: '', gil: '', notas: '', itens: {}, caixa: {} };
 }
 function fix(f) {
   var b = blank();
@@ -1404,7 +1784,7 @@ function fix(f) {
     else if (b[k] && typeof b[k] === 'object' && !Array.isArray(b[k])) f[k] = Object.assign({}, b[k], f[k]);
   });
   if (!Array.isArray(f.tal)) f.tal = [];
-  return f;
+  return fixInv(f);
 }
 function exemplo() {
   var f = blank();
@@ -1665,6 +2045,8 @@ function recalc() {
   var ap = [];
   if (c.bPV) ap.push('Sobrevida: +' + c.bPV + ' PV'); if (c.bPM) ap.push('Fonte de Poder: +' + c.bPM + ' PM');
   if (ap.length) $('#o-qinfo').textContent += ' Aplicado na ficha: ' + ap.join(', ') + '.';
+
+  renderInv(c, f);
 }
 
 function renderHab(c) {
@@ -1702,6 +2084,264 @@ function renderTal(c, f) {
   for (var i = 0; i < n; i++) h += '<label class="f">' + (i * 2 + 1) + 'º nível<input data-tal="' + i + '" value="' + esc(f.tal[i] || '') + '" placeholder="Nome do talento" autocomplete="off"></label>';
   $('#tal').innerHTML = h;
 }
+
+/* ================= inventário e dinheiro =================
+   Itens e lançamentos ficam em mapas com id (f.itens.<id>, f.caixa.<id>), não em listas: na Mesa cada mudança
+   vira um caminho de campo próprio e duas pessoas mexendo ao mesmo tempo não se atropelam. Apagar = gravar null.
+   As funções invCan (pode editar?), invSet (grava) e invWho (quem está mexendo) mudam entre a ficha e a Mesa. */
+var CATS = ['Armas', 'Armaduras', 'Munição', 'Consumíveis', 'Itens gerais', 'Itens mágicos', 'Itens amaldiçoados', 'Itens tecnológicos', 'Modificações', 'Runas', 'Implantes', 'Montarias', 'Outros'];
+var ITENS = $('#d-itens').textContent.split('\n').filter(function (l) { return l.trim() && l[0] !== '#'; }).map(function (l) {
+  var p = l.split('|');
+  return { ref: p[0], c: p[1], g: p[2], n: p[3], kg: p[4] === '' ? '' : +p[4], gil: p[5] === '' ? 0 : +p[5], cap: p[6] === '' ? 0 : +p[6], s: p[7] || '', d: p[8] || '',
+    k: norm([p[3], p[1], p[2], p[7], p[8]].join(' ')) };
+});
+var IBYREF = {}; ITENS.forEach(function (x) { IBYREF[x.ref] = x; });
+var fview = 'ficha', iview = 'itens', invPanel = '', invFor = null, invOpen = {}, itArmed = '', cxArmed = '', armTimer = null, catQ = '', catC = '', cxHTML = '';
+try { if (window.localStorage.getItem('wz-fview') === 'inv') fview = 'inv'; if (window.localStorage.getItem('wz-iview') === 'gil') iview = 'gil'; } catch (e) { }
+
+function fixInv(f) {
+  ['itens', 'caixa'].forEach(function (k) {
+    var o = f[k];
+    if (!o || typeof o !== 'object' || Array.isArray(o)) { f[k] = {}; return; }
+    Object.keys(o).forEach(function (i) { if (!o[i] || typeof o[i] !== 'object') delete o[i]; });
+  });
+  return f;
+}
+function invFromCat(ref, t) {
+  var x = IBYREF[ref]; if (!x) return null;
+  return { n: x.n, q: 1, kg: x.kg, s: x.s, d: '', c: x.c, ref: x.ref, t: t || Date.now(), a: '' };
+}
+function catIdx(c) { var i = CATS.indexOf(c); return i < 0 ? CATS.length - 1 : i; }
+function itemList(f) {
+  var o = f.itens || {};
+  return Object.keys(o).filter(function (k) { return o[k] && typeof o[k] === 'object'; }).map(function (k) { return { id: k, it: o[k] }; })
+    .sort(function (a, b) { return catIdx(a.it.c) - catIdx(b.it.c) || num(a.it.t) - num(b.it.t) || (a.id < b.id ? -1 : 1); });
+}
+function cxList(f) {
+  var o = f.caixa || {};
+  return Object.keys(o).filter(function (k) { return o[k] && typeof o[k] === 'object'; }).map(function (k) { var e = o[k]; return { id: k, v: num(e.v), m: e.m || '', t: num(e.t), a: e.a || '' }; })
+    .sort(function (a, b) { return a.t - b.t || (a.id < b.id ? -1 : 1); });
+}
+function saldoGil(f) { var s = num(f.gil); cxList(f).forEach(function (e) { s += e.v; }); return s; }
+function invTotals(f, c) {
+  var peso = 0, cap = 0, n = 0;
+  itemList(f).forEach(function (x) {
+    var q = Math.max(0, num(x.it.q)), r = x.it.ref ? IBYREF[x.it.ref] : null;
+    peso += q * Math.max(0, num(x.it.kg)); n += q;
+    if (r && r.cap) cap += r.cap * q;
+  });
+  var fo = Math.max(0, c.tot['for']), ext = num(f.extra && f.extra.carga) + cap;
+  return { peso: peso, n: n, cap: cap, normal: 3 * fo + ext, max: 10 * fo + ext };
+}
+function fGil(n) { return Math.round(n).toLocaleString('pt-BR'); }
+function fKg(n) { return (Math.round(n * 100) / 100).toLocaleString('pt-BR', { maximumFractionDigits: 2 }); }
+function fData(t) {
+  if (!t) return '';
+  var d = new Date(t);
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+function shortS(s) {
+  if (!s) return '';
+  var m = /Dano [^·]+· Crítico [^·]+/.exec(s); if (m) return m[0].trim();
+  m = /C\.A\. \+\d+/.exec(s); if (m) return m[0];
+  return s.length <= 48 ? s : '';
+}
+function setTx(el, t) { t = String(t); if (el.textContent !== t) el.textContent = t; }
+function catOptions(all) { return (all ? '<option value="">Todas as categorias</option>' : '') + CATS.filter(function (c) { return all ? c !== 'Outros' : true; }).map(function (c) { return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join(''); }
+
+function renderInv(c, f) {
+  if (!f) return;
+  if (invFor !== f.id) {
+    invFor = f.id; invOpen = {}; invPanel = ''; itArmed = ''; cxArmed = ''; cxHTML = '';
+    ['nv-n', 'nv-q', 'nv-kg', 'nv-gil', 'nv-d', 'cx-v', 'cx-m'].forEach(function (id) { $('#' + id).value = ''; });
+    ['msg-nv', 'msg-cx', 'msg-cat'].forEach(function (id) { setMsg(id, '', ''); });
+  }
+  var ed = invCan(), pg = $('#p-ficha');
+  if (pg.dataset.v !== fview) pg.dataset.v = fview;
+  if (pg.dataset.iv !== iview) pg.dataset.iv = iview;
+  $$('[data-fv]').forEach(function (b) { if (b.closest('#seg-fi')) b.setAttribute('aria-pressed', b.dataset.fv === fview ? 'true' : 'false'); });
+  $$('#seg-iv button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.iv === iview ? 'true' : 'false'); });
+
+  var T = invTotals(f, c), sd = saldoGil(f), items = itemList(f);
+  setT('o-gil', fGil(sd)); $('#o-gil').classList.toggle('neg', sd < 0);
+  setT('o-peso', fKg(T.peso)); setT('s-peso', 'kg de ' + fKg(T.normal) + ' (máximo ' + fKg(T.max) + ')');
+  if (T.peso > T.max) setMsg('msg-peso', 'bad', 'Passou do peso máximo (10 × Força' + (T.cap || num(f.extra.carga) ? ' + extras' : '') + ' = ' + fKg(T.max) + ' kg). Converse com o mestre.');
+  else if (T.peso > T.normal) setMsg('msg-peso', 'warn', 'Acima da carga normal (' + fKg(T.normal) + ' kg): -5 em Acrobacia, Atletismo, Furtividade e Crime.');
+  else setMsg('msg-peso', '', '');
+  setT('n-itens', items.length ? '(' + items.length + ')' : '');
+  setT('o-invmini', 'Inventário: ' + items.length + (items.length === 1 ? ' item' : ' itens') + ', ' + fKg(T.peso) + ' kg. Dinheiro: ' + fGil(sd) + ' Gil.');
+
+  $('#inv-btns').hidden = !ed; $('#cx-form').hidden = !ed;
+  if (!ed) invPanel = '';
+  $('#inv-cat').hidden = invPanel !== 'cat'; $('#inv-novo').hidden = invPanel !== 'novo';
+  $$('#inv-btns [data-inv-panel]').forEach(function (b) { b.setAttribute('aria-expanded', b.dataset.invPanel === invPanel ? 'true' : 'false'); });
+
+  drawItems(items, ed);
+  drawCx(f, ed);
+}
+function itemNode(id) {
+  var el = document.createElement('div'); el.className = 'it'; el.dataset.id = id;
+  var b = function (p) { return 'itens.' + id + '.' + p; };
+  el.innerHTML = '<div class="it-top"><button type="button" class="it-nm" data-it-open aria-expanded="false"><b></b><small></small></button>' +
+    '<div class="qty"><button type="button" class="btn" data-it-q="-1" aria-label="Menos um">−</button><output aria-label="Quantidade"></output><button type="button" class="btn" data-it-q="1" aria-label="Mais um">+</button></div></div>' +
+    '<div class="it-more" hidden><p class="it-s small"></p><p class="it-d"></p>' +
+    '<div class="grid g3"><label class="f">Nome<input data-bind="' + b('n') + '" maxlength="80" autocomplete="off"></label>' +
+    '<label class="f">Quantidade<input type="number" inputmode="numeric" min="0" data-bind="' + b('q') + '"></label>' +
+    '<label class="f">Peso de cada (kg)<input type="number" inputmode="decimal" min="0" step="0.1" data-bind="' + b('kg') + '" placeholder="0"></label></div>' +
+    '<label class="f">Anotações<textarea data-bind="' + b('d') + '" placeholder="Encantamentos, de onde veio, quantas cargas restam"></textarea></label>' +
+    '<p class="small it-by"></p><div class="btns"><button type="button" class="btn bad" data-it-del>Remover item</button></div></div>';
+  return el;
+}
+function drawItems(items, ed) {
+  var box = $('#inv-list'), seen = {}, ae = document.activeElement;
+  items.forEach(function (x, i) {
+    var el = box.querySelector('.it[data-id="' + x.id + '"]') || itemNode(x.id), it = x.it, r = it.ref ? IBYREF[it.ref] : null;
+    seen[x.id] = 1;
+    var q = Math.max(0, num(it.q)), kg = num(it.kg), sub = [it.c || 'Outros'];
+    if (kg) sub.push(fKg(kg) + ' kg' + (q > 1 ? ' cada' : ''));
+    var sh = shortS(it.s || (r ? r.s : '')); if (sh) sub.push(sh);
+    el.classList.toggle('zero', q === 0);
+    setTx($('.it-nm b', el), it.n || 'Item sem nome');
+    setTx($('.it-nm small', el), sub.join(' · ') + (q === 0 ? ' · acabou' : ''));
+    setTx($('output', el), q);
+    var open = !!invOpen[x.id], more = $('.it-more', el), nm = $('.it-nm', el);
+    if (more.hidden === open) more.hidden = !open;
+    nm.setAttribute('aria-expanded', open ? 'true' : 'false');
+    setTx($('.it-s', el), it.s || (r ? r.s : ''));
+    var d = $('.it-d', el); setTx(d, r && r.d ? r.d : ''); d.hidden = !(r && r.d);
+    var by = [];
+    if (it.ref) by.push('Do livro'); else by.push('Criado na mão');
+    if (it.a) by.push('por ' + it.a);
+    if (it.t) by.push('em ' + fData(num(it.t)));
+    setTx($('.it-by', el), by.join(' '));
+    $$('[data-bind]', el).forEach(function (inp) {
+      if (inp !== ae) { var v = it[inp.dataset.bind.split('.').pop()]; v = v == null ? '' : String(v); if (inp.value !== v) inp.value = v; }
+      inp.disabled = !ed;
+    });
+    $$('.qty .btn', el).forEach(function (bt) { bt.hidden = !ed; });
+    var del = $('[data-it-del]', el); del.hidden = !ed;
+    var armed = itArmed === x.id; del.classList.toggle('armed', armed); setTx(del, armed ? 'Confirmar remoção' : 'Remover item');
+    if (box.children[i] !== el) box.insertBefore(el, box.children[i] || null);
+  });
+  $$('.it', box).forEach(function (el) { if (!seen[el.dataset.id]) el.remove(); });
+  setT('inv-empty', items.length ? '' : (ed ? 'Nenhum item ainda. Toque em "Adicionar do livro" ou "Criar item".' : 'Nenhum item.'));
+}
+function drawCx(f, ed) {
+  var list = cxList(f), run = num(f.gil), rows = [];
+  list.forEach(function (e) { run += e.v; rows.push({ e: e, after: run }); });
+  rows.reverse();
+  var h = rows.map(function (r) {
+    var e = r.e, armed = cxArmed === e.id, meta = [fData(e.t)];
+    if (e.a) meta.push(e.a);
+    meta.push('saldo ' + fGil(r.after));
+    return '<div class="lg"><div><b>' + esc(e.m || 'Sem motivo') + '</b><small>' + esc(meta.join(' · ')) + '</small></div><div class="lg-r"><span class="val ' + (e.v < 0 ? 'neg' : 'pos') + '">' + (e.v < 0 ? '−' : '+') + fGil(Math.abs(e.v)) + '</span>' +
+      (ed ? '<button type="button" class="btn bad' + (armed ? ' armed' : '') + '" data-cx-del="' + esc(e.id) + '" aria-label="Apagar lançamento: ' + esc(e.m) + '">' + (armed ? 'Apagar' : '×') + '</button>' : '') + '</div></div>';
+  }).join('');
+  h += '<div class="lg ini"><div><b>Saldo inicial</b><small>' + (list.length ? list.length + (list.length === 1 ? ' lançamento' : ' lançamentos') + ' acima' : 'Nenhum lançamento ainda') + '</small></div><div class="lg-r"><span class="val">' + fGil(num(f.gil)) + '</span></div></div>';
+  if (h !== cxHTML) { cxHTML = h; $('#cx-list').innerHTML = h; }
+}
+function drawCat() {
+  var f = cur(), t = norm(catQ), tot = 0, out = [], have = {};
+  if (f) itemList(f).forEach(function (x) { if (x.it.ref) have[x.it.ref] = (have[x.it.ref] || 0) + Math.max(0, num(x.it.q)); });
+  ITENS.forEach(function (x) { if ((!catC || x.c === catC) && (!t || x.k.indexOf(t) >= 0)) { tot++; if (out.length < 60) out.push(x); } });
+  $('#cat-res').innerHTML = out.map(function (x) {
+    var meta = [x.g, x.kg === '' ? '' : fKg(x.kg) + ' kg', x.gil ? fGil(x.gil) + ' Gil' : ''].filter(Boolean).join(' · ');
+    return '<div class="cr"><div><b>' + esc(x.n) + '</b><span class="chip mut">' + esc(x.c) + '</span>' + (have[x.ref] ? '<span class="chip">tem ' + have[x.ref] + '</span>' : '') +
+      '<small>' + esc(meta) + '</small>' + (x.s ? '<small>' + esc(x.s) + '</small>' : '') + '</div>' +
+      '<div class="cr-b"><button type="button" class="btn pri" data-cat-add="' + esc(x.ref) + '">Adicionar</button>' + (x.gil ? '<button type="button" class="btn" data-cat-buy="' + esc(x.ref) + '">Comprar</button>' : '') + '</div>' +
+      (x.d ? '<details><summary>Descrição do livro</summary><p>' + esc(x.d) + '</p></details>' : '') + '</div>';
+  }).join('') || '<p class="hint">Nada encontrado. Se o item não está no livro, use "Criar item".</p>';
+  setT('cat-info', tot > out.length ? 'Mostrando ' + out.length + ' de ' + tot + '. Busque pelo nome para achar mais rápido.' : tot + (tot === 1 ? ' item.' : ' itens.') + ' Só montarias e runas têm preço no livro: "Comprar" já desconta do dinheiro.');
+}
+function catAdd(ref, buy) {
+  var x = IBYREF[ref], f = cur(); if (!x || !f || !invCan()) return;
+  var ex = itemList(f).filter(function (y) { return y.it.ref === ref; })[0], who = invWho(), now = Date.now(), nq = 1;
+  if (ex) { nq = Math.max(0, num(ex.it.q)) + 1; invSet('itens.' + ex.id + '.q', nq); }
+  else { var it = invFromCat(ref, now); it.a = who; invSet('itens.' + uid(), it); }
+  var txt = x.n + (nq > 1 ? ': agora você tem ' + nq + '.' : ' adicionado.');
+  if (buy && x.gil) {
+    invSet('caixa.' + uid(), { v: -x.gil, m: 'Comprei ' + x.n, t: now, a: who });
+    var sd = saldoGil(f);
+    txt += ' Pagou ' + fGil(x.gil) + ' Gil. Saldo: ' + fGil(sd) + (sd < 0 ? ' (negativo: confira com o mestre).' : '.');
+    setMsg('msg-cat', sd < 0 ? 'warn' : 'ok', txt);
+  } else setMsg('msg-cat', 'ok', txt);
+  recalc(); drawCat();
+}
+function novoItem() {
+  var f = cur(); if (!f || !invCan()) return;
+  var n = $('#nv-n').value.trim(), q = Math.max(1, Math.round(num($('#nv-q').value) || 1)), kg = $('#nv-kg').value.trim(), pg = Math.round(Math.abs(num($('#nv-gil').value))), who = invWho(), now = Date.now();
+  if (!n) { setMsg('msg-nv', 'bad', 'Dê um nome para o item.'); $('#nv-n').focus(); return; }
+  var id = uid();
+  invSet('itens.' + id, { n: n.slice(0, 80), q: q, kg: kg === '' ? '' : Math.max(0, num(kg)), s: '', d: $('#nv-d').value.trim(), c: $('#nv-c').value || 'Outros', ref: '', t: now, a: who });
+  if (pg) invSet('caixa.' + uid(), { v: -pg, m: 'Comprei ' + n.slice(0, 80), t: now, a: who });
+  ['nv-n', 'nv-q', 'nv-kg', 'nv-gil', 'nv-d'].forEach(function (i) { $('#' + i).value = ''; });
+  $('#nv-c').value = 'Outros';
+  invPanel = ''; invOpen[id] = false;
+  setMsg('msg-nv', '', '');
+  recalc();
+  flashInv('"' + n + '" adicionado' + (pg ? ' e ' + fGil(pg) + ' Gil descontados.' : '.'));
+}
+function cxAdd(sign) {
+  var f = cur(); if (!f || !invCan()) return;
+  var v = Math.round(Math.abs(num($('#cx-v').value))), m = $('#cx-m').value.trim();
+  if (!v) { setMsg('msg-cx', 'bad', 'Coloque um valor maior que zero.'); $('#cx-v').focus(); return; }
+  if (!m) { setMsg('msg-cx', 'bad', 'Escreva o motivo. Ex: comprei uma espada, ganhei na missão.'); $('#cx-m').focus(); return; }
+  invSet('caixa.' + uid(), { v: sign * v, m: m.slice(0, 120), t: Date.now(), a: invWho() });
+  $('#cx-v').value = ''; $('#cx-m').value = '';
+  var sd = saldoGil(f);
+  setMsg('msg-cx', sd < 0 ? 'warn' : 'ok', (sign > 0 ? 'Entrou ' : 'Saiu ') + fGil(v) + ' Gil. Saldo: ' + fGil(sd) + (sd < 0 ? ' (negativo: confira com o mestre).' : '.'));
+  recalc();
+}
+function flashInv(t) { if (typeof flash === 'function') flash(t); else setMsg('msg-cat', 'ok', t); }
+function armReset() { clearTimeout(armTimer); armTimer = setTimeout(function () { itArmed = ''; cxArmed = ''; if (cur()) recalc(); }, 4000); }
+function goView(v) {
+  fview = v; try { window.localStorage.setItem('wz-fview', v); } catch (e) { }
+  if (cur()) recalc();
+  var seg = $('#seg-fi'); if (seg) { var r = seg.getBoundingClientRect(); if (r.top < 60 || r.top > window.innerHeight) window.scrollBy(0, r.top - 70); }
+}
+$('#cat-c').innerHTML = catOptions(true);
+$('#nv-c').innerHTML = catOptions(false); $('#nv-c').value = 'Outros';
+document.addEventListener('click', function (e) {
+  var t = e.target.closest('button'); if (!t || !t.closest('#p-ficha')) return;
+  var f = cur();
+  if (t.dataset.fv) { goView(t.dataset.fv); return; }
+  if (t.dataset.iv) { iview = t.dataset.iv; try { window.localStorage.setItem('wz-iview', iview); } catch (er) { } if (f) recalc(); return; }
+  if (!f) return;
+  if (t.dataset.invPanel !== undefined) {
+    invPanel = invPanel === t.dataset.invPanel ? '' : t.dataset.invPanel; setMsg('msg-cat', '', ''); setMsg('msg-nv', '', '');
+    recalc(); if (invPanel === 'cat') { drawCat(); } if (invPanel === 'novo') $('#nv-n').focus();
+    return;
+  }
+  if (t.dataset.catAdd) { catAdd(t.dataset.catAdd, false); return; }
+  if (t.dataset.catBuy) { catAdd(t.dataset.catBuy, true); return; }
+  if (t.id === 'nv-ok') { novoItem(); return; }
+  if (t.id === 'cx-mais' || t.id === 'cx-menos') { cxAdd(t.id === 'cx-mais' ? 1 : -1); return; }
+  if (t.dataset.cxDel) {
+    if (!invCan()) return;
+    if (cxArmed !== t.dataset.cxDel) { cxArmed = t.dataset.cxDel; armReset(); recalc(); return; }
+    cxArmed = ''; invSet('caixa.' + t.dataset.cxDel, null); recalc(); return;
+  }
+  var row = t.closest('.it'); if (!row) return;
+  var id = row.dataset.id, it = (f.itens || {})[id]; if (!it) return;
+  if (t.hasAttribute('data-it-open')) { invOpen[id] = !invOpen[id]; recalc(); return; }
+  if (!invCan()) return;
+  if (t.dataset.itQ) { invSet('itens.' + id + '.q', Math.max(0, Math.max(0, num(it.q)) + +t.dataset.itQ)); recalc(); return; }
+  if (t.hasAttribute('data-it-del')) {
+    if (itArmed !== id) { itArmed = id; armReset(); recalc(); return; }
+    itArmed = ''; delete invOpen[id]; invSet('itens.' + id, null); recalc(); flashInv('"' + (it.n || 'Item') + '" removido.');
+  }
+});
+document.addEventListener('input', function (e) {
+  if (e.target.id === 'cat-q') { catQ = e.target.value; drawCat(); }
+});
+document.addEventListener('change', function (e) {
+  if (e.target.id === 'cat-c') { catC = e.target.value; drawCat(); }
+});
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'Enter') return;
+  var id = e.target.id;
+  if (id === 'nv-n' || id === 'nv-q' || id === 'nv-kg' || id === 'nv-gil') { e.preventDefault(); novoItem(); }
+});
 
 /* ================= sessão e dados compartilhados ================= */
 var TIPO = { pc: 'Jogador', npc: 'NPC', inimigo: 'Inimigo', aliado: 'Aliado' };
@@ -1792,7 +2432,7 @@ function writePatch(s, patch) {
   return SES.db.doc('fichas/' + s.owner).update({ chars: o });
 }
 function queue(s, patch) {
-  dirty[s.key] = true; pend[s.key] = deepMerge(pend[s.key] || {}, patch);
+  dirty[s.key] = true; pend[s.key] = mergePatch(pend[s.key] || {}, patch);
   clearTimeout(timers[s.key]); timers[s.key] = setTimeout(function () { flush(s.key); }, 450);
   status('Salvando...');
 }
@@ -1809,9 +2449,13 @@ function flush(key) {
 }
 function editSheet(key, path, value) {
   var s = SH[key]; if (!s || !canEdit(s)) return;
-  setPath(s.data, path, value);
+  if (value === null) unsetPath(s.data, path); else setPath(s.data, path, value && typeof value === 'object' ? clone(value) : value);
   queue(s, nest(path, value));
 }
+/* inventário: na Mesa grava na ficha aberta com as mesmas permissões das outras edições */
+function invCan() { return canEdit(SH[sel]); }
+function invSet(path, value) { editSheet(sel, path, value); }
+function invWho() { return SES.mode === 'local' ? '' : SES.gm ? 'Mestre' : (SES.names[SES.uid] || 'Jogador'); }
 function createSheet(store, owner, data) {
   var id = 'c' + uid(); data.id = id; data.criado = Date.now();
   var key = store === 'n' ? 'n||' + id : 'f|' + owner + '|' + id, p;
@@ -1906,7 +2550,7 @@ function sheetCard(s) {
     '<div class="mc-top"><button type="button" class="mc-open" data-open="' + k + '">' + esc(f.nome || 'Sem nome') + '</button><span class="chip' + (f.tipo === 'pc' || !f.tipo ? '' : ' mut') + '">' + tp + '</span></div>' +
     '<div class="mc-sub">' + esc((f.race || 'Sem raça') + ' · ' + (f.cls || 'Sem classe') + ' · Nv ' + c.L) + '<br>' + esc(ownerLabel(s)) + '</div>' +
     (c.pv == null && !has(f.pvAtual) ? '<div class="mbar"><em>PV: escolha uma classe</em></div>' : bar('pv', pvc, c.pv, 'PV')) + (c.pm != null ? bar('pm', pmc, c.pm, 'PM') : '') +
-    '<div class="mc-stats"><span>CA ' + c.ca + '</span><span>CR ' + c.cr + '</span><span>DT ' + c.dt + '</span><span>LCM ' + c.lcm + '</span></div>';
+    '<div class="mc-stats"><span>CA ' + c.ca + '</span><span>CR ' + c.cr + '</span><span>DT ' + c.dt + '</span><span>LCM ' + c.lcm + '</span><span>Gil ' + fGil(saldoGil(f)) + '</span></div>';
   if (ed) {
     var b = function (what, d, lab, al) { return '<button type="button" class="btn" data-k="' + k + '" data-adj="' + what + '" data-d="' + d + '" aria-label="' + al + '">' + lab + '</button>'; };
     h += '<div class="mc-adj"><span class="lab">PV</span>' + b('pv', -5, '−5', 'PV menos 5') + b('pv', -1, '−1', 'PV menos 1') + b('pv', 1, '+1', 'PV mais 1') + b('pv', 5, '+5', 'PV mais 5') + '</div>' +
@@ -2213,10 +2857,11 @@ function flatten(o, pre, out) {
   });
   return out;
 }
-/* Mesmo formato do banco do Claude. O update do Firestore troca mapas inteiros, então o patch vira caminhos de campo (FieldPath), que mexem só no que mudou. */
-function FireDB(fs, FP) { this.fs = fs; this.FP = FP; }
+/* Mesmo formato do banco do Claude. O update do Firestore troca mapas inteiros, então o patch vira caminhos de campo (FieldPath), que mexem só no que mudou.
+   Valor null no patch = apagar o campo (FieldValue.delete), usado para remover item ou lançamento do inventário. */
+function FireDB(fs, FP, FV) { this.fs = fs; this.FP = FP; this.FV = FV; }
 FireDB.prototype.doc = function (path) {
-  var FP = this.FP, ref = this.fs.doc(path);
+  var FP = this.FP, FV = this.FV, ref = this.fs.doc(path);
   return {
     id: ref.id, path: path,
     get: function () { return ref.get(); },
@@ -2224,7 +2869,7 @@ FireDB.prototype.doc = function (path) {
     update: function (patch) {
       var pairs = flatten(patch, [], []), args = [];
       if (!pairs.length) return Promise.resolve();
-      pairs.forEach(function (pr) { args.push(new FP(...pr[0]), pr[1]); });
+      pairs.forEach(function (pr) { args.push(new FP(...pr[0]), pr[1] === null && FV ? FV.delete() : pr[1]); });
       return ref.update.apply(ref, args);
     },
     delete: function () { return ref.delete(); },
@@ -2286,7 +2931,7 @@ function fireJoin(u) {
 function startFirebase() {
   try { firebase.initializeApp(window.WZ_FIREBASE); } catch (e) { }
   SES.fire = true; SES.auth = firebase.auth(); SES.fs = firebase.firestore();
-  SES.db = new FireDB(SES.fs, firebase.firestore.FieldPath);
+  SES.db = new FireDB(SES.fs, firebase.firestore.FieldPath, firebase.firestore.FieldValue);
   SES.mode = 'carregando'; SES.known = true; renderNow();
   var to = setTimeout(function () { if (SES.mode === 'carregando') useLocal('Não consegui falar com o Firebase a tempo.'); }, 12000);
   SES.auth.onAuthStateChanged(function (u) {
@@ -2381,7 +3026,7 @@ function startSession() {
 }
 buildSelects(); buildAttrs(); buildSkills(); buildQuals(); applyTema(); route();
 window.__wzLocalDB = LocalDB;
-window.__wz = { compute: compute, blank: blank, exemplo: exemplo, CLASSES: CLASSES, skillTotal: skillTotal, SES: SES, SH: function () { return SH; } };
+window.__wz = { compute: compute, blank: blank, exemplo: exemplo, CLASSES: CLASSES, skillTotal: skillTotal, ITENS: ITENS, saldoGil: saldoGil, invTotals: invTotals, cur: cur, SES: SES, SH: function () { return SH; } };
 $('#sel-tipo').addEventListener('change', function (e) { var s = SH[sel]; if (s && canEdit(s)) { editSheet(sel, 'tipo', e.target.value); renderNow(); } });
 startSession();
 })();
