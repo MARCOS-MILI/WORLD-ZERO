@@ -1,0 +1,15 @@
+{
+  "name": "world-zero-ficha-mesa",
+  "private": true,
+  "description": "Ferramentas que geram a ficha automática (ficha/index.html) e a Mesa (mesa/index.html) do World Zero.",
+  "scripts": {
+    "build:ficha": "node build-ficha.js",
+    "build:mesa": "node build.js gh && node build.js && node copiar-mesa.js",
+    "build": "npm run build:ficha && npm run build:mesa",
+    "check": "node build-ficha.js --check && node build.js gh && node copiar-mesa.js --check",
+    "test": "node build.js gh && node build.js && node testes/test.js && node testes/test-fb.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.48.0"
+  }
+}
