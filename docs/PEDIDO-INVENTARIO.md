@@ -1,6 +1,18 @@
-# Próximo pedido: inventário com catálogo e caixa de dinheiro
+# Pedido: inventário com catálogo e caixa de dinheiro
 
-Status: **não começado** (só foi feita a análise abaixo). O Marcos pediu para parar e levar tudo para o Claude Code.
+Status: **feito em 14/11/2026** no Claude Code (ficha local e Mesa, com testes). O resumo do que existe está em `ESTADO.md`, seção "Inventário". Abaixo fica a análise original, que foi seguida quase toda.
+
+## O que foi feito (resumo)
+- Catálogo gerado do livro por `ferramentas/ficha-mesa/gerar-itens.js` (253 itens, pesos em kg, preços só em montarias e runas, correções de digitação nos nomes como "Maçã" → "Maça"). Fica no bloco `d-itens` do `ficha-base.html`.
+- Modelo de dados como recomendado abaixo (`itens` e `caixa` em mapas com id), mais `a` (quem lançou) e `s` (resumo: dano, C.A., efeito). `extra.carga` para carga extra.
+- Apagar: `null` = apagar, do jeito recomendado (FireDB → `FieldValue.delete()`, `deepMerge` apaga, `mergePatch` mantém o marcador). Firestore falso dos testes aceita `FieldValue.delete()`.
+- Extras feitos: peso × carga com aviso de penalidade; "Comprar" debita no caixa; "Paguei" no item manual; aviso de saldo negativo; Gil no cartão da Mesa.
+- Testes: todos os itens da lista "Testes a acrescentar" abaixo estão em `testes/test-fb.js` (Mesa) e `testes/test-ficha.js` (ficha local, novo).
+
+## Ideias que ficaram para depois (não pedidas)
+- "Equipar" armadura e somar a C.A. sozinho (hoje o bônus de C.A. continua manual em "Equipamento e anotações").
+- Vender item (adicionar dinheiro ao remover).
+- Preços para o resto do catálogo, se o J.Carvalho_20 fizer uma tabela.
 
 ## O que o Marcos pediu (14/11/2026, por voz, organizado)
 Dentro da ficha, um **inventário** com partes separadas:

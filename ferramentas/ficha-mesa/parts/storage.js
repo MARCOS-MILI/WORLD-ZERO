@@ -1,10 +1,21 @@
 /* ================= estado e armazenamento ================= */
 function clone(o) { return JSON.parse(JSON.stringify(o)); }
+/* Aplica um patch: null apaga a chave (é assim que se remove item ou lançamento do inventário). */
 function deepMerge(a, b) {
   Object.keys(b).forEach(function (k) {
     var v = b[k];
-    if (v && typeof v === 'object' && !Array.isArray(v)) a[k] = deepMerge(a[k] && typeof a[k] === 'object' && !Array.isArray(a[k]) ? a[k] : {}, v);
+    if (v === null) delete a[k];
+    else if (v && typeof v === 'object' && !Array.isArray(v)) a[k] = deepMerge(a[k] && typeof a[k] === 'object' && !Array.isArray(a[k]) ? a[k] : {}, v);
     else a[k] = v;
+  });
+  return a;
+}
+/* Junta dois patches ainda não enviados, mantendo o null (marcador de apagar) para ir ao banco. */
+function mergePatch(a, b) {
+  Object.keys(b).forEach(function (k) {
+    var v = b[k];
+    if (v && typeof v === 'object' && !Array.isArray(v) && a[k] && typeof a[k] === 'object' && !Array.isArray(a[k])) mergePatch(a[k], v);
+    else a[k] = v && typeof v === 'object' ? clone(v) : v;
   });
   return a;
 }
@@ -17,8 +28,8 @@ function nest(path, val) {
 function blank() {
   var z = function () { return { car: '', con: '', des: '', 'for': '', int: '', pre: '' }; };
   return { id: '', tipo: 'pc', dono: '', criado: 0, nome: '', jogador: '', race: '', cls: '', nivel: '1', xp: '', base: { car: '0', con: '1', des: '2', 'for': '3', int: '4', pre: '5' }, rb: z(), up: z(),
-    pvAtual: '', pmAtual: '', sanAtual: '', extra: { pv: '', pm: '', ca: '', cr: '' }, over: { pv: '', pvd: '', pm: '', pmn: '', tr: '' }, pvMode: 'media', pvRolls: '',
-    dtAttr: 'int', dado: 'd20', form: 'pg', per: {}, tal: [], q: {}, pontosIni: '', inv: '', gil: '', notas: '' };
+    pvAtual: '', pmAtual: '', sanAtual: '', extra: { pv: '', pm: '', ca: '', cr: '', carga: '' }, over: { pv: '', pvd: '', pm: '', pmn: '', tr: '' }, pvMode: 'media', pvRolls: '',
+    dtAttr: 'int', dado: 'd20', form: 'pg', per: {}, tal: [], q: {}, pontosIni: '', inv: '', gil: '', notas: '', itens: {}, caixa: {} };
 }
 function fix(f) {
   var b = blank();
@@ -27,7 +38,7 @@ function fix(f) {
     else if (b[k] && typeof b[k] === 'object' && !Array.isArray(b[k])) f[k] = Object.assign({}, b[k], f[k]);
   });
   if (!Array.isArray(f.tal)) f.tal = [];
-  return f;
+  return fixInv(f);
 }
 function exemplo() {
   var f = blank();

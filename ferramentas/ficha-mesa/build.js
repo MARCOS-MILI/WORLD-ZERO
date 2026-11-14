@@ -95,7 +95,7 @@ rep('<main class="wrap" id="main">\n', `<main class="wrap" id="main">
 `);
 {
   const a = h.indexOf('    <h1 class="title">Ficha automática</h1>');
-  const b = h.indexOf('    <div class="sec">\n      <h2>Personagem</h2>');
+  const b = h.indexOf('    <div class="seg fseg" id="seg-fi"');
   if (a < 0 || b < 0) throw new Error('topo da ficha não achado');
   h = h.slice(0, a) + `    <h1 class="title">Ficha</h1>
     <div class="card" id="ficha-empty"><p style="margin:0 0 10px">Nenhuma ficha aberta. Escolha uma na aba Mesa.</p><button class="btn pri" id="b-empty" type="button">Ir para a Mesa</button></div>
@@ -122,7 +122,7 @@ rep('<main class="wrap" id="main">\n', `<main class="wrap" id="main">
 rep('    <div class="sec">\n      <h2>Backup e compartilhar</h2>', '    <div class="sec" id="backup-sec">\n      <h2>Backup e compartilhar</h2>');
 rep('    </div>\n  </section>\n\n  <section id="p-classes"', '    </div>\n    </div>\n  </section>\n\n  <section id="p-classes"');
 rep('<p>Site criado por Marcos. Sistema World Zero criado por J.Carvalho_20. Regras do livro World Zero 4.7.7. Onde o livro tem lacunas ou erros, a ficha segue o texto mais provável e avisa.</p>',
-  '<p>Mesa criada por Marcos. Sistema World Zero criado por J.Carvalho_20. Regras do livro World Zero 4.7.7. Onde o livro tem lacunas ou erros, a ficha segue o texto mais provável e avisa.</p>');
+  '<p><a href="../">Voltar ao livro de regras</a>. Mesa criada por Marcos. Sistema World Zero criado por J.Carvalho_20. Regras do livro World Zero 4.7.7. Onde o livro tem lacunas ou erros, a ficha segue o texto mais provável e avisa.</p>');
 
 /* ---------- JS ---------- */
 cut('/* ================= estado e armazenamento ================= */', '/* ================= regras: validar atributos ================= */', P('storage.js'));

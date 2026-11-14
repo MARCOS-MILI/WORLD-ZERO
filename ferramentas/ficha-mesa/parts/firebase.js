@@ -10,10 +10,11 @@ function flatten(o, pre, out) {
   });
   return out;
 }
-/* Mesmo formato do banco do Claude. O update do Firestore troca mapas inteiros, então o patch vira caminhos de campo (FieldPath), que mexem só no que mudou. */
-function FireDB(fs, FP) { this.fs = fs; this.FP = FP; }
+/* Mesmo formato do banco do Claude. O update do Firestore troca mapas inteiros, então o patch vira caminhos de campo (FieldPath), que mexem só no que mudou.
+   Valor null no patch = apagar o campo (FieldValue.delete), usado para remover item ou lançamento do inventário. */
+function FireDB(fs, FP, FV) { this.fs = fs; this.FP = FP; this.FV = FV; }
 FireDB.prototype.doc = function (path) {
-  var FP = this.FP, ref = this.fs.doc(path);
+  var FP = this.FP, FV = this.FV, ref = this.fs.doc(path);
   return {
     id: ref.id, path: path,
     get: function () { return ref.get(); },
@@ -21,7 +22,7 @@ FireDB.prototype.doc = function (path) {
     update: function (patch) {
       var pairs = flatten(patch, [], []), args = [];
       if (!pairs.length) return Promise.resolve();
-      pairs.forEach(function (pr) { args.push(new FP(...pr[0]), pr[1]); });
+      pairs.forEach(function (pr) { args.push(new FP(...pr[0]), pr[1] === null && FV ? FV.delete() : pr[1]); });
       return ref.update.apply(ref, args);
     },
     delete: function () { return ref.delete(); },
@@ -83,7 +84,7 @@ function fireJoin(u) {
 function startFirebase() {
   try { firebase.initializeApp(window.WZ_FIREBASE); } catch (e) { }
   SES.fire = true; SES.auth = firebase.auth(); SES.fs = firebase.firestore();
-  SES.db = new FireDB(SES.fs, firebase.firestore.FieldPath);
+  SES.db = new FireDB(SES.fs, firebase.firestore.FieldPath, firebase.firestore.FieldValue);
   SES.mode = 'carregando'; SES.known = true; renderNow();
   var to = setTimeout(function () { if (SES.mode === 'carregando') useLocal('Não consegui falar com o Firebase a tempo.'); }, 12000);
   SES.auth.onAuthStateChanged(function (u) {

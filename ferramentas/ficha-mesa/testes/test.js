@@ -114,15 +114,28 @@ function mockInit({ role, uid, canWrite, noUser }) {
   // mestre edita ficha do jogador
   await gm.click('.mcard:has(.mc-open:text("Bruno da Ana")) .mc-open'); await gm.waitForTimeout(250);
   ok((await gm.textContent('#tb-mode')) === 'Você pode editar', 'mestre edita ficha de jogador');
+  await gm.click('#seg-fi [data-fv="inv"]'); await gm.click('#seg-iv [data-iv="itens"]');
   await gm.fill('[data-bind="inv"]', 'Espada do mestre'); await gm.waitForTimeout(800);
   await pl.waitForTimeout(300);
   ok((await pl.$eval('[data-bind="inv"]', (e) => e.value)) === 'Espada do mestre', 'jogador vê a edição do mestre ao vivo');
   // jogador digitando não perde foco quando chega snapshot
   await pl.focus('[data-bind="notas"]'); await pl.keyboard.type('abc');
+  await gm.click('#seg-iv [data-iv="gil"]');
   await gm.fill('[data-bind="gil"]', '99'); await gm.waitForTimeout(800);
   await pl.keyboard.type('def'); await pl.waitForTimeout(700);
   ok((await pl.$eval('[data-bind="notas"]', (e) => e.value)) === 'abcdef', 'foco e texto do jogador preservados durante snapshot');
   ok((await pl.$eval('[data-bind="gil"]', (e) => e.value)) === '99', 'edição de outro campo chegou: gil=99');
+  // inventário: o mestre dá um item do livro e dinheiro; o jogador vê ao vivo e mexe na quantidade
+  await gm.click('#seg-iv [data-iv="itens"]'); await gm.click('[data-inv-panel="cat"]');
+  await gm.fill('#cat-q', 'poção de mana menor'); await gm.click('[data-cat-add="consumivel-pocao-de-mana-menor"]');
+  await gm.click('#seg-iv [data-iv="gil"]'); await gm.fill('#cx-v', '40'); await gm.fill('#cx-m', 'Presente do mestre'); await gm.click('#cx-mais');
+  await gm.waitForTimeout(800); await pl.waitForTimeout(300);
+  ok((await pl.$$eval('.it .it-nm b', (e) => e.map((x) => x.textContent))).includes('Poção de mana menor'), 'jogador vê o item que o mestre deu');
+  ok((await pl.textContent('#o-gil')) === '139', 'jogador vê o saldo (99 + 40): ' + (await pl.textContent('#o-gil')));
+  await pl.click('#seg-fi [data-fv="inv"]'); await pl.click('#seg-iv [data-iv="itens"]');
+  await pl.click('.it:has(.it-nm b:text("Poção de mana menor")) [data-it-q="1"]'); await pl.waitForTimeout(800); await gm.waitForTimeout(300);
+  ok((await gm.textContent('.it:has(.it-nm b:text("Poção de mana menor")) output')) === '2', 'mestre vê a quantidade que o jogador mudou');
+  await gm.click('#seg-fi [data-fv="ficha"]'); await pl.click('#seg-fi [data-fv="ficha"]');
   // revelar NPC
   await gm.click('#b-back'); await gm.click('.mcard:has(.mc-open:text("Chefe Secreto")) .mc-open'); await gm.waitForTimeout(250);
   await gm.click('#b-reveal'); await gm.waitForTimeout(700);

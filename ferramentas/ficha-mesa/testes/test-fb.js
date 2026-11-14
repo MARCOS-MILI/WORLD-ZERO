@@ -48,6 +48,7 @@ function fakeFirebase(RULES) {
     return isGM();
   };
   class FP { constructor(...s) { this.s = s; } }
+  class FV { static delete() { return { __fvDelete: true }; } }
   const subs = [];
   const snapDoc = (p) => { const d = rd()[p]; return { id: p.split('/').pop(), exists: d !== undefined, data: () => (d === undefined ? undefined : clone(d)), metadata: { fromCache: false, hasPendingWrites: false } }; };
   const snapCol = (p) => { const all = rd(), pre = p + '/'; const docs = Object.keys(all).filter((k) => k.indexOf(pre) === 0 && k.slice(pre.length).indexOf('/') < 0).sort().map(snapDoc); return { docs, metadata: { fromCache: false, hasPendingWrites: false } }; };
@@ -56,7 +57,8 @@ function fakeFirebase(RULES) {
   window.addEventListener('storage', (e) => { if (e.key === K) emit(); });
   const wr = (o) => { localStorage.setItem(K, JSON.stringify(o)); setTimeout(emit, 0); };
   const setAt = (o, segs, v) => { let t = o; for (let i = 0; i < segs.length - 1; i++) { if (!t[segs[i]] || typeof t[segs[i]] !== 'object') t[segs[i]] = {}; t = t[segs[i]]; } t[segs[segs.length - 1]] = v; };
-  window.__fsWrites = [];
+  const delAt = (o, segs) => { let t = o; for (let i = 0; i < segs.length - 1; i++) t = t && t[segs[i]]; if (t && typeof t === 'object') delete t[segs[segs.length - 1]]; };
+  window.__fsWrites = []; window.__fsPaths = [];
   const fs = {
     doc(p) {
       return { id: p.split('/').pop(),
@@ -67,7 +69,8 @@ function fakeFirebase(RULES) {
           if (!canWrite(p, 'update')) throw err('permission-denied');
           const a = rd(); if (a[p] === undefined) throw err('not-found');
           window.__fsWrites.push(args.length / 2);
-          for (let i = 0; i < args.length; i += 2) setAt(a[p], args[i].s, clone(args[i + 1]));
+          for (let i = 0; i < args.length; i += 2) window.__fsPaths.push(args[i].s.join('.'));
+          for (let i = 0; i < args.length; i += 2) { const v = args[i + 1]; if (v && v.__fvDelete) delAt(a[p], args[i].s); else setAt(a[p], args[i].s, clone(v)); }
           wr(a);
         },
         async delete() { if (!canWrite(p, 'delete')) throw err('permission-denied'); const a = rd(); delete a[p]; wr(a); },
@@ -78,7 +81,7 @@ function fakeFirebase(RULES) {
       return { onSnapshot(next, e) { if (!canRead(p + '/x')) { setTimeout(() => e && e(err('permission-denied')), 5); return () => { }; } const s = { p, col: true, next, sig: null }; subs.push(s); setTimeout(() => { const sn = snapCol(p); s.sig = sig(true, sn); next(sn); }, 5); return () => { const i = subs.indexOf(s); if (i >= 0) subs.splice(i, 1); }; } };
     }
   };
-  const fsFn = () => fs; fsFn.FieldPath = FP;
+  const fsFn = () => fs; fsFn.FieldPath = FP; fsFn.FieldValue = FV;
   const authFn = () => auth; authFn.GoogleAuthProvider = GProv;
   window.firebase = { initializeApp() { }, auth: authFn, firestore: fsFn };
 }
@@ -218,7 +221,103 @@ function fakeFirebase(RULES) {
   ok((await gm.evaluate(() => JSON.parse(localStorage.getItem('mockfs'))['gm/notas'])).texto === 'segredo do mestre', 'anotações salvas');
   await pl.click('.mcard:has(.mc-open:text("Chefe Secreto")) .mc-open'); await pl.waitForTimeout(250);
   ok((await pl.textContent('#tb-mode')) === 'Só leitura', 'NPC revelado é só leitura para o jogador');
+  // 4b. inventário e dinheiro
+  const anaDoc = () => pl.evaluate(() => JSON.parse(localStorage.getItem('mockfs'))['fichas/g-ana@teste.com']);
+  const bruno = async () => Object.values((await anaDoc()).chars).find((c) => c.nome === 'Bruno da Ana');
+  const itNames = (p) => p.$$eval('.it .it-nm b', (e) => e.map((x) => x.textContent));
+  const ITEM = (n) => '.it:has(.it-nm b:text-is("' + n + '"))';
   await pl.click('a[data-p="mesa"]'); await pl.click('.mcard.mine .mc-open'); await pl.waitForTimeout(250);
+  await pl.click('#seg-fi [data-fv="inv"]'); await pl.click('#seg-iv [data-iv="itens"]');
+  ok(await pl.isVisible('#inv-btns') && /Nenhum item/.test(await pl.textContent('#inv-empty')), 'jogador abre o inventário da própria ficha (vazio)');
+  await pl.evaluate(() => { window.__fsPaths.length = 0; });
+  await pl.click('[data-inv-panel="cat"]'); await pl.fill('#cat-q', 'poção de cura menor');
+  await pl.click('[data-cat-add="consumivel-pocao-de-cura-menor"]'); await pl.click('[data-cat-add="consumivel-pocao-de-cura-menor"]');
+  ok(/agora você tem 2/.test(await pl.textContent('#msg-cat')), 'adicionar de novo soma: ' + await pl.textContent('#msg-cat'));
+  await pl.fill('#cat-q', 'espada longa'); await pl.click('[data-cat-add="arma-espada-longa"]');
+  await pl.click('[data-inv-panel="novo"]');
+  await pl.click('#nv-ok'); ok(/nome/.test(await pl.textContent('#msg-nv')), 'item manual sem nome pede o nome');
+  await pl.fill('#nv-n', 'Vinho raro'); await pl.fill('#nv-kg', '1.5'); await pl.fill('#nv-gil', '50'); await pl.click('#nv-ok');
+  await pl.waitForTimeout(900);
+  let bd = await bruno();
+  const its = Object.values(bd.itens || {});
+  ok(its.length === 3, 'três itens salvos no banco: ' + its.map((i) => i.n + ' x' + i.q).join(', '));
+  ok(its.some((i) => i.ref === 'consumivel-pocao-de-cura-menor' && +i.q === 2), 'item do livro com quantidade 2');
+  const vinho = its.find((i) => i.n === 'Vinho raro');
+  ok(vinho && vinho.ref === '' && +vinho.kg === 1.5 && vinho.a === 'Ana Souza', 'item manual do jogador com peso e autor: ' + JSON.stringify(vinho));
+  ok(Object.values(bd.caixa || {}).some((e) => e.v === -50 && /Vinho raro/.test(e.m)), 'pagar o item manual lança -50 no dinheiro');
+  ok((await pl.textContent('#o-peso')) === '10', 'peso somado (2 × 3 + 2,5 + 1,5 kg): ' + await pl.textContent('#o-peso'));
+  const paths = await pl.evaluate(() => window.__fsPaths.slice());
+  ok(paths.length > 0 && paths.every((x) => /^chars\.[^.]+\.(itens|caixa)\.[^.]+(\.[^.]+)?$/.test(x)), 'inventário grava por caminho de campo, nunca o mapa inteiro: ' + paths.slice(0, 3).join(' ; '));
+  await pl.click('#seg-iv [data-iv="gil"]');
+  await pl.fill('#cx-v', '30'); await pl.click('#cx-menos');
+  ok(/motivo/.test(await pl.textContent('#msg-cx')), 'dinheiro sem motivo pede o motivo');
+  await pl.fill('#cx-m', 'Comprei flechas'); await pl.click('#cx-menos');
+  await pl.fill('#cx-v', '200'); await pl.fill('#cx-m', 'Ganhei a aposta na taverna'); await pl.click('#cx-mais');
+  await pl.waitForTimeout(900);
+  ok((await pl.textContent('#o-gil')) === '120', 'saldo = 0 - 50 - 30 + 200: ' + await pl.textContent('#o-gil'));
+  ok(/Ganhei a aposta/.test(await pl.textContent('#cx-list .lg:first-child')), 'histórico mostra o mais novo primeiro');
+  await gm.click('a[data-p="mesa"]'); await gm.waitForTimeout(300);
+  ok(/Gil 120/.test(await gm.textContent('.mcard:has(.mc-open:text("Bruno da Ana"))')), 'cartão da Mesa mostra o dinheiro do personagem');
+  await gm.click('.mcard:has(.mc-open:text("Bruno da Ana")) .mc-open'); await gm.waitForTimeout(300);
+  await gm.click('#seg-fi [data-fv="inv"]'); await gm.click('#seg-iv [data-iv="itens"]');
+  ok((await itNames(gm)).includes('Vinho raro'), 'mestre vê o item manual do jogador');
+  await gm.click('[data-inv-panel="novo"]'); await gm.fill('#nv-n', 'Chave do cofre'); await gm.fill('#nv-d', 'Abre o cofre do barão'); await gm.click('#nv-ok');
+  await gm.click('#seg-iv [data-iv="gil"]'); await gm.fill('#cx-v', '500'); await gm.fill('#cx-m', 'Recompensa da missão'); await gm.click('#cx-mais');
+  await gm.waitForTimeout(900); await pl.waitForTimeout(300);
+  await pl.click('#seg-iv [data-iv="itens"]');
+  ok((await itNames(pl)).includes('Chave do cofre'), 'jogador vê ao vivo o item que o mestre criou');
+  ok((await pl.textContent('#o-gil')) === '620', 'jogador vê o dinheiro que o mestre deu: ' + await pl.textContent('#o-gil'));
+  bd = await bruno();
+  ok(Object.values(bd.caixa).some((e) => e.a === 'Mestre' && e.v === 500), 'lançamento do mestre fica marcado como Mestre');
+  await pl.click(ITEM('Vinho raro') + ' .it-nm');
+  await pl.click(ITEM('Vinho raro') + ' [data-it-del]');
+  ok((await pl.textContent(ITEM('Vinho raro') + ' [data-it-del]')) === 'Confirmar remoção', 'remover item pede confirmação');
+  await pl.click(ITEM('Vinho raro') + ' [data-it-del]');
+  await pl.click(ITEM('Poção de cura menor') + ' [data-it-q="-1"]');
+  await pl.click('#seg-iv [data-iv="gil"]');
+  await pl.click('#cx-list .lg:has(b:text("Comprei flechas")) [data-cx-del]'); await pl.click('#cx-list .lg:has(b:text("Comprei flechas")) [data-cx-del]');
+  await pl.waitForTimeout(1000); await gm.waitForTimeout(300);
+  bd = await bruno();
+  const its2 = Object.values(bd.itens), cx2 = Object.values(bd.caixa);
+  ok(!its2.some((i) => i && i.n === 'Vinho raro') && its2.every((i) => i && typeof i === 'object'), 'item removido do banco (campo apagado, sem null)');
+  ok(+its2.find((i) => i.ref === 'consumivel-pocao-de-cura-menor').q === 1, 'quantidade diminuiu para 1');
+  ok(!cx2.some((e) => e && /flechas/.test(e.m)) && cx2.every((e) => e && typeof e === 'object'), 'lançamento apagado do banco');
+  ok((await pl.textContent('#o-gil')) === '650', 'saldo sem o lançamento apagado: ' + await pl.textContent('#o-gil'));
+  await gm.click('#seg-iv [data-iv="itens"]');
+  ok(!(await itNames(gm)).includes('Vinho raro'), 'remoção chega ao mestre');
+  // outro jogador: vê o inventário, mas só para ler
+  const pb2 = await open();
+  await google(pb2, { email: 'beto@teste.com', name: 'Beto Google' });
+  await pb2.click('.mcard:has(.mc-open:text("Bruno da Ana")) .mc-open'); await pb2.waitForTimeout(300);
+  await pb2.click('#seg-fi [data-fv="inv"]'); await pb2.click('#seg-iv [data-iv="itens"]');
+  ok(!(await pb2.isVisible('#inv-btns')) && !(await pb2.isVisible('#cx-form')), 'outro jogador: sem adicionar item nem lançar dinheiro na ficha alheia');
+  ok((await itNames(pb2)).includes('Chave do cofre'), 'outro jogador vê os itens');
+  ok(await pb2.$$eval('.it .qty .btn', (e) => e.length > 0 && e.every((x) => x.hidden)), 'sem botões de quantidade na ficha alheia');
+  ok(await pb2.$eval('.it input[data-bind$=".n"]', (e) => e.disabled), 'campos do item desabilitados na ficha alheia');
+  const wr = await pb2.evaluate(async () => { try { await firebase.firestore().doc('fichas/g-ana@teste.com').update(new (firebase.firestore.FieldPath)('chars', 'x', 'itens', 'y', 'n'), 'roubado'); return 'ok'; } catch (e) { return e.code; } });
+  ok(wr === 'permission-denied', 'outro jogador não grava no inventário alheio: ' + wr);
+  await pb2.close();
+  // ficha antiga (sem itens nem caixa): abre, Gil vira saldo inicial e aceita item novo
+  await gm.evaluate(async () => { await firebase.firestore().doc('fichas/mesa').update(new (firebase.firestore.FieldPath)('chars', 'cantiga'), { nome: 'Ficha antiga', tipo: 'npc', gil: '300', inv: 'Corda velha', base: { car: '0', con: '1', des: '2', for: '3', int: '4', pre: '5' } }); });
+  await gm.click('#b-back'); await gm.waitForTimeout(400);
+  await gm.click('.mcard:has(.mc-open:text("Ficha antiga")) .mc-open'); await gm.waitForTimeout(300);
+  ok((await gm.textContent('#o-gil')) === '300' && (await gm.$eval('[data-bind="inv"]', (e) => e.value)) === 'Corda velha', 'ficha antiga abre: Gil vira saldo inicial e o texto do inventário fica');
+  await gm.click('[data-inv-panel="cat"]'); await gm.fill('#cat-q', 'tocha'); await gm.click('[data-cat-add="item-tocha"]'); await gm.waitForTimeout(900);
+  const antiga = await gm.evaluate(() => JSON.parse(localStorage.getItem('mockfs'))['fichas/mesa'].chars.cantiga);
+  ok(antiga.itens && Object.values(antiga.itens).length === 1 && Object.values(antiga.itens)[0].n === 'Tocha', 'ficha antiga ganha o primeiro item');
+  // copiar e importar leva o inventário junto
+  await pl.click('#seg-fi [data-fv="ficha"]');
+  await pl.evaluate(() => { document.querySelector('#backup-sec details').open = true; });
+  await pl.click('#b-copy'); await pl.waitForTimeout(200);
+  const txt = await pl.$eval('#out-json', (e) => e.value);
+  ok(Object.values(JSON.parse(txt).ficha.itens).some((i) => i.n === 'Chave do cofre'), 'o texto da ficha leva os itens');
+  await pl.fill('#in-json', txt); await pl.click('#b-imp'); await pl.waitForTimeout(800);
+  await pl.click('#seg-fi [data-fv="inv"]'); await pl.click('#seg-iv [data-iv="itens"]');
+  ok((await itNames(pl)).includes('Chave do cofre') && (await pl.textContent('#o-gil')) === '650', 'ficha importada vem com itens e dinheiro');
+  await pl.click('#b-del'); await pl.click('#b-del'); await pl.waitForTimeout(700);
+  await pl.click('a[data-p="mesa"]'); await pl.click('.mcard.mine .mc-open'); await pl.waitForTimeout(250);
+  await pl.screenshot({ path: path.join(DIST, 'shot-inventario.png'), fullPage: true });
+  await gm.click('a[data-p="mesa"]'); await gm.waitForTimeout(200);
   await pl.click('#b-del'); await pl.click('#b-del'); await pl.waitForTimeout(700);
   ok(!(await names(pl)).includes('Bruno da Ana'), 'jogador excluiu a própria ficha');
 

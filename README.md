@@ -28,7 +28,7 @@ O resultado fica em `fonte/dist/index.html`. Copie esse arquivo para a raiz do r
 
 ## Ficha automática
 
-A pasta `ficha/` tem a ficha de personagem automática (também um arquivo só, `ficha/index.html`). Ela calcula PV, PM, C.A., C.R., D.T., LCM e perícias a partir da raça, classe, nível e atributos, e tem abas de consulta de classes, raças, perícias, tabelas e qualidades. As fichas ficam salvas no próprio navegador.
+A pasta `ficha/` tem a ficha de personagem automática (também um arquivo só, `ficha/index.html`). Ela calcula PV, PM, C.A., C.R., D.T., LCM e perícias a partir da raça, classe, nível e atributos, e tem abas de consulta de classes, raças, perícias, tabelas e qualidades. Cada ficha tem um **inventário**: itens do catálogo do livro (armas, armaduras, consumíveis, runas e mais), itens criados na mão, peso carregado e uma conta de **dinheiro** com motivo de cada entrada e saída. As fichas ficam salvas no próprio navegador.
 
 Endereço: https://marcos-mili.github.io/WORLD-ZERO/ficha/
 

@@ -3,11 +3,12 @@
   "private": true,
   "description": "Ferramentas que geram a ficha automática (ficha/index.html) e a Mesa (mesa/index.html) do World Zero.",
   "scripts": {
+    "itens": "node gerar-itens.js",
     "build:ficha": "node build-ficha.js",
     "build:mesa": "node build.js gh && node build.js && node copiar-mesa.js",
-    "build": "npm run build:ficha && npm run build:mesa",
-    "check": "node build-ficha.js --check && node build.js gh && node copiar-mesa.js --check",
-    "test": "node build.js gh && node build.js && node testes/test.js && node testes/test-fb.js"
+    "build": "node gerar-itens.js && npm run build:ficha && npm run build:mesa",
+    "check": "node gerar-itens.js --check && node build-ficha.js --check && node build.js gh && node copiar-mesa.js --check",
+    "test": "node build-ficha.js && node build.js gh && node build.js && node testes/test.js && node testes/test-fb.js && node testes/test-ficha.js"
   },
   "devDependencies": {
     "playwright": "^1.48.0"

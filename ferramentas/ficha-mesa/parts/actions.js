@@ -87,7 +87,7 @@ function writePatch(s, patch) {
   return SES.db.doc('fichas/' + s.owner).update({ chars: o });
 }
 function queue(s, patch) {
-  dirty[s.key] = true; pend[s.key] = deepMerge(pend[s.key] || {}, patch);
+  dirty[s.key] = true; pend[s.key] = mergePatch(pend[s.key] || {}, patch);
   clearTimeout(timers[s.key]); timers[s.key] = setTimeout(function () { flush(s.key); }, 450);
   status('Salvando...');
 }
@@ -104,9 +104,13 @@ function flush(key) {
 }
 function editSheet(key, path, value) {
   var s = SH[key]; if (!s || !canEdit(s)) return;
-  setPath(s.data, path, value);
+  if (value === null) unsetPath(s.data, path); else setPath(s.data, path, value && typeof value === 'object' ? clone(value) : value);
   queue(s, nest(path, value));
 }
+/* inventário: na Mesa grava na ficha aberta com as mesmas permissões das outras edições */
+function invCan() { return canEdit(SH[sel]); }
+function invSet(path, value) { editSheet(sel, path, value); }
+function invWho() { return SES.mode === 'local' ? '' : SES.gm ? 'Mestre' : (SES.names[SES.uid] || 'Jogador'); }
 function createSheet(store, owner, data) {
   var id = 'c' + uid(); data.id = id; data.criado = Date.now();
   var key = store === 'n' ? 'n||' + id : 'f|' + owner + '|' + id, p;
@@ -201,7 +205,7 @@ function sheetCard(s) {
     '<div class="mc-top"><button type="button" class="mc-open" data-open="' + k + '">' + esc(f.nome || 'Sem nome') + '</button><span class="chip' + (f.tipo === 'pc' || !f.tipo ? '' : ' mut') + '">' + tp + '</span></div>' +
     '<div class="mc-sub">' + esc((f.race || 'Sem raça') + ' · ' + (f.cls || 'Sem classe') + ' · Nv ' + c.L) + '<br>' + esc(ownerLabel(s)) + '</div>' +
     (c.pv == null && !has(f.pvAtual) ? '<div class="mbar"><em>PV: escolha uma classe</em></div>' : bar('pv', pvc, c.pv, 'PV')) + (c.pm != null ? bar('pm', pmc, c.pm, 'PM') : '') +
-    '<div class="mc-stats"><span>CA ' + c.ca + '</span><span>CR ' + c.cr + '</span><span>DT ' + c.dt + '</span><span>LCM ' + c.lcm + '</span></div>';
+    '<div class="mc-stats"><span>CA ' + c.ca + '</span><span>CR ' + c.cr + '</span><span>DT ' + c.dt + '</span><span>LCM ' + c.lcm + '</span><span>Gil ' + fGil(saldoGil(f)) + '</span></div>';
   if (ed) {
     var b = function (what, d, lab, al) { return '<button type="button" class="btn" data-k="' + k + '" data-adj="' + what + '" data-d="' + d + '" aria-label="' + al + '">' + lab + '</button>'; };
     h += '<div class="mc-adj"><span class="lab">PV</span>' + b('pv', -5, '−5', 'PV menos 5') + b('pv', -1, '−1', 'PV menos 1') + b('pv', 1, '+1', 'PV mais 1') + b('pv', 5, '+5', 'PV mais 5') + '</div>' +

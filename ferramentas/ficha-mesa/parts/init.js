@@ -39,6 +39,6 @@ function startSession() {
 }
 buildSelects(); buildAttrs(); buildSkills(); buildQuals(); applyTema(); route();
 window.__wzLocalDB = LocalDB;
-window.__wz = { compute: compute, blank: blank, exemplo: exemplo, CLASSES: CLASSES, skillTotal: skillTotal, SES: SES, SH: function () { return SH; } };
+window.__wz = { compute: compute, blank: blank, exemplo: exemplo, CLASSES: CLASSES, skillTotal: skillTotal, ITENS: ITENS, saldoGil: saldoGil, invTotals: invTotals, cur: cur, SES: SES, SH: function () { return SH; } };
 startSession();
 })();
